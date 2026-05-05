@@ -1,38 +1,130 @@
-.App {
-  text-align: center;
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --sidebar-bg: #1a1f2e;
+  --sidebar-text: #a0aec0;
+  --sidebar-active: #ffffff;
+  --sidebar-active-bg: rgba(255,255,255,0.08);
+  --sidebar-border: rgba(255,255,255,0.08);
+  --page-bg: #f7f8fa;
+  --card-bg: #ffffff;
+  --card-border: #e8eaed;
+  --text-primary: #1a202c;
+  --text-secondary: #718096;
+  --text-muted: #a0aec0;
+  --green: #38a169;
+  --green-bg: #f0fff4;
+  --orange: #dd6b20;
+  --orange-bg: #fffaf0;
+  --blue: #3182ce;
+  --blue-bg: #ebf8ff;
+  --red: #e53e3e;
+  --red-bg: #fff5f5;
+  --yellow: #d69e2e;
+  --yellow-bg: #fffff0;
+  --purple: #805ad5;
+  --purple-bg: #faf5ff;
 }
 
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
+@media (prefers-color-scheme: dark) {
+  :root {
+    --page-bg: #0f1117;
+    --card-bg: #1a1f2e;
+    --card-border: #2d3748;
+    --text-primary: #f7fafc;
+    --text-secondary: #a0aec0;
+    --text-muted: #718096;
+    --green-bg: #1a2e1f;
+    --orange-bg: #2d1f0f;
+    --blue-bg: #0f1f2d;
+    --red-bg: #2d0f0f;
+    --yellow-bg: #2d2510;
+    --purple-bg: #1f1030;
   }
 }
 
-.App-header {
-  background-color: #282c34;
-  min-height: 100vh;
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--text-primary);
+  background: var(--page-bg);
+}
+
+button { cursor: pointer; font-family: inherit; }
+
+.page { padding: 1.5rem 2rem; max-width: 1400px; }
+.page-title { font-size: 22px; font-weight: 600; margin-bottom: 4px; }
+.page-subtitle { font-size: 13px; color: var(--text-secondary); margin-bottom: 1.5rem; }
+
+.card {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 1.25rem;
+}
+
+.card-header {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--card-border);
   display: flex;
-  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
-  color: white;
+  justify-content: space-between;
 }
 
-.App-link {
-  color: #61dafb;
+.card-header h3 {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
 }
 
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+.card-header span {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th {
+  text-align: left;
+  padding: 8px 14px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid var(--card-border);
+  white-space: nowrap;
+}
+td {
+  padding: 9px 14px;
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--card-border);
+}
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--page-bg); }
+
+.badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 99px;
+  white-space: nowrap;
+}
+
+.badge-green  { background: var(--green-bg);  color: var(--green); }
+.badge-orange { background: var(--orange-bg); color: var(--orange); }
+.badge-blue   { background: var(--blue-bg);   color: var(--blue); }
+.badge-red    { background: var(--red-bg);    color: var(--red); }
+.badge-yellow { background: var(--yellow-bg); color: var(--yellow); }
+.badge-purple { background: var(--purple-bg); color: var(--purple); }
+
+.my-row td {
+  background: #3182ce !important;
+  color: #ffffff !important;
+  font-weight: 600;
 }
