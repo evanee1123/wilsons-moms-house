@@ -31,20 +31,25 @@ async function fetchTradeTargets() {
   rows.forEach(row => {
     const first = row[0]?.trim()
 
-    if (first === 'BUY TARGETS' || first === 'SELL CANDIDATES') {
-      section = first
+    if (first === 'BUY TARGETS') {
+      section = 'buy'
       headers = null
-      result.push({ Player: first })
+      result.push({ Player: 'BUY TARGETS' })
       return
     }
 
-    // Next non-empty row after section header is the column headers
+    if (first?.startsWith('SELL CANDIDATES')) {
+      section = first
+      headers = null
+      result.push({ Player: 'SELL CANDIDATES', Owner: first.replace('SELL CANDIDATES - ', '') })
+      return
+    }
+
     if (section && !headers && row.some(c => c !== '')) {
       headers = row
       return
     }
 
-    // Data rows
     if (headers && row.some(c => c !== '')) {
       const obj = {}
       headers.forEach((h, i) => { obj[h] = row[i] ?? '' })

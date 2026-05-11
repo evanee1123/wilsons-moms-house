@@ -348,6 +348,9 @@ function PositionalGrades({ rosterGrades, teamOwner }) {
 }
 
 function TradeTargets({ tradeTargets, owner, selectedOwner }) {
+  return null
+
+  /*
   if (selectedOwner !== owner || !owner) return null
 
   const buyLines  = []
@@ -355,8 +358,14 @@ function TradeTargets({ tradeTargets, owner, selectedOwner }) {
   let   section   = null
 
   tradeTargets?.forEach(row => {
-    if (row.Player === 'BUY TARGETS')     { section = 'buy';  return }
-    if (row.Player === 'SELL CANDIDATES') { section = 'sell'; return }
+    if (row.Player === 'BUY TARGETS') {
+      section = 'buy'
+      return
+    }
+    if (row.Player === 'SELL CANDIDATES') {
+      section = row.Owner === owner ? 'sell' : 'other'
+      return
+    }
     if (!row.Player || !row['KTC Value']) return
     if (section === 'buy')  buyLines.push(row)
     if (section === 'sell') sellLines.push(row)
@@ -437,6 +446,7 @@ function TradeTargets({ tradeTargets, owner, selectedOwner }) {
       </div>
     </>
   )
+  */
 }
 
 export default function TeamDeepDive({ data, owner }) {
