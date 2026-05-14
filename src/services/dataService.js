@@ -81,13 +81,11 @@ async function fetchStandings() {
   const userMap = {}
   users.forEach(u => { userMap[u.user_id] = u.display_name || u.username })
 
-  // Fetch all 14 regular season weeks
   const weekPromises = Array.from({ length: 14 }, (_, i) =>
     fetchSleeper(`/league/${LEAGUE_ID}/matchups/${i + 1}`)
   )
   const allWeeks = await Promise.all(weekPromises)
 
-  // Calculate record and points per roster
   const stats = {}
   rosters.forEach(r => {
     stats[r.roster_id] = { wins: 0, losses: 0, pf: 0, pa: 0, games: 0 }
@@ -146,6 +144,10 @@ export async function loadAllData() {
     ktcRankings,
     leagueRosters,
     standings,
+    qbSeasonStats,
+    rbSeasonStats,
+    wrSeasonStats,
+    teSeasonStats,
   ] = await Promise.all([
     fetchSheet('Team Overview'),
     fetchSheet('Player Universe'),
@@ -156,6 +158,10 @@ export async function loadAllData() {
     fetchSheet('KTC Rankings'),
     fetchSheet('League Rosters'),
     fetchStandings(),
+    fetchSheet('QB Season Stats'),
+    fetchSheet('RB Season Stats'),
+    fetchSheet('WR Season Stats'),
+    fetchSheet('TE Season Stats'),
   ])
 
   return {
@@ -168,6 +174,10 @@ export async function loadAllData() {
     ktcRankings,
     leagueRosters,
     standings,
+    qbSeasonStats,
+    rbSeasonStats,
+    wrSeasonStats,
+    teSeasonStats,
     lastUpdated: new Date().toLocaleString(),
   }
 }
