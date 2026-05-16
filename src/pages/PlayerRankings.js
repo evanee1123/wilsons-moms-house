@@ -174,7 +174,6 @@ console.log('Position:', pos)
     { key: 'Rush Yards', label: 'RYDS' },
     { key: 'Rush TDs', label: 'RTD' },
     { key: 'Fumbles Lost', label: 'FL' },
-    { key: 'Pass EPA', label: 'EPA' },
   ]
  
   const rbCols = [
@@ -216,7 +215,6 @@ console.log('Position:', pos)
     { key: 'Rush Yards', label: 'RYDS' },
     { key: 'Rush TDs', label: 'RTD' },
     { key: 'Fumbles Lost', label: 'FL' },
-    { key: 'Rec EPA', label: 'EPA' },
   ]
  
   const cols = pos === 'QB' ? qbCols : pos === 'RB' ? rbCols : wrTeCols
@@ -256,7 +254,7 @@ console.log('Position:', pos)
         onClick={e => e.stopPropagation()}
         style={{
           background: 'var(--card-bg)', borderRadius: '12px', width: '100%',
-          maxWidth: '720px', maxHeight: '90vh', overflowY: 'auto',
+          maxWidth: '900px', maxHeight: '90vh', overflowY: 'auto',
           boxShadow: '0 20px 60px rgba(0,0,0,0.4)',
           border: '1px solid var(--card-border)'
         }}
@@ -324,7 +322,7 @@ console.log('Position:', pos)
                             ? (!isNaN(parseFloat(value)) && parseFloat(value) >= 0 ? '#48bb78' : '#fc8181')
                             : 'var(--text-primary)'
                         }}>{value}</span>
-                        {sub && <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>{sub}</div>}
+                        {sub && <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{sub}</div>}
                       </div>
                     </div>
                     {bar && <MiniBar value={bar.v} max={bar.max} color={bar.color} negative={bar.neg} />}
@@ -594,34 +592,46 @@ export default function PlayerRankings({ data }) {
       </div>
  
       <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '1rem', alignItems: 'center' }}>
-        <input
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          placeholder='Search players...'
-          style={{
-            padding: '6px 12px', borderRadius: '6px', fontSize: '13px',
-            border: '1px solid var(--card-border)', background: 'var(--card-bg)',
-            color: 'var(--text-primary)', flex: 1, minWidth: '160px'
-          }}
-        />
-        <button onClick={() => setShowFilters(s => !s)} style={{
-          padding: '6px 14px', borderRadius: '6px', fontSize: '12px', fontWeight: 600,
-          border: `1px solid ${activeFilterCount > 0 ? 'var(--blue)' : 'var(--card-border)'}`,
-          cursor: 'pointer',
-          background: activeFilterCount > 0 ? 'var(--blue)' : 'var(--card-bg)',
-          color: activeFilterCount > 0 ? '#fff' : 'var(--text-secondary)',
-          display: 'flex', alignItems: 'center', gap: '6px'
-        }}>
-          ⚙ Filters {activeFilterCount > 0 && `(${activeFilterCount})`}
-        </button>
-        <button onClick={() => setShowAll(s => !s)} style={{
-          padding: '6px 14px', borderRadius: '6px', fontSize: '12px', fontWeight: 600,
-          border: '1px solid var(--card-border)', cursor: 'pointer',
-          background: 'var(--card-bg)', color: 'var(--text-secondary)',
-        }}>
-          {showAll ? 'Rostered only' : 'Show all'}
-        </button>
-      </div>
+  <div style={{ position: 'relative', width: '220px' }}>
+    <input
+      value={search}
+      onChange={e => setSearch(e.target.value)}
+      placeholder='Search players...'
+      style={{
+        padding: '6px 12px', paddingRight: '32px', borderRadius: '6px', fontSize: '13px',
+        border: '1px solid var(--card-border)', background: 'var(--card-bg)',
+        color: 'var(--text-primary)', width: '100%', boxSizing: 'border-box'
+      }}
+    />
+    {search && (
+      <button
+        onClick={() => setSearch('')}
+        style={{
+          position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)',
+          background: 'none', border: 'none', cursor: 'pointer',
+          color: 'var(--text-muted)', fontSize: '22px', fontWeight: 700, lineHeight: 1, padding: 0
+        }}
+      >x</button>
+    )}
+  </div>
+  <button onClick={() => setShowFilters(s => !s)} style={{
+    padding: '6px 14px', borderRadius: '6px', fontSize: '12px', fontWeight: 600,
+    border: `1px solid ${activeFilterCount > 0 ? 'var(--blue)' : 'var(--card-border)'}`,
+    cursor: 'pointer',
+    background: activeFilterCount > 0 ? 'var(--blue)' : 'var(--card-bg)',
+    color: activeFilterCount > 0 ? '#fff' : 'var(--text-secondary)',
+    display: 'flex', alignItems: 'center', gap: '6px'
+  }}>
+    ⚙ Filters {activeFilterCount > 0 && `(${activeFilterCount})`}
+  </button>
+  <button onClick={() => setShowAll(s => !s)} style={{
+    padding: '6px 14px', borderRadius: '6px', fontSize: '12px', fontWeight: 600,
+    border: '1px solid var(--card-border)', cursor: 'pointer',
+    background: 'var(--card-bg)', color: 'var(--text-secondary)',
+  }}>
+    {showAll ? 'Rostered only' : 'Show all'}
+  </button>
+</div>
  
       {activeFilterCount > 0 && (
         <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '0.75rem' }}>
