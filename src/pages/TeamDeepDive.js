@@ -1,5 +1,7 @@
 import { useState } from 'react'
 
+import PlayerDetailModal from '../components/PlayerDetailModal'
+
 const TIER_COLORS = {
   'Cornerstone':           { bg: '#f6e05e', color: '#744210' },
   'Upside Premier':        { bg: '#b794f4', color: '#322659' },
@@ -72,7 +74,7 @@ function TierBadge({ tier }) {
   )
 }
 
-function RosterSection({ players, position }) {
+function RosterSection({ players, position, onPlayerClick }) {
   const posPlayers = players
     .filter(p => p.Position === position)
     .sort((a, b) => parseFloat(b['KTC Value']) - parseFloat(a['KTC Value']))
@@ -117,9 +119,12 @@ function RosterSection({ players, position }) {
           </thead>
           <tbody>
             {posPlayers.map(p => (
-              <tr key={p.Player} style={{
-                background: p['On Taxi'] === 'True' ? 'rgba(246,224,94,0.1)' : 'transparent'
-              }}>
+              <tr key={p.Player} 
+                onClick={() => onPlayerClick(p)}
+                style={{
+                  cursor: 'pointer',
+                  background: p['On Taxi'] === 'True' ? 'rgba(246,224,94,0.1)' : 'transparent'
+                }}>
                 <td style={{ padding: '7px 10px', fontWeight: 500, color: 'var(--text-primary)',
                              borderBottom: '1px solid var(--card-border)' }}>
                   {p.Player}
@@ -457,6 +462,7 @@ export default function TeamDeepDive({ data, owner }) {
   const teamPlayers  = data?.leagueRosters?.filter(p => p.Owner === teamOwner) || []
   const teamOverview = data?.teamOverview?.find(t => t.Owner === teamOwner)
   const standings    = data?.standings?.find(s => s.owner === teamOwner)
+  const [selectedPlayer, setSelectedPlayer] = useState(null)
 
   return (
     <div className='page'>
@@ -487,7 +493,15 @@ export default function TeamDeepDive({ data, owner }) {
         <div>
           <div className='card' style={{ padding: '1rem', overflow: 'visible' }}>
             {['QB', 'RB', 'WR', 'TE'].map(pos => (
-              <RosterSection key={pos} players={teamPlayers} position={pos} />
+              <RosterSection
+                key={pos}
+                players={teamPlayers}
+                position={pos}
+                onPlayerClick={p => {
+                  const full = data?.playerUniverse?.find(u => u.Player === p.Player)
+                  setSelectedPlayer(full || p)
+                }}
+              />
             ))}
           </div>
         </div>
@@ -511,6 +525,14 @@ export default function TeamDeepDive({ data, owner }) {
         owner={owner}
         selectedOwner={teamOwner}
       />
+
+      {selectedPlayer && (
+        <PlayerDetailModal
+          player={selectedPlayer}
+          data={data}
+          onClose={() => setSelectedPlayer(null)}
+        />
+      )}
     </div>
   )
 }
