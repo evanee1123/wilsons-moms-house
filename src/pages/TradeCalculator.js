@@ -26,7 +26,8 @@ function SearchBox({ label, assets, onAdd, allPlayers, side }) {
         const name = p.Player || p['Player / Pick'] || ''
         return name.toLowerCase().includes(query.toLowerCase())
       })
-      .slice(0, 8)
+      .sort((a, b) => parseInt(b['KTC Value'] || 0) - parseInt(a['KTC Value'] || 0))
+      .slice(0, 25)
   }, [query, allPlayers])
 
   function handleSelect(player) {
@@ -55,7 +56,7 @@ function SearchBox({ label, assets, onAdd, allPlayers, side }) {
           position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 1000,
           background: 'var(--card-bg)', border: '1px solid var(--card-border)',
           borderRadius: '8px', boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
-          maxHeight: '240px', overflowY: 'auto', marginTop: '4px'
+          maxHeight: '800px', overflowY: 'auto', marginTop: '4px'
         }}>
           {results.map((p, i) => {
             const name = p.Player || p['Player / Pick'] || ''
@@ -254,17 +255,13 @@ export default function TradeCalculator({ data }) {
   // Combined player + pick list for search
   const allPlayers = useMemo(() => {
     const players = data?.playerUniverse || []
-    const picks   = (data?.pickPortfolio || [])
-      .filter((p, i, arr) =>
-        arr.findIndex(x => x['Pick Name'] === p['Pick Name']) === i
-      )
-      .map(p => ({
-        Player:           p['Pick Name'],
-        'Player / Pick':  p['Pick Name'],
-        Position:         'Pick',
-        'KTC Value':      p['KTC Value'],
-        'Combined Score': p['KTC Value'],
-      }))
+    const picks = (data?.pickValues || []).map(p => ({
+      Player:           p['Pick Name'],
+      'Player / Pick':  p['Pick Name'],
+      Position:         'Pick',
+      'KTC Value':      p['KTC Value'],
+      'Combined Score': p['KTC Value'],
+    }))
     return [...players, ...picks]
   }, [data])
 

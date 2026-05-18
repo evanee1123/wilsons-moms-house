@@ -177,10 +177,12 @@ export default function PickPortfolio({ data }) {
                   <td>{p.Year}</td>
                   <td>{getRoundLabel(p.Round)}</td>
                   <td>
-                    <span className={
-                      p.Tier === 'Early' ? 'badge badge-green' :
-                      p.Tier === 'Mid'   ? 'badge badge-yellow' : 'badge badge-red'
-                    }>{p.Tier}</span>
+                    {p.Year !== '2026' && (
+                      <span className={
+                        p.Tier === 'Early' ? 'badge badge-green' :
+                        p.Tier === 'Mid'   ? 'badge badge-yellow' : 'badge badge-red'
+                      }>{p.Tier}</span>
+                    )}
                   </td>
                   <td style={{ color: 'var(--text-secondary)' }}>{p['Original Owner']}</td>
                   <td style={{ fontWeight: 500 }}>{p['Current Owner']}</td>
