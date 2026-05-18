@@ -6,6 +6,7 @@ import TeamDeepDive from './pages/TeamDeepDive'
 import PlayerRankings from './pages/PlayerRankings'
 import PickPortfolio from './pages/PickPortfolio'
 import TradeCalculator from './pages/TradeCalculator'
+import TradeHistory from './pages/TradeHistory'
 import './App.css'
 
 export default function App() {
@@ -42,7 +43,8 @@ export default function App() {
     team:    TeamDeepDive,
     players: PlayerRankings,
     picks:   PickPortfolio,
-    trade:   TradeCalculator
+    trade:   TradeCalculator,
+    tradehistory: TradeHistory,
   }
   const PageComponent = pages[page] || Home
 

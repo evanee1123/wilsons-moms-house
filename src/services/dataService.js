@@ -149,6 +149,7 @@ export async function loadAllData() {
     wrSeasonStats,
     teSeasonStats,
     pickValues,
+    tradeHistory,
   ] = await Promise.all([
     fetchSheet('Team Overview'),
     fetchSheet('Player Universe'),
@@ -164,6 +165,7 @@ export async function loadAllData() {
     fetchSheet('WR Season Stats'),
     fetchSheet('TE Season Stats'),
     fetchSheet('Pick Values'),
+    fetchSheet('Trade History'),
   ])
 
   return {
@@ -181,6 +183,7 @@ export async function loadAllData() {
     wrSeasonStats,
     teSeasonStats,
     pickValues,
+    tradeHistory,
     lastUpdated: new Date().toLocaleString(),
   }
 }
