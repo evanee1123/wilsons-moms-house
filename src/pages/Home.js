@@ -78,7 +78,7 @@ function StandingsTable({ standings, teamOverview, owner }) {
     <div className='card'>
       <div className='card-header'>
         <h3>League Standings</h3>
-        <span>{new Date().getFullYear()} Regular Season · Weeks 1–14</span>
+        <span>{new Date().getFullYear()} Regular Season</span>
       </div>
       <div className='table-scroll'>
         <table>
@@ -181,7 +181,7 @@ export default function Home({ data, owner }) {
     <div className='page'>
       <div className='page-title'>League Overview</div>
       <div className='page-subtitle'>
-        2025 Season · 10 teams · Last updated {data.lastUpdated}
+        {new Date().getFullYear()} Season · {data.teamOverview?.length || 0} teams · Last updated {data.lastUpdated}
       </div>
 
       <div style={{
