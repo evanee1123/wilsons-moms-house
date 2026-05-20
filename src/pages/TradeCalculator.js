@@ -176,7 +176,7 @@ function ValueBar({ giveCombined, receiveCombined, nGive, nReceive }) {
           <div style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-primary)' }}>{giveNeeded.toLocaleString()}</div>
           <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '2px' }}>
             Face: {giveCombined.toLocaleString()}
-            {nReceive > nGive && adj > 0 && ` + ${adj.toLocaleString()} stud tax`}
+            {nReceive > nGive && adj > 0 && ` + ${adj.toLocaleString()} value adjustment`}
           </div>
         </div>
         <div style={{ background: 'var(--page-bg)', borderRadius: '8px', padding: '10px 12px' }}>
@@ -184,7 +184,7 @@ function ValueBar({ giveCombined, receiveCombined, nGive, nReceive }) {
           <div style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-primary)' }}>{receiveNeeded.toLocaleString()}</div>
           <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '2px' }}>
             Face: {receiveCombined.toLocaleString()}
-            {nGive > nReceive && adj > 0 && ` + ${adj.toLocaleString()} stud premium`}
+            {nGive > nReceive && adj > 0 && ` + ${adj.toLocaleString()} value adjustment`}
           </div>
         </div>
       </div>
@@ -272,7 +272,7 @@ export default function TradeCalculator({ data }) {
     <div className='page'>
       <div className='page-title'>Trade Calculator</div>
       <div className='page-subtitle'>
-        Uses combined score (60% KTC + 40% production) · Includes stud tax adjustment
+        Uses combined score (60% KTC + 40% production) · Includes value adjustment
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem', marginBottom: '1.25rem' }}>
