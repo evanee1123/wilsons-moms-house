@@ -8,6 +8,7 @@ export default function Sidebar({ page, setPage, owner, setOwner,
     { id: 'picks',   label: 'Pick Portfolio',   icon: '◈' },
     { id: 'trade',   label: 'Trade Calculator', icon: '⇄' },
     { id: 'tradehistory', label: 'Trade History',    icon: '📋' },
+    { id: 'history', label: 'League History', icon: '🏆' },
   ]
 
   return (

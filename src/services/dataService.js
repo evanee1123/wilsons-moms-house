@@ -150,6 +150,11 @@ export async function loadAllData() {
     teSeasonStats,
     pickValues,
     tradeHistory,
+    historyStandings,
+    historyAllTime,
+    historyChampions,
+    historyTopWeeks,
+    historyPlayerGames,
   ] = await Promise.all([
     fetchSheet('Team Overview'),
     fetchSheet('Player Universe'),
@@ -166,6 +171,11 @@ export async function loadAllData() {
     fetchSheet('TE Season Stats'),
     fetchSheet('Pick Values'),
     fetchSheet('Trade History'),
+    fetchSheet('History Standings'),
+    fetchSheet('History All-Time'),
+    fetchSheet('History Champions'),
+    fetchSheet('History Top Weeks'),
+    fetchSheet('History Player Games'),
   ])
 
   return {
@@ -184,6 +194,11 @@ export async function loadAllData() {
     teSeasonStats,
     pickValues,
     tradeHistory,
+    historyStandings,
+    historyAllTime,
+    historyChampions,
+    historyTopWeeks,
+    historyPlayerGames,
     lastUpdated: new Date().toLocaleString(),
   }
 }

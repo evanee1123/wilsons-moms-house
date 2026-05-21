@@ -7,6 +7,7 @@ import PlayerRankings from './pages/PlayerRankings'
 import PickPortfolio from './pages/PickPortfolio'
 import TradeCalculator from './pages/TradeCalculator'
 import TradeHistory from './pages/TradeHistory'
+import LeagueHistory from './pages/LeagueHistory'
 import './App.css'
 
 export default function App() {
@@ -45,6 +46,7 @@ export default function App() {
     picks:   PickPortfolio,
     trade:   TradeCalculator,
     tradehistory: TradeHistory,
+    history:      LeagueHistory,
   }
   const PageComponent = pages[page] || Home
 
