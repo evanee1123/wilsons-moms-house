@@ -155,6 +155,7 @@ export async function loadAllData() {
     historyChampions,
     historyTopWeeks,
     historyPlayerGames,
+    historyBrackets,
   ] = await Promise.all([
     fetchSheet('Team Overview'),
     fetchSheet('Player Universe'),
@@ -176,6 +177,7 @@ export async function loadAllData() {
     fetchSheet('History Champions'),
     fetchSheet('History Top Weeks'),
     fetchSheet('History Player Games'),
+    fetchSheet('History Brackets'),
   ])
 
   return {
@@ -199,6 +201,7 @@ export async function loadAllData() {
     historyChampions,
     historyTopWeeks,
     historyPlayerGames,
+    historyBrackets,
     lastUpdated: new Date().toLocaleString(),
   }
 }
