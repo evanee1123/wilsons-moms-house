@@ -81,55 +81,20 @@ async function fetchStandings() {
   const userMap = {}
   users.forEach(u => { userMap[u.user_id] = u.display_name || u.username })
 
-  const weekPromises = Array.from({ length: 14 }, (_, i) =>
-    fetchSleeper(`/league/${LEAGUE_ID}/matchups/${i + 1}`)
-  )
-  const allWeeks = await Promise.all(weekPromises)
-
-  const stats = {}
-  rosters.forEach(r => {
-    stats[r.roster_id] = { wins: 0, losses: 0, pf: 0, pa: 0, games: 0 }
+  return rosters.map(r => {
+    const wins   = r.settings?.wins   || 0
+    const losses = r.settings?.losses || 0
+    const games  = wins + losses
+    const pf     = r.settings?.fpts         || 0
+    const pa     = r.settings?.fpts_against || 0
+    return {
+      owner:  userMap[r.owner_id] || 'Unknown',
+      wins,
+      losses,
+      avgPF:  games > 0 ? (pf / games).toFixed(1) : '0.0',
+      avgPA:  games > 0 ? (pa / games).toFixed(1) : '0.0',
+    }
   })
-
-  allWeeks.forEach(week => {
-    if (!week || week.length === 0) return
-    const matchupMap = {}
-    week.forEach(team => {
-      if (!matchupMap[team.matchup_id]) matchupMap[team.matchup_id] = []
-      matchupMap[team.matchup_id].push(team)
-    })
-    Object.values(matchupMap).forEach(matchup => {
-      if (matchup.length !== 2) return
-      const [a, b] = matchup
-      const aPoints = a.points || 0
-      const bPoints = b.points || 0
-      stats[a.roster_id].pf    += aPoints
-      stats[a.roster_id].pa    += bPoints
-      stats[a.roster_id].games += 1
-      stats[b.roster_id].pf    += bPoints
-      stats[b.roster_id].pa    += aPoints
-      stats[b.roster_id].games += 1
-      if (aPoints > bPoints) {
-        stats[a.roster_id].wins++
-        stats[b.roster_id].losses++
-      } else {
-        stats[b.roster_id].wins++
-        stats[a.roster_id].losses++
-      }
-    })
-  })
-
-  return rosters.map(r => ({
-    owner:   userMap[r.owner_id] || 'Unknown',
-    wins:    stats[r.roster_id]?.wins    || 0,
-    losses:  stats[r.roster_id]?.losses  || 0,
-    avgPF:   stats[r.roster_id]?.games > 0
-               ? (stats[r.roster_id].pf / stats[r.roster_id].games).toFixed(1)
-               : '0.0',
-    avgPA:   stats[r.roster_id]?.games > 0
-               ? (stats[r.roster_id].pa / stats[r.roster_id].games).toFixed(1)
-               : '0.0',
-  }))
 }
 
 // ---- Main data loader ----
