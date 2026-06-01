@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useData } from './hooks/useData'
+import { AuthProvider, useAuth } from './contexts/AuthContext'
 import Sidebar from './components/Sidebar'
 import Home from './pages/Home'
 import TeamDeepDive from './pages/TeamDeepDive'
@@ -8,13 +9,24 @@ import PickPortfolio from './pages/PickPortfolio'
 import TradeCalculator from './pages/TradeCalculator'
 import TradeHistory from './pages/TradeHistory'
 import LeagueHistory from './pages/LeagueHistory'
+import Login from './pages/Login'
+import Signup from './pages/Signup'
+import ProtectedRoute from './components/ProtectedRoute'
 import './App.css'
 
-export default function App() {
+function AppInner() {
   const [page,        setPage]        = useState('home')
   const [owner,       setOwner]       = useState('')
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const { data, loading, error, refresh } = useData()
+  const { userProfile } = useAuth()
+
+  // Auto-select logged-in user's team in the public team selector
+  useEffect(() => {
+    if (userProfile?.rosterOwnerName) {
+      setOwner(userProfile.rosterOwnerName)
+    }
+  }, [userProfile])
 
   if (loading) return (
     <div style={{
@@ -38,6 +50,9 @@ export default function App() {
       <button onClick={refresh}>Try again</button>
     </div>
   )
+
+  if (page === 'login')  return <Login  setPage={setPage} />
+  if (page === 'signup') return <Signup setPage={setPage} />
 
   const pages = {
     home:    Home,
@@ -84,9 +99,20 @@ export default function App() {
           <div style={{ width: '52px' }} />
         </div>
         <div style={{ flex: 1 }}>
-          <PageComponent data={data} owner={owner} setPage={setPage} />
+          {page === 'blueprint'
+            ? <ProtectedRoute setPage={setPage}><div className='page'><h2>Blueprint — coming soon</h2></div></ProtectedRoute>
+            : <PageComponent data={data} owner={owner} setPage={setPage} />
+          }
         </div>
       </main>
     </div>
+  )
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <AppInner />
+    </AuthProvider>
   )
 }

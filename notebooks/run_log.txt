@@ -1,0 +1,2800 @@
+=============================
+Run started: Tue May 19 13:14:26 CDT 2026
+Config loaded ✅
+Fetching NFL player database...
+Rosters loaded: 10 teams, 254 skill position players ✅
+Scraping KTC rankings...
+  Scraping page 0...
+    Found 50 players
+  Scraping page 1...
+    Found 50 players
+  Scraping page 2...
+    Found 50 players
+  Scraping page 3...
+    Found 50 players
+  Scraping page 4...
+    Found 50 players
+  Scraping page 5...
+    Found 50 players
+  Scraping page 6...
+    Found 50 players
+  Scraping page 7...
+    Found 50 players
+  Scraping page 8...
+    Found 50 players
+  Scraping page 9...
+    Found 50 players
+
+Total scraped: 500
+✅ KTC scrape complete — 464 players, 36 picks
+   Top player: Ja'Marr Chase (9,999)
+   Last player: Matthew Hibner (64)
+   Pick range: 7,124 (highest) — 1,279 (lowest)
+Pulling seasons: [2022, 2023, 2024, 2025]
+2022 done.
+2023 done.
+2024 done.
+2025 done.
+Downcasting floats.
+Multi-year production calculated: 637 players ✅
+Loading draft capital...
+Draft capital loaded: 6644 players
+     draft_name  draft_year  draft_round  draft_pick  draft_value
+ Courtney Brown        2000            1           1         3000
+LaVar Arrington        2000            1           2         2635
+  Chris Samuels        2000            1           3         2421
+  Peter Warrick        2000            1           4         2270
+    Jamal Lewis        2000            1           5         2152
+
+Loading advanced stats...
+2024 done.
+2025 done.
+Downcasting floats.
+Loading snap counts...
+Building player ID lookup...
+ID lookup built: 18289 players
+name_to_gsis built: 17740 players
+Sample: [('Isaako Aaitui', '00-0028830'), ('Israel Abanikanda', '00-0038389'), ('Jon Abbate', '00-0024644')]
+
+Calculating EPA...
+Position average EPA per play:
+  QB:    -0.0318
+  RB:    -0.1184
+  WR/TE: 0.0663
+
+Top QBs by EPA per dropback (min 100 dropbacks):
+          player  epa_per_play  total_plays
+    Malik Willis      0.429545          101
+      Jared Goff      0.221499         1187
+   Lamar Jackson      0.208347          839
+      Josh Allen      0.190189         1005
+     Jordan Love      0.181172          904
+     Brock Purdy      0.172910          785
+Matthew Stafford      0.148913         1167
+      Derek Carr      0.145866          290
+      Drake Maye      0.140153          914
+      Joe Burrow      0.129900          980
+
+Top RBs by EPA per carry (min 50 carries):
+             player  epa_per_play  total_plays
+        Taysom Hill      0.106968           91
+   Jeremy McNichols      0.103274          101
+Chris Rodriguez Jr.      0.096175          147
+    Emari Demercado      0.080306           68
+      Derrick Henry      0.078738          632
+       Jahmyr Gibbs      0.065715          493
+      Dameon Pierce      0.059303           54
+     Isaac Guerendo      0.057763           84
+        Sean Tucker      0.047582          136
+ TreVeyon Henderson      0.046857          180
+
+Top WR/TEs by EPA per target (min 100 targets):
+          player  epa_per_play  total_plays
+   George Kittle      0.701012          163
+    Tucker Kraft      0.664112          115
+     Alec Pierce      0.627988          153
+      Puka Nacua      0.615552          273
+  Terry McLaurin      0.576234          178
+   DeVonta Smith      0.544944          204
+    Stefon Diggs      0.532840          166
+     Sam LaPorta      0.514024          132
+  Kayshon Boutte      0.500842          115
+Jameson Williams      0.485936          193
+
+Top QBs by rush yards:
+         player  rush_attempts  rush_yards  rush_tds  rush_epa
+  Lamar Jackson            186      1268.0       6.0  0.220681
+ Jayden Daniels            192      1187.0       8.0  0.382986
+     Josh Allen            188      1138.0      26.0  0.567398
+    Jalen Hurts            225      1085.0      22.0  0.336414
+     Drake Maye            135       902.0       6.0  0.332886
+ Caleb Williams            141       890.0       3.0  0.186655
+ Justin Herbert            123       853.0       4.0  0.355071
+         Bo Nix            144       821.0       9.0  0.339326
+ Baker Mayfield            100       777.0       4.0  0.541550
+Patrick Mahomes             94       766.0       7.0  0.705354
+
+Calculating target share...
+Calculating RB red zone...
+Merging snap share with ID lookup...
+
+Advanced stats calculated ✅
+
+Target share sample (min 50 targets):
+            player  avg_target_share  avg_air_yards  avg_yprr  total_targets
+  Justin Jefferson          0.299072         1560.0  8.667414            296
+Jaxon Smith-Njigba          0.298966         1509.5  9.768116            301
+ Amon-Ra St. Brown          0.291163         1235.5  8.906070            313
+     Ja'Marr Chase          0.290280         1548.0  8.696216            360
+      Trey McBride          0.277632         1014.0  7.542077            317
+       Zay Flowers          0.273206         1205.5  9.613876            236
+ Wan'Dale Robinson          0.264776          921.5  6.092173            281
+      Drake London          0.255460         1472.0  8.072077            272
+ Tetairoa McMillan          0.253112         1410.0  8.303279            122
+        A.J. Brown          0.245580         1296.5  9.706484            218
+        Puka Nacua          0.241203         1202.5  9.791831            273
+      Emeka Egbuka          0.234862         1572.0  7.343750            128
+     DeVonta Smith          0.229716         1082.0  9.048830            204
+  Courtland Sutton          0.228839         1664.5  8.079704            260
+      Keenan Allen          0.226871         1071.0  6.208816            245
+
+Red zone leaders (RB, min 5 carries):
+             player  rz5_carries
+      Derrick Henry           47
+    Jonathan Taylor           44
+        Josh Jacobs           44
+     Kyren Williams           38
+   David Montgomery           35
+     Saquon Barkley           35
+    Zach Charbonnet           32
+        Kareem Hunt           32
+         James Cook           31
+   Javonte Williams           30
+     Bijan Robinson           29
+       Jahmyr Gibbs           27
+        Chase Brown           27
+      D'Andre Swift           24
+Rhamondre Stevenson           24
+
+Top QBs by rush yards:
+         player  rush_attempts  rush_yards  rush_tds  rush_epa
+  Lamar Jackson            186      1268.0       6.0  0.220681
+ Jayden Daniels            192      1187.0       8.0  0.382986
+     Josh Allen            188      1138.0      26.0  0.567398
+    Jalen Hurts            225      1085.0      22.0  0.336414
+     Drake Maye            135       902.0       6.0  0.332886
+ Caleb Williams            141       890.0       3.0  0.186655
+ Justin Herbert            123       853.0       4.0  0.355071
+         Bo Nix            144       821.0       9.0  0.339326
+ Baker Mayfield            100       777.0       4.0  0.541550
+Patrick Mahomes             94       766.0       7.0  0.705354
+name_to_gsis built: 17740 players
+Sample: [('Isaako Aaitui', '00-0028830'), ('Israel Abanikanda', '00-0038389'), ('Jon Abbate', '00-0024644')]
+✅ Rankings merged with multi-year production
+   Players with production history: 362
+   Players without history (rookies): 102
+After dedup: 254 players
+✅ Merged df: (254, 20) — 253 matched, 1 unmatched
+
+Unmatched players:
+          name position          owner
+Zonovan Knight       RB sethfriedman12
+✅ Pick portfolio built: 120 picks
+
+Sample 2026 picks:
+year  round  slot pick_display_name original_owner_name current_owner_name  ktc_value
+2026      1   1.0         2026 1.01            jsinykin           jsinykin       5665
+2026      2   1.0         2026 2.01            jsinykin           jsinykin       3286
+2026      3   1.0         2026 3.01            jsinykin           Akracoon       2281
+2026      4   1.0         2026 4.01            jsinykin           Akracoon       1703
+2026      1  10.0         2026 1.10      GreyWaedekin27           jsinykin       3910
+2026      2  10.0         2026 2.10      GreyWaedekin27           gavinw20       2788
+2026      3  10.0         2026 3.10      GreyWaedekin27           gavinw20       2027
+2026      4  10.0         2026 4.10      GreyWaedekin27       Herschey6153       1468
+2026      1   2.0         2026 1.02        ekleiner1123       ekleiner1123       5665
+2026      2   2.0         2026 2.02        ekleiner1123       ekleiner1123       3286
+
+Sample 2027 picks:
+year  round pick_display_name original_owner_name current_owner_name  ktc_value
+2027      1      2027 Mid 1st        ekleiner1123       ekleiner1123       5640
+2027      2      2027 Mid 2nd        ekleiner1123       ekleiner1123       3477
+2027      3      2027 Mid 3rd        ekleiner1123       ekleiner1123       2455
+2027      4      2027 Mid 4th        ekleiner1123           gavinw20       1759
+2027      1      2027 Mid 1st        Herschey6153           Akracoon       5640
+Snap share matched: 3094 / 3192
+Advanced stats df built: 18289 players
+Players matched to gsis_id: 253 / 254
+Unmatched players:
+          name position          owner
+Zonovan Knight       RB sethfriedman12
+merged_df after advanced stats merge: (254, 45)
+
+Advanced stats coverage:
+  EPA data:         249 / 254 players
+  Snap share:       246 / 254 players
+  Draft capital:    247 / 254 players
+  Target share:     217 / 254 players
+  RZ carries:       86 / 254 players
+
+Sample — your key players:
+
+  Drake Maye
+    EPA vs avg:    0.1720
+    Snap %:        88.1%
+    Draft value:   2421
+    Target share:  0.2%
+    RZ carries:    N/A
+
+  Puka Nacua
+    EPA vs avg:    0.5493
+    Snap %:        69.0%
+    Draft value:   274
+    Target share:  24.1%
+    RZ carries:    1
+
+  Trey McBride
+    EPA vs avg:    0.3179
+    Snap %:        90.6%
+    Draft value:   890
+    Target share:  27.8%
+    RZ carries:    1
+
+  Kyren Williams
+    EPA vs avg:    0.0861
+    Snap %:        77.3%
+    Draft value:   314
+    Target share:  8.0%
+    RZ carries:    38
+
+  Bijan Robinson
+    EPA vs avg:    0.1280
+    Snap %:        76.8%
+    Draft value:   1905
+    Target share:  16.5%
+    RZ carries:    29
+
+  Tetairoa McMillan
+    EPA vs avg:    0.1410
+    Snap %:        87.2%
+    Draft value:   1905
+    Target share:  25.3%
+    RZ carries:    N/A
+
+  Jahmyr Gibbs
+    EPA vs avg:    0.1841
+    Snap %:        61.1%
+    Draft value:   1691
+    Target share:  14.6%
+    RZ carries:    27
+RB tiers assigned ✅
+
+RB tier distribution:
+rb_tier_new
+Serviceable              15
+Jag Insurance            12
+Jag Developmental        11
+Mainstay                  9
+Upside Shot               8
+Cornerstone               5
+Upside Premier            3
+Productive Vet            3
+Short-term Production     3
+Foundational              3
+Replaceable               2
+Short-term Winner         1
+Name: count, dtype: int64
+WR tiers assigned ✅
+
+WR tier distribution:
+wr_tier_new
+Serviceable              30
+Foundational             12
+Jag Insurance            12
+Mainstay                  8
+Cornerstone               8
+Jag Developmental         8
+Upside Premier            7
+Replaceable               7
+Upside Shot               4
+Short-term Production     2
+Name: count, dtype: int64
+TE tiers assigned ✅
+
+TE tier distribution:
+te_tier_new
+Serviceable              12
+Mainstay                  7
+Upside Shot               3
+Jag Developmental         3
+Foundational              3
+Cornerstone               2
+Short-term Production     2
+Upside Premier            2
+Short-term Winner         1
+Jag Insurance             1
+Name: count, dtype: int64
+QB tiers assigned ✅
+
+QB tier distribution:
+qb_tier_new
+Upside Shot              8
+Cornerstone              7
+Foundational             6
+Serviceable              5
+Short-term Production    4
+Mainstay                 3
+Jag Insurance            3
+Productive Vet           3
+Upside Premier           2
+Replaceable              2
+Jag Developmental        2
+Name: count, dtype: int64
+Unified tier column built ✅
+
+Tier distribution:
+tier_new
+Serviceable              62
+Jag Insurance            28
+Mainstay                 27
+Jag Developmental        24
+Foundational             24
+Upside Shot              23
+Cornerstone              22
+Upside Premier           14
+Replaceable              11
+Short-term Production    11
+Productive Vet            6
+Short-term Winner         2
+Name: count, dtype: int64
+
+Cornerstone players:
+              name position  age  KTC Value    tier_new
+        Josh Allen       QB   29     9991.0 Cornerstone
+        Drake Maye       QB   23     9402.0 Cornerstone
+    Caleb Williams       QB   24     7861.0 Cornerstone
+    Jayden Daniels       QB   25     7805.0 Cornerstone
+     Lamar Jackson       QB   29     7653.0 Cornerstone
+        Joe Burrow       QB   29     7412.0 Cornerstone
+   Patrick Mahomes       QB   30     6785.0 Cornerstone
+    Bijan Robinson       RB   24     9996.0 Cornerstone
+      Jahmyr Gibbs       RB   24     9620.0 Cornerstone
+     Ashton Jeanty       RB   22     7613.0 Cornerstone
+     De'Von Achane       RB   24     6908.0 Cornerstone
+   Omarion Hampton       RB   23     6800.0 Cornerstone
+      Brock Bowers       TE   23     7969.0 Cornerstone
+      Trey McBride       TE   26     7464.0 Cornerstone
+     Ja'Marr Chase       WR   26     9999.0 Cornerstone
+Jaxon Smith-Njigba       WR   24     9895.0 Cornerstone
+        Puka Nacua       WR   24     8641.0 Cornerstone
+ Amon-Ra St. Brown       WR   26     7824.0 Cornerstone
+      Malik Nabers       WR   22     7793.0 Cornerstone
+  Justin Jefferson       WR   26     7784.0 Cornerstone
+       CeeDee Lamb       WR   27     7285.0 Cornerstone
+      Drake London       WR   24     6921.0 Cornerstone
+
+Foundational players:
+             name position  age  KTC Value     tier_new
+   Justin Herbert       QB   28     6801.0 Foundational
+      Jalen Hurts       QB   27     6259.0 Foundational
+  Trevor Lawrence       QB   26     6237.0 Foundational
+           Bo Nix       QB   26     6134.0 Foundational
+      Brock Purdy       QB   26     5837.0 Foundational
+      Jordan Love       QB   27     5588.0 Foundational
+       James Cook       RB   26     6011.0 Foundational
+  Jonathan Taylor       RB   27     5966.0 Foundational
+      Breece Hall       RB   24     5423.0 Foundational
+ Colston Loveland       TE   22     6076.0 Foundational
+     Tucker Kraft       TE   25     4812.0 Foundational
+      Sam LaPorta       TE   25     4520.0 Foundational
+Tetairoa McMillan       WR   23     6562.0 Foundational
+   George Pickens       WR   25     5966.0 Foundational
+   Garrett Wilson       WR   25     5675.0 Foundational
+     Nico Collins       WR   27     5608.0 Foundational
+      Chris Olave       WR   25     5494.0 Foundational
+      Rashee Rice       WR   26     5344.0 Foundational
+    DeVonta Smith       WR   27     5200.0 Foundational
+      Tee Higgins       WR   27     4892.0 Foundational
+    Jaylen Waddle       WR   27     4839.0 Foundational
+       A.J. Brown       WR   28     4828.0 Foundational
+      Zay Flowers       WR   25     4689.0 Foundational
+ Jameson Williams       WR   25     4680.0 Foundational
+
+Upside Premier players:
+            name position  age  KTC Value       tier_new
+     Jaxson Dart       QB   23     6604.0 Upside Premier
+        Cam Ward       QB   23     5368.0 Upside Premier
+Quinshon Judkins       RB   22     5483.0 Upside Premier
+    Bucky Irving       RB   23     4905.0 Upside Premier
+    Cam Skattebo       RB   24     4582.0 Upside Premier
+    Tyler Warren       TE   23     5682.0 Upside Premier
+   Harold Fannin       TE   21     4860.0 Upside Premier
+    Emeka Egbuka       WR   23     6102.0 Upside Premier
+     Rome Odunze       WR   23     5404.0 Upside Premier
+   Ladd McConkey       WR   24     5328.0 Upside Premier
+   Luther Burden       WR   22     5288.0 Upside Premier
+ Marvin Harrison       WR   23     5108.0 Upside Premier
+    Brian Thomas       WR   23     4884.0 Upside Premier
+   Travis Hunter       WR   23     3353.0 Upside Premier
+✅ Tier column updated with new unified tiers
+
+Final tier distribution:
+tier
+Serviceable              62
+Jag Insurance            28
+Mainstay                 27
+Jag Developmental        24
+Foundational             24
+Upside Shot              23
+Cornerstone              22
+Upside Premier           14
+Replaceable              11
+Short-term Production    11
+Productive Vet            6
+Short-term Winner         2
+Name: count, dtype: int64
+Pulling seasons: 2005 — 2025
+Rostered players: 254
+Pulling Sleeper season stats...
+  2005: 7592 players
+  2006: 7592 players
+  2007: 7592 players
+  2008: 7592 players
+  2009: 8124 players
+  2010: 8272 players
+  2011: 8432 players
+  2012: 8636 players
+  2013: 8849 players
+  2014: 9056 players
+  2015: 9097 players
+  2016: 8899 players
+  2017: 8668 players
+  2018: 8410 players
+  2019: 8093 players
+  2020: 8127 players
+  2021: 8214 players
+  2022: 8200 players
+  2023: 8197 players
+  2024: 8212 players
+  2025: 8211 players
+✅ Season stats pulled
+
+Rows built:
+  QB: 259
+  RB: 270
+  WR: 361
+  TE: 159
+Dynamic position needs based on your roster:
+  RB: need=0.67  grade=4578  rank=#7 of 10
+  QB: need=0.33  grade=6369  rank=#4 of 10
+  WR: need=0.33  grade=5692  rank=#4 of 10
+  TE: need=0.22  grade=5412  rank=#3 of 10
+All analysis built ✅
+Outlook classified ✅
+         owner                outlook  CF_total  value_share  production_share  share_gap
+  ekleiner1123              Contender       5.5        12.71             10.20       2.51
+      jsinykin                 Reload       5.5        12.29              7.34       4.95
+   SvenMoney34              Contender      10.5        11.46             11.06       0.40
+      gavinw20              Contender       7.0        10.22             11.02      -0.80
+  GiantHawkTua                 Reload       6.5        10.06             10.13      -0.07
+ nchernandez19                 Reload       5.0         9.78              8.45       1.33
+sethfriedman12                Rebuild       3.5         9.48              9.94      -0.46
+      Akracoon Rebuild (future value)       1.5         9.38              9.38       0.00
+  Herschey6153       Window Contender       5.0         7.31             11.80      -4.49
+GreyWaedekin27       Window Contender       3.0         7.30             10.68      -3.38
+Trade engine built ✅
+
+Top 10 buy targets:
+             name position  age  KTC Value           tier          owner  buy_score
+     Jahmyr Gibbs       RB   24     9620.0    Cornerstone sethfriedman12     1.1419
+   Bijan Robinson       RB   24     9996.0    Cornerstone  nchernandez19     1.0643
+     Malik Nabers       WR   22     7793.0    Cornerstone       Akracoon     1.0207
+ Justin Jefferson       WR   26     7784.0    Cornerstone GreyWaedekin27     0.9671
+      CeeDee Lamb       WR   27     7285.0    Cornerstone GreyWaedekin27     0.9558
+     Brock Bowers       TE   23     7969.0    Cornerstone  nchernandez19     0.9476
+     Bucky Irving       RB   23     4905.0 Upside Premier  nchernandez19     0.9322
+    Lamar Jackson       QB   29     7653.0    Cornerstone   Herschey6153     0.9310
+Amon-Ra St. Brown       WR   26     7824.0    Cornerstone   GiantHawkTua     0.9292
+    Ashton Jeanty       RB   22     7613.0    Cornerstone       gavinw20     0.9291
+Trade package builder ready ✅
+Trade evaluator ready ✅
+Pulling draft results...
+Traceback (most recent call last):
+  File "/Users/evankleiner/Documents/NFL_pred/wilsons_teams.py", line 2469, in <module>
+    startup_season = min(int(s) for s, _ in all_league_ids)  # earliest = startup draft
+                                            ^^^^^^^^^^^^^^
+NameError: name 'all_league_ids' is not defined. Did you mean: 'all_league_picks'?
+Run finished: Tue May 19 13:16:17 CDT 2026
+
+=============================
+Run started: Tue May 19 13:21:52 CDT 2026
+Config loaded ✅
+Fetching NFL player database...
+Rosters loaded: 10 teams, 254 skill position players ✅
+Scraping KTC rankings...
+  Scraping page 0...
+    Found 50 players
+  Scraping page 1...
+    Found 50 players
+  Scraping page 2...
+    Found 50 players
+  Scraping page 3...
+    Found 50 players
+  Scraping page 4...
+    Found 50 players
+  Scraping page 5...
+    Found 50 players
+  Scraping page 6...
+    Found 50 players
+  Scraping page 7...
+    Found 50 players
+  Scraping page 8...
+    Found 50 players
+  Scraping page 9...
+    Found 50 players
+
+Total scraped: 500
+✅ KTC scrape complete — 464 players, 36 picks
+   Top player: Ja'Marr Chase (9,996)
+   Last player: Matthew Hibner (65)
+   Pick range: 7,124 (highest) — 1,279 (lowest)
+Pulling seasons: [2022, 2023, 2024, 2025]
+2022 done.
+2023 done.
+2024 done.
+2025 done.
+Downcasting floats.
+Multi-year production calculated: 637 players ✅
+Loading draft capital...
+Draft capital loaded: 6644 players
+     draft_name  draft_year  draft_round  draft_pick  draft_value
+ Courtney Brown        2000            1           1         3000
+LaVar Arrington        2000            1           2         2635
+  Chris Samuels        2000            1           3         2421
+  Peter Warrick        2000            1           4         2270
+    Jamal Lewis        2000            1           5         2152
+
+Loading advanced stats...
+2024 done.
+2025 done.
+Downcasting floats.
+Loading snap counts...
+Building player ID lookup...
+ID lookup built: 18289 players
+name_to_gsis built: 17740 players
+Sample: [('Isaako Aaitui', '00-0028830'), ('Israel Abanikanda', '00-0038389'), ('Jon Abbate', '00-0024644')]
+
+Calculating EPA...
+Position average EPA per play:
+  QB:    -0.0318
+  RB:    -0.1184
+  WR/TE: 0.0663
+
+Top QBs by EPA per dropback (min 100 dropbacks):
+          player  epa_per_play  total_plays
+    Malik Willis      0.429545          101
+      Jared Goff      0.221499         1187
+   Lamar Jackson      0.208347          839
+      Josh Allen      0.190189         1005
+     Jordan Love      0.181172          904
+     Brock Purdy      0.172910          785
+Matthew Stafford      0.148913         1167
+      Derek Carr      0.145866          290
+      Drake Maye      0.140153          914
+      Joe Burrow      0.129900          980
+
+Top RBs by EPA per carry (min 50 carries):
+             player  epa_per_play  total_plays
+        Taysom Hill      0.106968           91
+   Jeremy McNichols      0.103274          101
+Chris Rodriguez Jr.      0.096175          147
+    Emari Demercado      0.080306           68
+      Derrick Henry      0.078738          632
+       Jahmyr Gibbs      0.065715          493
+      Dameon Pierce      0.059303           54
+     Isaac Guerendo      0.057763           84
+        Sean Tucker      0.047582          136
+ TreVeyon Henderson      0.046857          180
+
+Top WR/TEs by EPA per target (min 100 targets):
+          player  epa_per_play  total_plays
+   George Kittle      0.701012          163
+    Tucker Kraft      0.664112          115
+     Alec Pierce      0.627988          153
+      Puka Nacua      0.615552          273
+  Terry McLaurin      0.576234          178
+   DeVonta Smith      0.544944          204
+    Stefon Diggs      0.532840          166
+     Sam LaPorta      0.514024          132
+  Kayshon Boutte      0.500842          115
+Jameson Williams      0.485936          193
+
+Top QBs by rush yards:
+         player  rush_attempts  rush_yards  rush_tds  rush_epa
+  Lamar Jackson            186      1268.0       6.0  0.220681
+ Jayden Daniels            192      1187.0       8.0  0.382986
+     Josh Allen            188      1138.0      26.0  0.567398
+    Jalen Hurts            225      1085.0      22.0  0.336414
+     Drake Maye            135       902.0       6.0  0.332886
+ Caleb Williams            141       890.0       3.0  0.186655
+ Justin Herbert            123       853.0       4.0  0.355071
+         Bo Nix            144       821.0       9.0  0.339326
+ Baker Mayfield            100       777.0       4.0  0.541550
+Patrick Mahomes             94       766.0       7.0  0.705354
+
+Calculating target share...
+Calculating RB red zone...
+Merging snap share with ID lookup...
+
+Advanced stats calculated ✅
+
+Target share sample (min 50 targets):
+            player  avg_target_share  avg_air_yards  avg_yprr  total_targets
+  Justin Jefferson          0.299072         1560.0  8.667414            296
+Jaxon Smith-Njigba          0.298966         1509.5  9.768116            301
+ Amon-Ra St. Brown          0.291163         1235.5  8.906070            313
+     Ja'Marr Chase          0.290280         1548.0  8.696216            360
+      Trey McBride          0.277632         1014.0  7.542077            317
+       Zay Flowers          0.273206         1205.5  9.613876            236
+ Wan'Dale Robinson          0.264776          921.5  6.092173            281
+      Drake London          0.255460         1472.0  8.072077            272
+ Tetairoa McMillan          0.253112         1410.0  8.303279            122
+        A.J. Brown          0.245580         1296.5  9.706484            218
+        Puka Nacua          0.241203         1202.5  9.791831            273
+      Emeka Egbuka          0.234862         1572.0  7.343750            128
+     DeVonta Smith          0.229716         1082.0  9.048830            204
+  Courtland Sutton          0.228839         1664.5  8.079704            260
+      Keenan Allen          0.226871         1071.0  6.208816            245
+
+Red zone leaders (RB, min 5 carries):
+             player  rz5_carries
+      Derrick Henry           47
+    Jonathan Taylor           44
+        Josh Jacobs           44
+     Kyren Williams           38
+   David Montgomery           35
+     Saquon Barkley           35
+    Zach Charbonnet           32
+        Kareem Hunt           32
+         James Cook           31
+   Javonte Williams           30
+     Bijan Robinson           29
+       Jahmyr Gibbs           27
+        Chase Brown           27
+      D'Andre Swift           24
+Rhamondre Stevenson           24
+
+Top QBs by rush yards:
+         player  rush_attempts  rush_yards  rush_tds  rush_epa
+  Lamar Jackson            186      1268.0       6.0  0.220681
+ Jayden Daniels            192      1187.0       8.0  0.382986
+     Josh Allen            188      1138.0      26.0  0.567398
+    Jalen Hurts            225      1085.0      22.0  0.336414
+     Drake Maye            135       902.0       6.0  0.332886
+ Caleb Williams            141       890.0       3.0  0.186655
+ Justin Herbert            123       853.0       4.0  0.355071
+         Bo Nix            144       821.0       9.0  0.339326
+ Baker Mayfield            100       777.0       4.0  0.541550
+Patrick Mahomes             94       766.0       7.0  0.705354
+name_to_gsis built: 17740 players
+Sample: [('Isaako Aaitui', '00-0028830'), ('Israel Abanikanda', '00-0038389'), ('Jon Abbate', '00-0024644')]
+✅ Rankings merged with multi-year production
+   Players with production history: 362
+   Players without history (rookies): 102
+After dedup: 254 players
+✅ Merged df: (254, 20) — 253 matched, 1 unmatched
+
+Unmatched players:
+          name position          owner
+Zonovan Knight       RB sethfriedman12
+✅ Pick portfolio built: 120 picks
+
+Sample 2026 picks:
+year  round  slot pick_display_name original_owner_name current_owner_name  ktc_value
+2026      1   1.0         2026 1.01            jsinykin           jsinykin       5665
+2026      2   1.0         2026 2.01            jsinykin           jsinykin       3286
+2026      3   1.0         2026 3.01            jsinykin           Akracoon       2281
+2026      4   1.0         2026 4.01            jsinykin           Akracoon       1703
+2026      1  10.0         2026 1.10      GreyWaedekin27           jsinykin       3910
+2026      2  10.0         2026 2.10      GreyWaedekin27           gavinw20       2788
+2026      3  10.0         2026 3.10      GreyWaedekin27           gavinw20       2027
+2026      4  10.0         2026 4.10      GreyWaedekin27       Herschey6153       1468
+2026      1   2.0         2026 1.02        ekleiner1123       ekleiner1123       5665
+2026      2   2.0         2026 2.02        ekleiner1123       ekleiner1123       3286
+
+Sample 2027 picks:
+year  round pick_display_name original_owner_name current_owner_name  ktc_value
+2027      1      2027 Mid 1st        ekleiner1123       ekleiner1123       5640
+2027      2      2027 Mid 2nd        ekleiner1123       ekleiner1123       3477
+2027      3      2027 Mid 3rd        ekleiner1123       ekleiner1123       2455
+2027      4      2027 Mid 4th        ekleiner1123           gavinw20       1759
+2027      1      2027 Mid 1st        Herschey6153           Akracoon       5640
+Snap share matched: 3094 / 3192
+Advanced stats df built: 18289 players
+Players matched to gsis_id: 253 / 254
+Unmatched players:
+          name position          owner
+Zonovan Knight       RB sethfriedman12
+merged_df after advanced stats merge: (254, 45)
+
+Advanced stats coverage:
+  EPA data:         249 / 254 players
+  Snap share:       246 / 254 players
+  Draft capital:    247 / 254 players
+  Target share:     217 / 254 players
+  RZ carries:       86 / 254 players
+
+Sample — your key players:
+
+  Drake Maye
+    EPA vs avg:    0.1720
+    Snap %:        88.1%
+    Draft value:   2421
+    Target share:  0.2%
+    RZ carries:    N/A
+
+  Puka Nacua
+    EPA vs avg:    0.5493
+    Snap %:        69.0%
+    Draft value:   274
+    Target share:  24.1%
+    RZ carries:    1
+
+  Trey McBride
+    EPA vs avg:    0.3179
+    Snap %:        90.6%
+    Draft value:   890
+    Target share:  27.8%
+    RZ carries:    1
+
+  Kyren Williams
+    EPA vs avg:    0.0861
+    Snap %:        77.3%
+    Draft value:   314
+    Target share:  8.0%
+    RZ carries:    38
+
+  Bijan Robinson
+    EPA vs avg:    0.1280
+    Snap %:        76.8%
+    Draft value:   1905
+    Target share:  16.5%
+    RZ carries:    29
+
+  Tetairoa McMillan
+    EPA vs avg:    0.1410
+    Snap %:        87.2%
+    Draft value:   1905
+    Target share:  25.3%
+    RZ carries:    N/A
+
+  Jahmyr Gibbs
+    EPA vs avg:    0.1841
+    Snap %:        61.1%
+    Draft value:   1691
+    Target share:  14.6%
+    RZ carries:    27
+RB tiers assigned ✅
+
+RB tier distribution:
+rb_tier_new
+Serviceable              15
+Jag Insurance            12
+Jag Developmental        11
+Mainstay                  9
+Upside Shot               8
+Cornerstone               5
+Upside Premier            3
+Short-term Production     3
+Productive Vet            3
+Foundational              3
+Replaceable               2
+Short-term Winner         1
+Name: count, dtype: int64
+WR tiers assigned ✅
+
+WR tier distribution:
+wr_tier_new
+Serviceable              30
+Foundational             12
+Jag Insurance            12
+Cornerstone               8
+Jag Developmental         8
+Mainstay                  8
+Replaceable               7
+Upside Premier            7
+Upside Shot               4
+Short-term Production     2
+Name: count, dtype: int64
+TE tiers assigned ✅
+
+TE tier distribution:
+te_tier_new
+Serviceable              12
+Mainstay                  7
+Upside Shot               3
+Jag Developmental         3
+Foundational              3
+Cornerstone               2
+Short-term Production     2
+Upside Premier            2
+Short-term Winner         1
+Jag Insurance             1
+Name: count, dtype: int64
+QB tiers assigned ✅
+
+QB tier distribution:
+qb_tier_new
+Upside Shot              8
+Cornerstone              7
+Foundational             6
+Serviceable              5
+Short-term Production    4
+Mainstay                 3
+Productive Vet           3
+Jag Insurance            3
+Upside Premier           2
+Replaceable              2
+Jag Developmental        2
+Name: count, dtype: int64
+Unified tier column built ✅
+
+Tier distribution:
+tier_new
+Serviceable              62
+Jag Insurance            28
+Mainstay                 27
+Jag Developmental        24
+Foundational             24
+Upside Shot              23
+Cornerstone              22
+Upside Premier           14
+Replaceable              11
+Short-term Production    11
+Productive Vet            6
+Short-term Winner         2
+Name: count, dtype: int64
+
+Cornerstone players:
+              name position  age  KTC Value    tier_new
+        Josh Allen       QB   29     9994.0 Cornerstone
+        Drake Maye       QB   23     9402.0 Cornerstone
+    Caleb Williams       QB   24     7861.0 Cornerstone
+    Jayden Daniels       QB   25     7805.0 Cornerstone
+     Lamar Jackson       QB   29     7653.0 Cornerstone
+        Joe Burrow       QB   29     7412.0 Cornerstone
+   Patrick Mahomes       QB   30     6785.0 Cornerstone
+    Bijan Robinson       RB   24     9996.0 Cornerstone
+      Jahmyr Gibbs       RB   24     9621.0 Cornerstone
+     Ashton Jeanty       RB   22     7613.0 Cornerstone
+     De'Von Achane       RB   24     6908.0 Cornerstone
+   Omarion Hampton       RB   23     6798.0 Cornerstone
+      Brock Bowers       TE   23     7963.0 Cornerstone
+      Trey McBride       TE   26     7466.0 Cornerstone
+     Ja'Marr Chase       WR   26     9996.0 Cornerstone
+Jaxon Smith-Njigba       WR   24     9895.0 Cornerstone
+        Puka Nacua       WR   24     8641.0 Cornerstone
+ Amon-Ra St. Brown       WR   26     7829.0 Cornerstone
+      Malik Nabers       WR   22     7796.0 Cornerstone
+  Justin Jefferson       WR   26     7786.0 Cornerstone
+       CeeDee Lamb       WR   27     7280.0 Cornerstone
+      Drake London       WR   24     6924.0 Cornerstone
+
+Foundational players:
+             name position  age  KTC Value     tier_new
+   Justin Herbert       QB   28     6803.0 Foundational
+      Jalen Hurts       QB   27     6259.0 Foundational
+  Trevor Lawrence       QB   26     6237.0 Foundational
+           Bo Nix       QB   26     6131.0 Foundational
+      Brock Purdy       QB   26     5840.0 Foundational
+      Jordan Love       QB   27     5588.0 Foundational
+       James Cook       RB   26     6011.0 Foundational
+  Jonathan Taylor       RB   27     5966.0 Foundational
+      Breece Hall       RB   24     5423.0 Foundational
+ Colston Loveland       TE   22     6073.0 Foundational
+     Tucker Kraft       TE   25     4812.0 Foundational
+      Sam LaPorta       TE   25     4517.0 Foundational
+Tetairoa McMillan       WR   23     6562.0 Foundational
+   George Pickens       WR   25     5966.0 Foundational
+   Garrett Wilson       WR   25     5678.0 Foundational
+     Nico Collins       WR   27     5608.0 Foundational
+      Chris Olave       WR   25     5494.0 Foundational
+      Rashee Rice       WR   26     5341.0 Foundational
+    DeVonta Smith       WR   27     5200.0 Foundational
+      Tee Higgins       WR   27     4889.0 Foundational
+    Jaylen Waddle       WR   27     4842.0 Foundational
+       A.J. Brown       WR   28     4825.0 Foundational
+      Zay Flowers       WR   25     4689.0 Foundational
+ Jameson Williams       WR   25     4680.0 Foundational
+
+Upside Premier players:
+            name position  age  KTC Value       tier_new
+     Jaxson Dart       QB   23     6604.0 Upside Premier
+        Cam Ward       QB   23     5371.0 Upside Premier
+Quinshon Judkins       RB   22     5480.0 Upside Premier
+    Bucky Irving       RB   23     4902.0 Upside Premier
+    Cam Skattebo       RB   24     4582.0 Upside Premier
+    Tyler Warren       TE   23     5679.0 Upside Premier
+   Harold Fannin       TE   21     4863.0 Upside Premier
+    Emeka Egbuka       WR   23     6102.0 Upside Premier
+     Rome Odunze       WR   23     5407.0 Upside Premier
+   Ladd McConkey       WR   24     5328.0 Upside Premier
+   Luther Burden       WR   22     5290.0 Upside Premier
+ Marvin Harrison       WR   23     5108.0 Upside Premier
+    Brian Thomas       WR   23     4881.0 Upside Premier
+   Travis Hunter       WR   23     3353.0 Upside Premier
+✅ Tier column updated with new unified tiers
+
+Final tier distribution:
+tier
+Serviceable              62
+Jag Insurance            28
+Mainstay                 27
+Jag Developmental        24
+Foundational             24
+Upside Shot              23
+Cornerstone              22
+Upside Premier           14
+Replaceable              11
+Short-term Production    11
+Productive Vet            6
+Short-term Winner         2
+Name: count, dtype: int64
+Pulling seasons: 2005 — 2025
+Rostered players: 254
+Pulling Sleeper season stats...
+  2005: 7592 players
+  2006: 7592 players
+  2007: 7592 players
+  2008: 7592 players
+  2009: 8124 players
+  2010: 8272 players
+  2011: 8432 players
+  2012: 8636 players
+  2013: 8849 players
+  2014: 9056 players
+  2015: 9097 players
+  2016: 8899 players
+  2017: 8668 players
+  2018: 8410 players
+  2019: 8093 players
+  2020: 8127 players
+  2021: 8214 players
+  2022: 8200 players
+  2023: 8197 players
+  2024: 8212 players
+  2025: 8211 players
+✅ Season stats pulled
+
+Rows built:
+  QB: 259
+  RB: 270
+  WR: 361
+  TE: 159
+Dynamic position needs based on your roster:
+  RB: need=0.67  grade=4579  rank=#7 of 10
+  QB: need=0.33  grade=6370  rank=#4 of 10
+  WR: need=0.33  grade=5693  rank=#4 of 10
+  TE: need=0.22  grade=5413  rank=#3 of 10
+All analysis built ✅
+Outlook classified ✅
+         owner                outlook  CF_total  value_share  production_share  share_gap
+  ekleiner1123              Contender       5.5        12.71             10.20       2.51
+      jsinykin                 Reload       5.5        12.29              7.34       4.95
+   SvenMoney34              Contender      10.5        11.46             11.06       0.40
+      gavinw20              Contender       7.0        10.22             11.02      -0.80
+  GiantHawkTua                 Reload       6.5        10.06             10.13      -0.07
+ nchernandez19                 Reload       5.0         9.78              8.45       1.33
+sethfriedman12                Rebuild       3.5         9.48              9.94      -0.46
+      Akracoon Rebuild (future value)       1.5         9.38              9.38       0.00
+  Herschey6153       Window Contender       5.0         7.31             11.80      -4.49
+GreyWaedekin27       Window Contender       3.0         7.30             10.68      -3.38
+Trade engine built ✅
+
+Top 10 buy targets:
+             name position  age  KTC Value           tier          owner  buy_score
+     Jahmyr Gibbs       RB   24     9621.0    Cornerstone sethfriedman12     1.1419
+   Bijan Robinson       RB   24     9996.0    Cornerstone  nchernandez19     1.0643
+     Malik Nabers       WR   22     7796.0    Cornerstone       Akracoon     1.0208
+ Justin Jefferson       WR   26     7786.0    Cornerstone GreyWaedekin27     0.9671
+      CeeDee Lamb       WR   27     7280.0    Cornerstone GreyWaedekin27     0.9557
+     Brock Bowers       TE   23     7963.0    Cornerstone  nchernandez19     0.9475
+     Bucky Irving       RB   23     4902.0 Upside Premier  nchernandez19     0.9322
+    Lamar Jackson       QB   29     7653.0    Cornerstone   Herschey6153     0.9310
+Amon-Ra St. Brown       WR   26     7829.0    Cornerstone   GiantHawkTua     0.9293
+    Ashton Jeanty       RB   22     7613.0    Cornerstone       gavinw20     0.9291
+Trade package builder ready ✅
+Trade evaluator ready ✅
+Pulling draft results...
+Traceback (most recent call last):
+  File "/Users/evankleiner/Documents/NFL_pred/wilsons_teams.py", line 2469, in <module>
+    startup_season = min(int(s) for s, _ in all_league_ids)  # earliest = startup draft
+                                            ^^^^^^^^^^^^^^
+NameError: name 'all_league_ids' is not defined. Did you mean: 'all_league_picks'?
+Run finished: Tue May 19 13:23:29 CDT 2026
+
+=============================
+Run started: Tue May 19 13:26:13 CDT 2026
+Config loaded ✅
+Fetching NFL player database...
+Rosters loaded: 10 teams, 254 skill position players ✅
+Scraping KTC rankings...
+  Scraping page 0...
+    Found 50 players
+  Scraping page 1...
+    Found 50 players
+  Scraping page 2...
+    Found 50 players
+  Scraping page 3...
+    Found 50 players
+  Scraping page 4...
+    Found 50 players
+  Scraping page 5...
+    Found 50 players
+  Scraping page 6...
+    Found 50 players
+  Scraping page 7...
+    Found 50 players
+  Scraping page 8...
+    Found 50 players
+  Scraping page 9...
+    Found 50 players
+
+Total scraped: 500
+✅ KTC scrape complete — 464 players, 36 picks
+   Top player: Ja'Marr Chase (9,996)
+   Last player: Matthew Hibner (65)
+   Pick range: 7,124 (highest) — 1,279 (lowest)
+Pulling seasons: [2022, 2023, 2024, 2025]
+2022 done.
+2023 done.
+2024 done.
+2025 done.
+Downcasting floats.
+Multi-year production calculated: 637 players ✅
+Loading draft capital...
+Draft capital loaded: 6644 players
+     draft_name  draft_year  draft_round  draft_pick  draft_value
+ Courtney Brown        2000            1           1         3000
+LaVar Arrington        2000            1           2         2635
+  Chris Samuels        2000            1           3         2421
+  Peter Warrick        2000            1           4         2270
+    Jamal Lewis        2000            1           5         2152
+
+Loading advanced stats...
+2024 done.
+2025 done.
+Downcasting floats.
+Loading snap counts...
+Building player ID lookup...
+ID lookup built: 18289 players
+name_to_gsis built: 17740 players
+Sample: [('Isaako Aaitui', '00-0028830'), ('Israel Abanikanda', '00-0038389'), ('Jon Abbate', '00-0024644')]
+
+Calculating EPA...
+Position average EPA per play:
+  QB:    -0.0318
+  RB:    -0.1184
+  WR/TE: 0.0663
+
+Top QBs by EPA per dropback (min 100 dropbacks):
+          player  epa_per_play  total_plays
+    Malik Willis      0.429545          101
+      Jared Goff      0.221499         1187
+   Lamar Jackson      0.208347          839
+      Josh Allen      0.190189         1005
+     Jordan Love      0.181172          904
+     Brock Purdy      0.172910          785
+Matthew Stafford      0.148913         1167
+      Derek Carr      0.145866          290
+      Drake Maye      0.140153          914
+      Joe Burrow      0.129900          980
+
+Top RBs by EPA per carry (min 50 carries):
+             player  epa_per_play  total_plays
+        Taysom Hill      0.106968           91
+   Jeremy McNichols      0.103274          101
+Chris Rodriguez Jr.      0.096175          147
+    Emari Demercado      0.080306           68
+      Derrick Henry      0.078738          632
+       Jahmyr Gibbs      0.065715          493
+      Dameon Pierce      0.059303           54
+     Isaac Guerendo      0.057763           84
+        Sean Tucker      0.047582          136
+ TreVeyon Henderson      0.046857          180
+
+Top WR/TEs by EPA per target (min 100 targets):
+          player  epa_per_play  total_plays
+   George Kittle      0.701012          163
+    Tucker Kraft      0.664112          115
+     Alec Pierce      0.627988          153
+      Puka Nacua      0.615552          273
+  Terry McLaurin      0.576234          178
+   DeVonta Smith      0.544944          204
+    Stefon Diggs      0.532840          166
+     Sam LaPorta      0.514024          132
+  Kayshon Boutte      0.500842          115
+Jameson Williams      0.485936          193
+
+Top QBs by rush yards:
+         player  rush_attempts  rush_yards  rush_tds  rush_epa
+  Lamar Jackson            186      1268.0       6.0  0.220681
+ Jayden Daniels            192      1187.0       8.0  0.382986
+     Josh Allen            188      1138.0      26.0  0.567398
+    Jalen Hurts            225      1085.0      22.0  0.336414
+     Drake Maye            135       902.0       6.0  0.332886
+ Caleb Williams            141       890.0       3.0  0.186655
+ Justin Herbert            123       853.0       4.0  0.355071
+         Bo Nix            144       821.0       9.0  0.339326
+ Baker Mayfield            100       777.0       4.0  0.541550
+Patrick Mahomes             94       766.0       7.0  0.705354
+
+Calculating target share...
+Calculating RB red zone...
+Merging snap share with ID lookup...
+
+Advanced stats calculated ✅
+
+Target share sample (min 50 targets):
+            player  avg_target_share  avg_air_yards  avg_yprr  total_targets
+  Justin Jefferson          0.299072         1560.0  8.667414            296
+Jaxon Smith-Njigba          0.298966         1509.5  9.768116            301
+ Amon-Ra St. Brown          0.291163         1235.5  8.906070            313
+     Ja'Marr Chase          0.290280         1548.0  8.696216            360
+      Trey McBride          0.277632         1014.0  7.542077            317
+       Zay Flowers          0.273206         1205.5  9.613876            236
+ Wan'Dale Robinson          0.264776          921.5  6.092173            281
+      Drake London          0.255460         1472.0  8.072077            272
+ Tetairoa McMillan          0.253112         1410.0  8.303279            122
+        A.J. Brown          0.245580         1296.5  9.706484            218
+        Puka Nacua          0.241203         1202.5  9.791831            273
+      Emeka Egbuka          0.234862         1572.0  7.343750            128
+     DeVonta Smith          0.229716         1082.0  9.048830            204
+  Courtland Sutton          0.228839         1664.5  8.079704            260
+      Keenan Allen          0.226871         1071.0  6.208816            245
+
+Red zone leaders (RB, min 5 carries):
+             player  rz5_carries
+      Derrick Henry           47
+    Jonathan Taylor           44
+        Josh Jacobs           44
+     Kyren Williams           38
+   David Montgomery           35
+     Saquon Barkley           35
+    Zach Charbonnet           32
+        Kareem Hunt           32
+         James Cook           31
+   Javonte Williams           30
+     Bijan Robinson           29
+       Jahmyr Gibbs           27
+        Chase Brown           27
+      D'Andre Swift           24
+Rhamondre Stevenson           24
+
+Top QBs by rush yards:
+         player  rush_attempts  rush_yards  rush_tds  rush_epa
+  Lamar Jackson            186      1268.0       6.0  0.220681
+ Jayden Daniels            192      1187.0       8.0  0.382986
+     Josh Allen            188      1138.0      26.0  0.567398
+    Jalen Hurts            225      1085.0      22.0  0.336414
+     Drake Maye            135       902.0       6.0  0.332886
+ Caleb Williams            141       890.0       3.0  0.186655
+ Justin Herbert            123       853.0       4.0  0.355071
+         Bo Nix            144       821.0       9.0  0.339326
+ Baker Mayfield            100       777.0       4.0  0.541550
+Patrick Mahomes             94       766.0       7.0  0.705354
+name_to_gsis built: 17740 players
+Sample: [('Isaako Aaitui', '00-0028830'), ('Israel Abanikanda', '00-0038389'), ('Jon Abbate', '00-0024644')]
+✅ Rankings merged with multi-year production
+   Players with production history: 362
+   Players without history (rookies): 102
+After dedup: 254 players
+✅ Merged df: (254, 20) — 253 matched, 1 unmatched
+
+Unmatched players:
+          name position          owner
+Zonovan Knight       RB sethfriedman12
+✅ Pick portfolio built: 120 picks
+
+Sample 2026 picks:
+year  round  slot pick_display_name original_owner_name current_owner_name  ktc_value
+2026      1   1.0         2026 1.01            jsinykin           jsinykin       5665
+2026      2   1.0         2026 2.01            jsinykin           jsinykin       3286
+2026      3   1.0         2026 3.01            jsinykin           Akracoon       2281
+2026      4   1.0         2026 4.01            jsinykin           Akracoon       1703
+2026      1  10.0         2026 1.10      GreyWaedekin27           jsinykin       3910
+2026      2  10.0         2026 2.10      GreyWaedekin27           gavinw20       2788
+2026      3  10.0         2026 3.10      GreyWaedekin27           gavinw20       2027
+2026      4  10.0         2026 4.10      GreyWaedekin27       Herschey6153       1468
+2026      1   2.0         2026 1.02        ekleiner1123       ekleiner1123       5665
+2026      2   2.0         2026 2.02        ekleiner1123       ekleiner1123       3286
+
+Sample 2027 picks:
+year  round pick_display_name original_owner_name current_owner_name  ktc_value
+2027      1      2027 Mid 1st        ekleiner1123       ekleiner1123       5640
+2027      2      2027 Mid 2nd        ekleiner1123       ekleiner1123       3477
+2027      3      2027 Mid 3rd        ekleiner1123       ekleiner1123       2455
+2027      4      2027 Mid 4th        ekleiner1123           gavinw20       1759
+2027      1      2027 Mid 1st        Herschey6153           Akracoon       5640
+Snap share matched: 3094 / 3192
+Advanced stats df built: 18289 players
+Players matched to gsis_id: 253 / 254
+Unmatched players:
+          name position          owner
+Zonovan Knight       RB sethfriedman12
+merged_df after advanced stats merge: (254, 45)
+
+Advanced stats coverage:
+  EPA data:         249 / 254 players
+  Snap share:       246 / 254 players
+  Draft capital:    247 / 254 players
+  Target share:     217 / 254 players
+  RZ carries:       86 / 254 players
+
+Sample — your key players:
+
+  Drake Maye
+    EPA vs avg:    0.1720
+    Snap %:        88.1%
+    Draft value:   2421
+    Target share:  0.2%
+    RZ carries:    N/A
+
+  Puka Nacua
+    EPA vs avg:    0.5493
+    Snap %:        69.0%
+    Draft value:   274
+    Target share:  24.1%
+    RZ carries:    1
+
+  Trey McBride
+    EPA vs avg:    0.3179
+    Snap %:        90.6%
+    Draft value:   890
+    Target share:  27.8%
+    RZ carries:    1
+
+  Kyren Williams
+    EPA vs avg:    0.0861
+    Snap %:        77.3%
+    Draft value:   314
+    Target share:  8.0%
+    RZ carries:    38
+
+  Bijan Robinson
+    EPA vs avg:    0.1280
+    Snap %:        76.8%
+    Draft value:   1905
+    Target share:  16.5%
+    RZ carries:    29
+
+  Tetairoa McMillan
+    EPA vs avg:    0.1410
+    Snap %:        87.2%
+    Draft value:   1905
+    Target share:  25.3%
+    RZ carries:    N/A
+
+  Jahmyr Gibbs
+    EPA vs avg:    0.1841
+    Snap %:        61.1%
+    Draft value:   1691
+    Target share:  14.6%
+    RZ carries:    27
+RB tiers assigned ✅
+
+RB tier distribution:
+rb_tier_new
+Serviceable              15
+Jag Insurance            12
+Jag Developmental        11
+Mainstay                  9
+Upside Shot               8
+Cornerstone               5
+Upside Premier            3
+Short-term Production     3
+Productive Vet            3
+Foundational              3
+Replaceable               2
+Short-term Winner         1
+Name: count, dtype: int64
+WR tiers assigned ✅
+
+WR tier distribution:
+wr_tier_new
+Serviceable              30
+Foundational             12
+Jag Insurance            12
+Jag Developmental         8
+Mainstay                  8
+Cornerstone               8
+Replaceable               7
+Upside Premier            7
+Upside Shot               4
+Short-term Production     2
+Name: count, dtype: int64
+TE tiers assigned ✅
+
+TE tier distribution:
+te_tier_new
+Serviceable              12
+Mainstay                  7
+Upside Shot               3
+Jag Developmental         3
+Foundational              3
+Cornerstone               2
+Short-term Production     2
+Upside Premier            2
+Short-term Winner         1
+Jag Insurance             1
+Name: count, dtype: int64
+QB tiers assigned ✅
+
+QB tier distribution:
+qb_tier_new
+Upside Shot              8
+Cornerstone              7
+Foundational             6
+Serviceable              5
+Short-term Production    4
+Mainstay                 3
+Productive Vet           3
+Jag Insurance            3
+Upside Premier           2
+Jag Developmental        2
+Replaceable              2
+Name: count, dtype: int64
+Unified tier column built ✅
+
+Tier distribution:
+tier_new
+Serviceable              62
+Jag Insurance            28
+Mainstay                 27
+Jag Developmental        24
+Foundational             24
+Upside Shot              23
+Cornerstone              22
+Upside Premier           14
+Replaceable              11
+Short-term Production    11
+Productive Vet            6
+Short-term Winner         2
+Name: count, dtype: int64
+
+Cornerstone players:
+              name position  age  KTC Value    tier_new
+        Josh Allen       QB   29     9994.0 Cornerstone
+        Drake Maye       QB   23     9402.0 Cornerstone
+    Caleb Williams       QB   24     7861.0 Cornerstone
+    Jayden Daniels       QB   25     7805.0 Cornerstone
+     Lamar Jackson       QB   29     7653.0 Cornerstone
+        Joe Burrow       QB   29     7412.0 Cornerstone
+   Patrick Mahomes       QB   30     6785.0 Cornerstone
+    Bijan Robinson       RB   24     9996.0 Cornerstone
+      Jahmyr Gibbs       RB   24     9621.0 Cornerstone
+     Ashton Jeanty       RB   22     7613.0 Cornerstone
+     De'Von Achane       RB   24     6908.0 Cornerstone
+   Omarion Hampton       RB   23     6798.0 Cornerstone
+      Brock Bowers       TE   23     7963.0 Cornerstone
+      Trey McBride       TE   26     7466.0 Cornerstone
+     Ja'Marr Chase       WR   26     9996.0 Cornerstone
+Jaxon Smith-Njigba       WR   24     9895.0 Cornerstone
+        Puka Nacua       WR   24     8641.0 Cornerstone
+ Amon-Ra St. Brown       WR   26     7829.0 Cornerstone
+      Malik Nabers       WR   22     7796.0 Cornerstone
+  Justin Jefferson       WR   26     7786.0 Cornerstone
+       CeeDee Lamb       WR   27     7280.0 Cornerstone
+      Drake London       WR   24     6924.0 Cornerstone
+
+Foundational players:
+             name position  age  KTC Value     tier_new
+   Justin Herbert       QB   28     6803.0 Foundational
+      Jalen Hurts       QB   27     6259.0 Foundational
+  Trevor Lawrence       QB   26     6237.0 Foundational
+           Bo Nix       QB   26     6131.0 Foundational
+      Brock Purdy       QB   26     5840.0 Foundational
+      Jordan Love       QB   27     5588.0 Foundational
+       James Cook       RB   26     6011.0 Foundational
+  Jonathan Taylor       RB   27     5966.0 Foundational
+      Breece Hall       RB   24     5423.0 Foundational
+ Colston Loveland       TE   22     6073.0 Foundational
+     Tucker Kraft       TE   25     4812.0 Foundational
+      Sam LaPorta       TE   25     4517.0 Foundational
+Tetairoa McMillan       WR   23     6562.0 Foundational
+   George Pickens       WR   25     5966.0 Foundational
+   Garrett Wilson       WR   25     5678.0 Foundational
+     Nico Collins       WR   27     5608.0 Foundational
+      Chris Olave       WR   25     5494.0 Foundational
+      Rashee Rice       WR   26     5341.0 Foundational
+    DeVonta Smith       WR   27     5200.0 Foundational
+      Tee Higgins       WR   27     4892.0 Foundational
+    Jaylen Waddle       WR   27     4839.0 Foundational
+       A.J. Brown       WR   28     4825.0 Foundational
+      Zay Flowers       WR   25     4689.0 Foundational
+ Jameson Williams       WR   25     4680.0 Foundational
+
+Upside Premier players:
+            name position  age  KTC Value       tier_new
+     Jaxson Dart       QB   23     6604.0 Upside Premier
+        Cam Ward       QB   23     5368.0 Upside Premier
+Quinshon Judkins       RB   22     5480.0 Upside Premier
+    Bucky Irving       RB   23     4905.0 Upside Premier
+    Cam Skattebo       RB   24     4582.0 Upside Premier
+    Tyler Warren       TE   23     5679.0 Upside Premier
+   Harold Fannin       TE   21     4863.0 Upside Premier
+    Emeka Egbuka       WR   23     6102.0 Upside Premier
+     Rome Odunze       WR   23     5407.0 Upside Premier
+   Ladd McConkey       WR   24     5328.0 Upside Premier
+   Luther Burden       WR   22     5288.0 Upside Premier
+ Marvin Harrison       WR   23     5108.0 Upside Premier
+    Brian Thomas       WR   23     4884.0 Upside Premier
+   Travis Hunter       WR   23     3353.0 Upside Premier
+✅ Tier column updated with new unified tiers
+
+Final tier distribution:
+tier
+Serviceable              62
+Jag Insurance            28
+Mainstay                 27
+Jag Developmental        24
+Foundational             24
+Upside Shot              23
+Cornerstone              22
+Upside Premier           14
+Replaceable              11
+Short-term Production    11
+Productive Vet            6
+Short-term Winner         2
+Name: count, dtype: int64
+Pulling seasons: 2005 — 2025
+Rostered players: 254
+Pulling Sleeper season stats...
+  2005: 7592 players
+  2006: 7592 players
+  2007: 7592 players
+  2008: 7592 players
+  2009: 8124 players
+  2010: 8272 players
+  2011: 8432 players
+  2012: 8636 players
+  2013: 8849 players
+  2014: 9056 players
+  2015: 9097 players
+  2016: 8899 players
+  2017: 8668 players
+  2018: 8410 players
+  2019: 8093 players
+  2020: 8127 players
+  2021: 8214 players
+  2022: 8200 players
+  2023: 8197 players
+  2024: 8212 players
+  2025: 8211 players
+✅ Season stats pulled
+
+Rows built:
+  QB: 259
+  RB: 270
+  WR: 361
+  TE: 159
+Dynamic position needs based on your roster:
+  RB: need=0.67  grade=4579  rank=#7 of 10
+  QB: need=0.33  grade=6369  rank=#4 of 10
+  WR: need=0.33  grade=5693  rank=#4 of 10
+  TE: need=0.22  grade=5413  rank=#3 of 10
+All analysis built ✅
+Outlook classified ✅
+         owner                outlook  CF_total  value_share  production_share  share_gap
+  ekleiner1123              Contender       5.5        12.71             10.20       2.51
+      jsinykin                 Reload       5.5        12.29              7.34       4.95
+   SvenMoney34              Contender      10.5        11.46             11.06       0.40
+      gavinw20              Contender       7.0        10.22             11.02      -0.80
+  GiantHawkTua                 Reload       6.5        10.06             10.13      -0.07
+ nchernandez19                 Reload       5.0         9.78              8.45       1.33
+sethfriedman12                Rebuild       3.5         9.48              9.94      -0.46
+      Akracoon Rebuild (future value)       1.5         9.38              9.38       0.00
+  Herschey6153       Window Contender       5.0         7.31             11.80      -4.49
+GreyWaedekin27       Window Contender       3.0         7.30             10.68      -3.38
+Trade engine built ✅
+
+Top 10 buy targets:
+             name position  age  KTC Value           tier          owner  buy_score
+     Jahmyr Gibbs       RB   24     9621.0    Cornerstone sethfriedman12     1.1419
+   Bijan Robinson       RB   24     9996.0    Cornerstone  nchernandez19     1.0643
+     Malik Nabers       WR   22     7796.0    Cornerstone       Akracoon     1.0208
+ Justin Jefferson       WR   26     7786.0    Cornerstone GreyWaedekin27     0.9671
+      CeeDee Lamb       WR   27     7280.0    Cornerstone GreyWaedekin27     0.9557
+     Brock Bowers       TE   23     7963.0    Cornerstone  nchernandez19     0.9475
+     Bucky Irving       RB   23     4905.0 Upside Premier  nchernandez19     0.9322
+    Lamar Jackson       QB   29     7653.0    Cornerstone   Herschey6153     0.9310
+Amon-Ra St. Brown       WR   26     7829.0    Cornerstone   GiantHawkTua     0.9293
+    Ashton Jeanty       RB   22     7613.0    Cornerstone       gavinw20     0.9291
+Trade package builder ready ✅
+Trade evaluator ready ✅
+League history: [('2026', '13121301...'), ('2025', '11804125...'), ('2024', '10596444...')]
+Pulling draft results...
+  2025 rookie draft: 40 picks
+  2024 startup draft: 280 picks
+
+Pick lookup built: 320 picks
+Zero-value non-trivial picks: 33 (retired/cut players)
+Grading all trades with adjustment...
+Traceback (most recent call last):
+  File "/Users/evankleiner/Documents/NFL_pred/wilsons_teams.py", line 2659, in <module>
+    for trade in all_trades:
+                 ^^^^^^^^^^
+NameError: name 'all_trades' is not defined. Did you mean: 'all_players'?
+Run finished: Tue May 19 13:27:47 CDT 2026
+
+=============================
+Run started: Tue May 19 13:29:33 CDT 2026
+Config loaded ✅
+Fetching NFL player database...
+Rosters loaded: 10 teams, 254 skill position players ✅
+Scraping KTC rankings...
+  Scraping page 0...
+    Found 50 players
+  Scraping page 1...
+Traceback (most recent call last):
+  File "/Users/evankleiner/Documents/NFL_pred/wilsons_teams.py", line 256, in <module>
+    raw_players = scrape_ktc_all_pages(max_pages=10)
+  File "/Users/evankleiner/Documents/NFL_pred/wilsons_teams.py", line 239, in scrape_ktc_all_pages
+    results = scrape_ktc_page(page, driver)
+  File "/Users/evankleiner/Documents/NFL_pred/wilsons_teams.py", line 171, in scrape_ktc_page
+    soup    = BeautifulSoup(driver.page_source, "html.parser")
+                            ^^^^^^^^^^^^^^^^^^
+  File "/opt/anaconda3/lib/python3.13/site-packages/selenium/webdriver/remote/webdriver.py", line 561, in page_source
+    return self.execute(Command.GET_PAGE_SOURCE)["value"]
+           ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/anaconda3/lib/python3.13/site-packages/selenium/webdriver/remote/webdriver.py", line 443, in execute
+    response = cast(RemoteConnection, self.command_executor).execute(driver_command, params)
+  File "/opt/anaconda3/lib/python3.13/site-packages/selenium/webdriver/remote/remote_connection.py", line 407, in execute
+    return self._request(command_info[0], url, body=data)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/anaconda3/lib/python3.13/site-packages/selenium/webdriver/remote/remote_connection.py", line 431, in _request
+    response = self._conn.request(method, url, body=body, headers=headers, timeout=self._client_config.timeout)
+  File "/opt/anaconda3/lib/python3.13/site-packages/urllib3/_request_methods.py", line 135, in request
+    return self.request_encode_url(
+           ~~~~~~~~~~~~~~~~~~~~~~~^
+        method,
+        ^^^^^^^
+    ...<3 lines>...
+        **urlopen_kw,
+        ^^^^^^^^^^^^^
+    )
+    ^
+  File "/opt/anaconda3/lib/python3.13/site-packages/urllib3/_request_methods.py", line 182, in request_encode_url
+    return self.urlopen(method, url, **extra_kw)
+           ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/anaconda3/lib/python3.13/site-packages/urllib3/poolmanager.py", line 457, in urlopen
+    response = conn.urlopen(method, u.request_uri, **kw)
+  File "/opt/anaconda3/lib/python3.13/site-packages/urllib3/connectionpool.py", line 787, in urlopen
+    response = self._make_request(
+        conn,
+    ...<10 lines>...
+        **response_kw,
+    )
+  File "/opt/anaconda3/lib/python3.13/site-packages/urllib3/connectionpool.py", line 534, in _make_request
+    response = conn.getresponse()
+  File "/opt/anaconda3/lib/python3.13/site-packages/urllib3/connection.py", line 571, in getresponse
+    httplib_response = super().getresponse()
+  File "/opt/anaconda3/lib/python3.13/http/client.py", line 1430, in getresponse
+    response.begin()
+    ~~~~~~~~~~~~~~^^
+  File "/opt/anaconda3/lib/python3.13/http/client.py", line 331, in begin
+    version, status, reason = self._read_status()
+                              ~~~~~~~~~~~~~~~~~^^
+  File "/opt/anaconda3/lib/python3.13/http/client.py", line 292, in _read_status
+    line = str(self.fp.readline(_MAXLINE + 1), "iso-8859-1")
+               ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+  File "/opt/anaconda3/lib/python3.13/socket.py", line 719, in readinto
+    return self._sock.recv_into(b)
+           ~~~~~~~~~~~~~~~~~~~~^^^
+KeyboardInterrupt
+=============================
+Run started: Tue May 19 13:30:00 CDT 2026
+Config loaded ✅
+Fetching NFL player database...
+Rosters loaded: 10 teams, 254 skill position players ✅
+Scraping KTC rankings...
+  Scraping page 0...
+    Found 50 players
+  Scraping page 1...
+    Found 50 players
+  Scraping page 2...
+    Found 50 players
+  Scraping page 3...
+    Found 50 players
+  Scraping page 4...
+    Found 50 players
+  Scraping page 5...
+    Found 50 players
+  Scraping page 6...
+    Found 50 players
+  Scraping page 7...
+    Found 50 players
+  Scraping page 8...
+    Found 50 players
+  Scraping page 9...
+    Found 50 players
+
+Total scraped: 500
+✅ KTC scrape complete — 464 players, 36 picks
+   Top player: Ja'Marr Chase (9,996)
+   Last player: Matthew Hibner (65)
+   Pick range: 7,124 (highest) — 1,279 (lowest)
+Pulling seasons: [2022, 2023, 2024, 2025]
+2022 done.
+2023 done.
+2024 done.
+2025 done.
+Downcasting floats.
+Multi-year production calculated: 637 players ✅
+Loading draft capital...
+Draft capital loaded: 6644 players
+     draft_name  draft_year  draft_round  draft_pick  draft_value
+ Courtney Brown        2000            1           1         3000
+LaVar Arrington        2000            1           2         2635
+  Chris Samuels        2000            1           3         2421
+  Peter Warrick        2000            1           4         2270
+    Jamal Lewis        2000            1           5         2152
+
+Loading advanced stats...
+2024 done.
+2025 done.
+Downcasting floats.
+Loading snap counts...
+Building player ID lookup...
+ID lookup built: 18289 players
+name_to_gsis built: 17740 players
+Sample: [('Isaako Aaitui', '00-0028830'), ('Israel Abanikanda', '00-0038389'), ('Jon Abbate', '00-0024644')]
+
+Calculating EPA...
+Position average EPA per play:
+  QB:    -0.0318
+  RB:    -0.1184
+  WR/TE: 0.0663
+
+Top QBs by EPA per dropback (min 100 dropbacks):
+          player  epa_per_play  total_plays
+    Malik Willis      0.429545          101
+      Jared Goff      0.221499         1187
+   Lamar Jackson      0.208347          839
+      Josh Allen      0.190189         1005
+     Jordan Love      0.181172          904
+     Brock Purdy      0.172910          785
+Matthew Stafford      0.148913         1167
+      Derek Carr      0.145866          290
+      Drake Maye      0.140153          914
+      Joe Burrow      0.129900          980
+
+Top RBs by EPA per carry (min 50 carries):
+             player  epa_per_play  total_plays
+        Taysom Hill      0.106968           91
+   Jeremy McNichols      0.103274          101
+Chris Rodriguez Jr.      0.096175          147
+    Emari Demercado      0.080306           68
+      Derrick Henry      0.078738          632
+       Jahmyr Gibbs      0.065715          493
+      Dameon Pierce      0.059303           54
+     Isaac Guerendo      0.057763           84
+        Sean Tucker      0.047582          136
+ TreVeyon Henderson      0.046857          180
+
+Top WR/TEs by EPA per target (min 100 targets):
+          player  epa_per_play  total_plays
+   George Kittle      0.701012          163
+    Tucker Kraft      0.664112          115
+     Alec Pierce      0.627988          153
+      Puka Nacua      0.615552          273
+  Terry McLaurin      0.576234          178
+   DeVonta Smith      0.544944          204
+    Stefon Diggs      0.532840          166
+     Sam LaPorta      0.514024          132
+  Kayshon Boutte      0.500842          115
+Jameson Williams      0.485936          193
+
+Top QBs by rush yards:
+         player  rush_attempts  rush_yards  rush_tds  rush_epa
+  Lamar Jackson            186      1268.0       6.0  0.220681
+ Jayden Daniels            192      1187.0       8.0  0.382986
+     Josh Allen            188      1138.0      26.0  0.567398
+    Jalen Hurts            225      1085.0      22.0  0.336414
+     Drake Maye            135       902.0       6.0  0.332886
+ Caleb Williams            141       890.0       3.0  0.186655
+ Justin Herbert            123       853.0       4.0  0.355071
+         Bo Nix            144       821.0       9.0  0.339326
+ Baker Mayfield            100       777.0       4.0  0.541550
+Patrick Mahomes             94       766.0       7.0  0.705354
+
+Calculating target share...
+Calculating RB red zone...
+Merging snap share with ID lookup...
+
+Advanced stats calculated ✅
+
+Target share sample (min 50 targets):
+            player  avg_target_share  avg_air_yards  avg_yprr  total_targets
+  Justin Jefferson          0.299072         1560.0  8.667414            296
+Jaxon Smith-Njigba          0.298966         1509.5  9.768116            301
+ Amon-Ra St. Brown          0.291163         1235.5  8.906070            313
+     Ja'Marr Chase          0.290280         1548.0  8.696216            360
+      Trey McBride          0.277632         1014.0  7.542077            317
+       Zay Flowers          0.273206         1205.5  9.613876            236
+ Wan'Dale Robinson          0.264776          921.5  6.092173            281
+      Drake London          0.255460         1472.0  8.072077            272
+ Tetairoa McMillan          0.253112         1410.0  8.303279            122
+        A.J. Brown          0.245580         1296.5  9.706484            218
+        Puka Nacua          0.241203         1202.5  9.791831            273
+      Emeka Egbuka          0.234862         1572.0  7.343750            128
+     DeVonta Smith          0.229716         1082.0  9.048830            204
+  Courtland Sutton          0.228839         1664.5  8.079704            260
+      Keenan Allen          0.226871         1071.0  6.208816            245
+
+Red zone leaders (RB, min 5 carries):
+             player  rz5_carries
+      Derrick Henry           47
+    Jonathan Taylor           44
+        Josh Jacobs           44
+     Kyren Williams           38
+   David Montgomery           35
+     Saquon Barkley           35
+    Zach Charbonnet           32
+        Kareem Hunt           32
+         James Cook           31
+   Javonte Williams           30
+     Bijan Robinson           29
+       Jahmyr Gibbs           27
+        Chase Brown           27
+      D'Andre Swift           24
+Rhamondre Stevenson           24
+
+Top QBs by rush yards:
+         player  rush_attempts  rush_yards  rush_tds  rush_epa
+  Lamar Jackson            186      1268.0       6.0  0.220681
+ Jayden Daniels            192      1187.0       8.0  0.382986
+     Josh Allen            188      1138.0      26.0  0.567398
+    Jalen Hurts            225      1085.0      22.0  0.336414
+     Drake Maye            135       902.0       6.0  0.332886
+ Caleb Williams            141       890.0       3.0  0.186655
+ Justin Herbert            123       853.0       4.0  0.355071
+         Bo Nix            144       821.0       9.0  0.339326
+ Baker Mayfield            100       777.0       4.0  0.541550
+Patrick Mahomes             94       766.0       7.0  0.705354
+name_to_gsis built: 17740 players
+Sample: [('Isaako Aaitui', '00-0028830'), ('Israel Abanikanda', '00-0038389'), ('Jon Abbate', '00-0024644')]
+✅ Rankings merged with multi-year production
+   Players with production history: 362
+   Players without history (rookies): 102
+After dedup: 254 players
+✅ Merged df: (254, 20) — 253 matched, 1 unmatched
+
+Unmatched players:
+          name position          owner
+Zonovan Knight       RB sethfriedman12
+✅ Pick portfolio built: 120 picks
+
+Sample 2026 picks:
+year  round  slot pick_display_name original_owner_name current_owner_name  ktc_value
+2026      1   1.0         2026 1.01            jsinykin           jsinykin       5665
+2026      2   1.0         2026 2.01            jsinykin           jsinykin       3286
+2026      3   1.0         2026 3.01            jsinykin           Akracoon       2281
+2026      4   1.0         2026 4.01            jsinykin           Akracoon       1703
+2026      1  10.0         2026 1.10      GreyWaedekin27           jsinykin       3910
+2026      2  10.0         2026 2.10      GreyWaedekin27           gavinw20       2788
+2026      3  10.0         2026 3.10      GreyWaedekin27           gavinw20       2027
+2026      4  10.0         2026 4.10      GreyWaedekin27       Herschey6153       1468
+2026      1   2.0         2026 1.02        ekleiner1123       ekleiner1123       5665
+2026      2   2.0         2026 2.02        ekleiner1123       ekleiner1123       3286
+
+Sample 2027 picks:
+year  round pick_display_name original_owner_name current_owner_name  ktc_value
+2027      1      2027 Mid 1st        ekleiner1123       ekleiner1123       5640
+2027      2      2027 Mid 2nd        ekleiner1123       ekleiner1123       3477
+2027      3      2027 Mid 3rd        ekleiner1123       ekleiner1123       2455
+2027      4      2027 Mid 4th        ekleiner1123           gavinw20       1759
+2027      1      2027 Mid 1st        Herschey6153           Akracoon       5640
+Snap share matched: 3094 / 3192
+Advanced stats df built: 18289 players
+Players matched to gsis_id: 253 / 254
+Unmatched players:
+          name position          owner
+Zonovan Knight       RB sethfriedman12
+merged_df after advanced stats merge: (254, 45)
+
+Advanced stats coverage:
+  EPA data:         249 / 254 players
+  Snap share:       246 / 254 players
+  Draft capital:    247 / 254 players
+  Target share:     217 / 254 players
+  RZ carries:       86 / 254 players
+
+Sample — your key players:
+
+  Drake Maye
+    EPA vs avg:    0.1720
+    Snap %:        88.1%
+    Draft value:   2421
+    Target share:  0.2%
+    RZ carries:    N/A
+
+  Puka Nacua
+    EPA vs avg:    0.5493
+    Snap %:        69.0%
+    Draft value:   274
+    Target share:  24.1%
+    RZ carries:    1
+
+  Trey McBride
+    EPA vs avg:    0.3179
+    Snap %:        90.6%
+    Draft value:   890
+    Target share:  27.8%
+    RZ carries:    1
+
+  Kyren Williams
+    EPA vs avg:    0.0861
+    Snap %:        77.3%
+    Draft value:   314
+    Target share:  8.0%
+    RZ carries:    38
+
+  Bijan Robinson
+    EPA vs avg:    0.1280
+    Snap %:        76.8%
+    Draft value:   1905
+    Target share:  16.5%
+    RZ carries:    29
+
+  Tetairoa McMillan
+    EPA vs avg:    0.1410
+    Snap %:        87.2%
+    Draft value:   1905
+    Target share:  25.3%
+    RZ carries:    N/A
+
+  Jahmyr Gibbs
+    EPA vs avg:    0.1841
+    Snap %:        61.1%
+    Draft value:   1691
+    Target share:  14.6%
+    RZ carries:    27
+RB tiers assigned ✅
+
+RB tier distribution:
+rb_tier_new
+Serviceable              15
+Jag Insurance            12
+Jag Developmental        11
+Mainstay                  9
+Upside Shot               8
+Cornerstone               5
+Upside Premier            3
+Short-term Production     3
+Productive Vet            3
+Foundational              3
+Replaceable               2
+Short-term Winner         1
+Name: count, dtype: int64
+WR tiers assigned ✅
+
+WR tier distribution:
+wr_tier_new
+Serviceable              30
+Foundational             12
+Jag Insurance            12
+Cornerstone               8
+Jag Developmental         8
+Mainstay                  8
+Replaceable               7
+Upside Premier            7
+Upside Shot               4
+Short-term Production     2
+Name: count, dtype: int64
+TE tiers assigned ✅
+
+TE tier distribution:
+te_tier_new
+Serviceable              12
+Mainstay                  7
+Upside Shot               3
+Jag Developmental         3
+Foundational              3
+Cornerstone               2
+Short-term Production     2
+Upside Premier            2
+Short-term Winner         1
+Jag Insurance             1
+Name: count, dtype: int64
+QB tiers assigned ✅
+
+QB tier distribution:
+qb_tier_new
+Upside Shot              8
+Cornerstone              7
+Foundational             6
+Serviceable              5
+Short-term Production    4
+Mainstay                 3
+Jag Insurance            3
+Productive Vet           3
+Upside Premier           2
+Jag Developmental        2
+Replaceable              2
+Name: count, dtype: int64
+Unified tier column built ✅
+
+Tier distribution:
+tier_new
+Serviceable              62
+Jag Insurance            28
+Mainstay                 27
+Jag Developmental        24
+Foundational             24
+Upside Shot              23
+Cornerstone              22
+Upside Premier           14
+Replaceable              11
+Short-term Production    11
+Productive Vet            6
+Short-term Winner         2
+Name: count, dtype: int64
+
+Cornerstone players:
+              name position  age  KTC Value    tier_new
+        Josh Allen       QB   29     9994.0 Cornerstone
+        Drake Maye       QB   23     9402.0 Cornerstone
+    Caleb Williams       QB   24     7861.0 Cornerstone
+    Jayden Daniels       QB   25     7805.0 Cornerstone
+     Lamar Jackson       QB   29     7653.0 Cornerstone
+        Joe Burrow       QB   29     7412.0 Cornerstone
+   Patrick Mahomes       QB   30     6785.0 Cornerstone
+    Bijan Robinson       RB   24     9996.0 Cornerstone
+      Jahmyr Gibbs       RB   24     9621.0 Cornerstone
+     Ashton Jeanty       RB   22     7613.0 Cornerstone
+     De'Von Achane       RB   24     6908.0 Cornerstone
+   Omarion Hampton       RB   23     6798.0 Cornerstone
+      Brock Bowers       TE   23     7966.0 Cornerstone
+      Trey McBride       TE   26     7464.0 Cornerstone
+     Ja'Marr Chase       WR   26     9996.0 Cornerstone
+Jaxon Smith-Njigba       WR   24     9895.0 Cornerstone
+        Puka Nacua       WR   24     8641.0 Cornerstone
+ Amon-Ra St. Brown       WR   26     7827.0 Cornerstone
+      Malik Nabers       WR   22     7793.0 Cornerstone
+  Justin Jefferson       WR   26     7786.0 Cornerstone
+       CeeDee Lamb       WR   27     7283.0 Cornerstone
+      Drake London       WR   24     6921.0 Cornerstone
+
+Foundational players:
+             name position  age  KTC Value     tier_new
+   Justin Herbert       QB   28     6803.0 Foundational
+      Jalen Hurts       QB   27     6259.0 Foundational
+  Trevor Lawrence       QB   26     6237.0 Foundational
+           Bo Nix       QB   26     6131.0 Foundational
+      Brock Purdy       QB   26     5840.0 Foundational
+      Jordan Love       QB   27     5588.0 Foundational
+       James Cook       RB   26     6011.0 Foundational
+  Jonathan Taylor       RB   27     5966.0 Foundational
+      Breece Hall       RB   24     5423.0 Foundational
+ Colston Loveland       TE   22     6073.0 Foundational
+     Tucker Kraft       TE   25     4812.0 Foundational
+      Sam LaPorta       TE   25     4517.0 Foundational
+Tetairoa McMillan       WR   23     6562.0 Foundational
+   George Pickens       WR   25     5966.0 Foundational
+   Garrett Wilson       WR   25     5678.0 Foundational
+     Nico Collins       WR   27     5608.0 Foundational
+      Chris Olave       WR   25     5494.0 Foundational
+      Rashee Rice       WR   26     5341.0 Foundational
+    DeVonta Smith       WR   27     5200.0 Foundational
+      Tee Higgins       WR   27     4892.0 Foundational
+    Jaylen Waddle       WR   27     4839.0 Foundational
+       A.J. Brown       WR   28     4825.0 Foundational
+      Zay Flowers       WR   25     4689.0 Foundational
+ Jameson Williams       WR   25     4680.0 Foundational
+
+Upside Premier players:
+            name position  age  KTC Value       tier_new
+     Jaxson Dart       QB   23     6604.0 Upside Premier
+        Cam Ward       QB   23     5368.0 Upside Premier
+Quinshon Judkins       RB   22     5483.0 Upside Premier
+    Bucky Irving       RB   23     4905.0 Upside Premier
+    Cam Skattebo       RB   24     4582.0 Upside Premier
+    Tyler Warren       TE   23     5679.0 Upside Premier
+   Harold Fannin       TE   21     4863.0 Upside Premier
+    Emeka Egbuka       WR   23     6105.0 Upside Premier
+     Rome Odunze       WR   23     5407.0 Upside Premier
+   Ladd McConkey       WR   24     5328.0 Upside Premier
+   Luther Burden       WR   22     5288.0 Upside Premier
+ Marvin Harrison       WR   23     5108.0 Upside Premier
+    Brian Thomas       WR   23     4884.0 Upside Premier
+   Travis Hunter       WR   23     3353.0 Upside Premier
+✅ Tier column updated with new unified tiers
+
+Final tier distribution:
+tier
+Serviceable              62
+Jag Insurance            28
+Mainstay                 27
+Jag Developmental        24
+Foundational             24
+Upside Shot              23
+Cornerstone              22
+Upside Premier           14
+Replaceable              11
+Short-term Production    11
+Productive Vet            6
+Short-term Winner         2
+Name: count, dtype: int64
+Pulling seasons: 2005 — 2025
+Rostered players: 254
+Pulling Sleeper season stats...
+  2005: 7592 players
+  2006: 7592 players
+  2007: 7592 players
+  2008: 7592 players
+  2009: 8124 players
+  2010: 8272 players
+  2011: 8432 players
+  2012: 8636 players
+  2013: 8849 players
+  2014: 9056 players
+  2015: 9097 players
+  2016: 8899 players
+  2017: 8668 players
+  2018: 8410 players
+  2019: 8093 players
+  2020: 8127 players
+  2021: 8214 players
+  2022: 8200 players
+  2023: 8197 players
+  2024: 8212 players
+  2025: 8211 players
+✅ Season stats pulled
+
+Rows built:
+  QB: 259
+  RB: 270
+  WR: 361
+  TE: 159
+Dynamic position needs based on your roster:
+  RB: need=0.67  grade=4579  rank=#7 of 10
+  QB: need=0.33  grade=6369  rank=#4 of 10
+  WR: need=0.33  grade=5693  rank=#4 of 10
+  TE: need=0.22  grade=5412  rank=#3 of 10
+All analysis built ✅
+Outlook classified ✅
+         owner                outlook  CF_total  value_share  production_share  share_gap
+  ekleiner1123              Contender       5.5        12.71             10.20       2.51
+      jsinykin                 Reload       5.5        12.29              7.34       4.95
+   SvenMoney34              Contender      10.5        11.46             11.06       0.40
+      gavinw20              Contender       7.0        10.22             11.02      -0.80
+  GiantHawkTua                 Reload       6.5        10.06             10.13      -0.07
+ nchernandez19                 Reload       5.0         9.78              8.45       1.33
+sethfriedman12                Rebuild       3.5         9.48              9.94      -0.46
+      Akracoon Rebuild (future value)       1.5         9.38              9.38       0.00
+  Herschey6153       Window Contender       5.0         7.31             11.80      -4.49
+GreyWaedekin27       Window Contender       3.0         7.30             10.68      -3.38
+Trade engine built ✅
+
+Top 10 buy targets:
+             name position  age  KTC Value           tier          owner  buy_score
+     Jahmyr Gibbs       RB   24     9621.0    Cornerstone sethfriedman12     1.1419
+   Bijan Robinson       RB   24     9996.0    Cornerstone  nchernandez19     1.0643
+     Malik Nabers       WR   22     7793.0    Cornerstone       Akracoon     1.0207
+ Justin Jefferson       WR   26     7786.0    Cornerstone GreyWaedekin27     0.9671
+      CeeDee Lamb       WR   27     7283.0    Cornerstone GreyWaedekin27     0.9557
+     Brock Bowers       TE   23     7966.0    Cornerstone  nchernandez19     0.9475
+     Bucky Irving       RB   23     4905.0 Upside Premier  nchernandez19     0.9322
+    Lamar Jackson       QB   29     7653.0    Cornerstone   Herschey6153     0.9310
+Amon-Ra St. Brown       WR   26     7827.0    Cornerstone   GiantHawkTua     0.9292
+ Quinshon Judkins       RB   22     5483.0 Upside Premier       jsinykin     0.9291
+Trade package builder ready ✅
+Trade evaluator ready ✅
+League history: [('2026', '13121301...'), ('2025', '11804125...'), ('2024', '10596444...')]
+Pulling all trades...
+  2026: 6 trades found
+  2025: 35 trades found
+  2024: 24 trades found
+Total trades: 65
+Pulling draft results...
+  2025 rookie draft: 40 picks
+  2024 startup draft: 280 picks
+
+Pick lookup built: 320 picks
+Zero-value non-trivial picks: 33 (retired/cut players)
+Grading all trades with adjustment...
+Graded 65 trades
+Trade history built: 65 trades
+Trade Grades ready ✅
+Pushing Player Universe...
+Pushing Team Overview...
+Pushing Roster Grades...
+Pushing Positional Proportion...
+Pushing My Team Deep Dive...
+Pushing Trade Targets...
+Pushing Pick Portfolio...
+Pushing League Rosters...
+Pushing KTC Rankings...
+Pushing Career Season Stats...
+Pushing Pick Values Lookup...
+Pushing Trade History...
+
+✅ All tabs pushed successfully!
+https://docs.google.com/spreadsheets/d/1zm152q_sTfKIYEXvTmw-DDKloHNyT3uxmiW1rivt4xk
+✅ All CSVs exported to ./tableau_exports/
+
+Files exported:
+  team_overview.csv                      1,580 bytes
+  ktc_rankings.csv                      34,948 bytes
+  positional_proportion.csv                968 bytes
+  player_universe.csv                   26,862 bytes
+  buy_targets.csv                        2,614 bytes
+  roster_grades.csv                      2,442 bytes
+  sell_candidates.csv                    1,820 bytes
+  pick_portfolio.csv                     4,897 bytes
+Run finished: Tue May 19 13:33:52 CDT 2026
+
+=============================
+Run started: Thu May 21 20:29:16 CDT 2026
+Config loaded ✅
+Fetching NFL player database...
+Rosters loaded: 10 teams, 254 skill position players ✅
+Scraping KTC rankings...
+  Scraping page 0...
+    Found 50 players
+  Scraping page 1...
+    Found 50 players
+  Scraping page 2...
+    Found 50 players
+  Scraping page 3...
+    Found 50 players
+  Scraping page 4...
+    Found 50 players
+  Scraping page 5...
+    Found 50 players
+  Scraping page 6...
+    Found 50 players
+  Scraping page 7...
+    Found 50 players
+  Scraping page 8...
+    Found 50 players
+  Scraping page 9...
+    Found 50 players
+
+Total scraped: 500
+✅ KTC scrape complete — 464 players, 36 picks
+   Top player: Bijan Robinson (9,999)
+   Last player: Matthew Hibner (230)
+   Pick range: 7,114 (highest) — 1,279 (lowest)
+Pulling seasons: [2022, 2023, 2024, 2025]
+2022 done.
+2023 done.
+2024 done.
+2025 done.
+Downcasting floats.
+Multi-year production calculated: 637 players ✅
+Loading draft capital...
+Draft capital loaded: 6644 players
+     draft_name  draft_year  draft_round  draft_pick  draft_value
+ Courtney Brown        2000            1           1         3000
+LaVar Arrington        2000            1           2         2635
+  Chris Samuels        2000            1           3         2421
+  Peter Warrick        2000            1           4         2270
+    Jamal Lewis        2000            1           5         2152
+
+Loading advanced stats...
+2024 done.
+2025 done.
+Downcasting floats.
+Loading snap counts...
+Building player ID lookup...
+ID lookup built: 18289 players
+name_to_gsis built: 17740 players
+Sample: [('Isaako Aaitui', '00-0028830'), ('Israel Abanikanda', '00-0038389'), ('Jon Abbate', '00-0024644')]
+
+Calculating EPA...
+Position average EPA per play:
+  QB:    -0.0318
+  RB:    -0.1184
+  WR/TE: 0.0663
+
+Top QBs by EPA per dropback (min 100 dropbacks):
+          player  epa_per_play  total_plays
+    Malik Willis      0.429545          101
+      Jared Goff      0.221499         1187
+   Lamar Jackson      0.208347          839
+      Josh Allen      0.190189         1005
+     Jordan Love      0.181172          904
+     Brock Purdy      0.172910          785
+Matthew Stafford      0.148913         1167
+      Derek Carr      0.145866          290
+      Drake Maye      0.140153          914
+      Joe Burrow      0.129900          980
+
+Top RBs by EPA per carry (min 50 carries):
+             player  epa_per_play  total_plays
+        Taysom Hill      0.106968           91
+   Jeremy McNichols      0.103274          101
+Chris Rodriguez Jr.      0.096175          147
+    Emari Demercado      0.080306           68
+      Derrick Henry      0.078738          632
+       Jahmyr Gibbs      0.065715          493
+      Dameon Pierce      0.059303           54
+     Isaac Guerendo      0.057763           84
+        Sean Tucker      0.047582          136
+ TreVeyon Henderson      0.046857          180
+
+Top WR/TEs by EPA per target (min 100 targets):
+          player  epa_per_play  total_plays
+   George Kittle      0.701012          163
+    Tucker Kraft      0.664112          115
+     Alec Pierce      0.627988          153
+      Puka Nacua      0.615552          273
+  Terry McLaurin      0.576234          178
+   DeVonta Smith      0.544944          204
+    Stefon Diggs      0.532840          166
+     Sam LaPorta      0.514024          132
+  Kayshon Boutte      0.500842          115
+Jameson Williams      0.485936          193
+
+Top QBs by rush yards:
+         player  rush_attempts  rush_yards  rush_tds  rush_epa
+  Lamar Jackson            186      1268.0       6.0  0.220681
+ Jayden Daniels            192      1187.0       8.0  0.382986
+     Josh Allen            188      1138.0      26.0  0.567398
+    Jalen Hurts            225      1085.0      22.0  0.336414
+     Drake Maye            135       902.0       6.0  0.332886
+ Caleb Williams            141       890.0       3.0  0.186655
+ Justin Herbert            123       853.0       4.0  0.355071
+         Bo Nix            144       821.0       9.0  0.339326
+ Baker Mayfield            100       777.0       4.0  0.541550
+Patrick Mahomes             94       766.0       7.0  0.705354
+
+Calculating target share...
+Calculating RB red zone...
+Merging snap share with ID lookup...
+
+Advanced stats calculated ✅
+
+Target share sample (min 50 targets):
+            player  avg_target_share  avg_air_yards  avg_yprr  total_targets
+  Justin Jefferson          0.299072         1560.0  8.667414            296
+Jaxon Smith-Njigba          0.298966         1509.5  9.768116            301
+ Amon-Ra St. Brown          0.291163         1235.5  8.906070            313
+     Ja'Marr Chase          0.290280         1548.0  8.696216            360
+      Trey McBride          0.277632         1014.0  7.542077            317
+       Zay Flowers          0.273206         1205.5  9.613876            236
+ Wan'Dale Robinson          0.264776          921.5  6.092173            281
+      Drake London          0.255460         1472.0  8.072077            272
+ Tetairoa McMillan          0.253112         1410.0  8.303279            122
+        A.J. Brown          0.245580         1296.5  9.706484            218
+        Puka Nacua          0.241203         1202.5  9.791831            273
+      Emeka Egbuka          0.234862         1572.0  7.343750            128
+     DeVonta Smith          0.229716         1082.0  9.048830            204
+  Courtland Sutton          0.228839         1664.5  8.079704            260
+      Keenan Allen          0.226871         1071.0  6.208816            245
+
+Red zone leaders (RB, min 5 carries):
+             player  rz5_carries
+      Derrick Henry           47
+    Jonathan Taylor           44
+        Josh Jacobs           44
+     Kyren Williams           38
+   David Montgomery           35
+     Saquon Barkley           35
+    Zach Charbonnet           32
+        Kareem Hunt           32
+         James Cook           31
+   Javonte Williams           30
+     Bijan Robinson           29
+       Jahmyr Gibbs           27
+        Chase Brown           27
+      D'Andre Swift           24
+Rhamondre Stevenson           24
+
+Top QBs by rush yards:
+         player  rush_attempts  rush_yards  rush_tds  rush_epa
+  Lamar Jackson            186      1268.0       6.0  0.220681
+ Jayden Daniels            192      1187.0       8.0  0.382986
+     Josh Allen            188      1138.0      26.0  0.567398
+    Jalen Hurts            225      1085.0      22.0  0.336414
+     Drake Maye            135       902.0       6.0  0.332886
+ Caleb Williams            141       890.0       3.0  0.186655
+ Justin Herbert            123       853.0       4.0  0.355071
+         Bo Nix            144       821.0       9.0  0.339326
+ Baker Mayfield            100       777.0       4.0  0.541550
+Patrick Mahomes             94       766.0       7.0  0.705354
+name_to_gsis built: 17740 players
+Sample: [('Isaako Aaitui', '00-0028830'), ('Israel Abanikanda', '00-0038389'), ('Jon Abbate', '00-0024644')]
+✅ Rankings merged with multi-year production
+   Players with production history: 361
+   Players without history (rookies): 103
+After dedup: 254 players
+✅ Merged df: (254, 20) — 252 matched, 2 unmatched
+
+Unmatched players:
+          name position          owner
+    Nick Chubb       RB       Akracoon
+Zonovan Knight       RB sethfriedman12
+✅ Pick portfolio built: 120 picks
+
+Sample 2026 picks:
+year  round  slot pick_display_name original_owner_name current_owner_name  ktc_value
+2026      1   1.0         2026 1.01            jsinykin           jsinykin       5661
+2026      2   1.0         2026 2.01            jsinykin           jsinykin       3273
+2026      3   1.0         2026 3.01            jsinykin           Akracoon       2255
+2026      4   1.0         2026 4.01            jsinykin           Akracoon       1692
+2026      1  10.0         2026 1.10      GreyWaedekin27           jsinykin       3932
+2026      2  10.0         2026 2.10      GreyWaedekin27           gavinw20       2819
+2026      3  10.0         2026 3.10      GreyWaedekin27           gavinw20       2036
+2026      4  10.0         2026 4.10      GreyWaedekin27       Herschey6153       1480
+2026      1   2.0         2026 1.02        ekleiner1123       ekleiner1123       5661
+2026      2   2.0         2026 2.02        ekleiner1123       ekleiner1123       3273
+
+Sample 2027 picks:
+year  round pick_display_name original_owner_name current_owner_name  ktc_value
+2027      1      2027 Mid 1st        ekleiner1123     sethfriedman12       5659
+2027      2      2027 Mid 2nd        ekleiner1123       ekleiner1123       3492
+2027      3      2027 Mid 3rd        ekleiner1123     sethfriedman12       2458
+2027      4      2027 Mid 4th        ekleiner1123           gavinw20       1763
+2027      1      2027 Mid 1st        Herschey6153           Akracoon       5659
+Snap share matched: 3094 / 3192
+Advanced stats df built: 18289 players
+Players matched to gsis_id: 253 / 254
+Unmatched players:
+          name position          owner
+Zonovan Knight       RB sethfriedman12
+merged_df after advanced stats merge: (254, 45)
+
+Advanced stats coverage:
+  EPA data:         249 / 254 players
+  Snap share:       246 / 254 players
+  Draft capital:    247 / 254 players
+  Target share:     217 / 254 players
+  RZ carries:       86 / 254 players
+
+Sample — your key players:
+
+  Drake Maye
+    EPA vs avg:    0.1720
+    Snap %:        88.1%
+    Draft value:   2421
+    Target share:  0.2%
+    RZ carries:    N/A
+
+  Puka Nacua
+    EPA vs avg:    0.5493
+    Snap %:        69.0%
+    Draft value:   274
+    Target share:  24.1%
+    RZ carries:    1
+
+  Trey McBride
+    EPA vs avg:    0.3179
+    Snap %:        90.6%
+    Draft value:   890
+    Target share:  27.8%
+    RZ carries:    1
+
+  Kyren Williams
+    EPA vs avg:    0.0861
+    Snap %:        77.3%
+    Draft value:   314
+    Target share:  8.0%
+    RZ carries:    38
+
+  Bijan Robinson
+    EPA vs avg:    0.1280
+    Snap %:        76.8%
+    Draft value:   1905
+    Target share:  16.5%
+    RZ carries:    29
+
+  Tetairoa McMillan
+    EPA vs avg:    0.1410
+    Snap %:        87.2%
+    Draft value:   1905
+    Target share:  25.3%
+    RZ carries:    N/A
+
+  Jahmyr Gibbs
+    EPA vs avg:    0.1841
+    Snap %:        61.1%
+    Draft value:   1691
+    Target share:  14.6%
+    RZ carries:    27
+RB tiers assigned ✅
+
+RB tier distribution:
+rb_tier_new
+Serviceable              15
+Jag Insurance            12
+Jag Developmental        11
+Mainstay                  9
+Upside Shot               8
+Cornerstone               5
+Productive Vet            3
+Short-term Production     3
+Upside Premier            3
+Foundational              3
+Replaceable               2
+Short-term Winner         1
+Name: count, dtype: int64
+WR tiers assigned ✅
+
+WR tier distribution:
+wr_tier_new
+Serviceable              30
+Jag Insurance            12
+Foundational             11
+Mainstay                  9
+Cornerstone               8
+Jag Developmental         8
+Replaceable               7
+Upside Premier            7
+Upside Shot               4
+Short-term Production     2
+Name: count, dtype: int64
+TE tiers assigned ✅
+
+TE tier distribution:
+te_tier_new
+Serviceable              12
+Mainstay                  7
+Upside Shot               3
+Jag Developmental         3
+Foundational              3
+Cornerstone               2
+Short-term Production     2
+Upside Premier            2
+Short-term Winner         1
+Jag Insurance             1
+Name: count, dtype: int64
+QB tiers assigned ✅
+
+QB tier distribution:
+qb_tier_new
+Upside Shot              8
+Cornerstone              7
+Foundational             6
+Serviceable              5
+Short-term Production    4
+Mainstay                 3
+Productive Vet           3
+Jag Insurance            3
+Upside Premier           2
+Jag Developmental        2
+Replaceable              2
+Name: count, dtype: int64
+Unified tier column built ✅
+
+Tier distribution:
+tier_new
+Serviceable              62
+Jag Insurance            28
+Mainstay                 28
+Jag Developmental        24
+Upside Shot              23
+Foundational             23
+Cornerstone              22
+Upside Premier           14
+Replaceable              11
+Short-term Production    11
+Productive Vet            6
+Short-term Winner         2
+Name: count, dtype: int64
+
+Cornerstone players:
+              name position  age  KTC Value    tier_new
+        Josh Allen       QB   30     9985.0 Cornerstone
+        Drake Maye       QB   23     9371.0 Cornerstone
+    Caleb Williams       QB   24     7880.0 Cornerstone
+    Jayden Daniels       QB   25     7840.0 Cornerstone
+     Lamar Jackson       QB   29     7660.0 Cornerstone
+        Joe Burrow       QB   29     7452.0 Cornerstone
+   Patrick Mahomes       QB   30     6746.0 Cornerstone
+    Bijan Robinson       RB   24     9999.0 Cornerstone
+      Jahmyr Gibbs       RB   24     9649.0 Cornerstone
+     Ashton Jeanty       RB   22     7594.0 Cornerstone
+     De'Von Achane       RB   24     6933.0 Cornerstone
+   Omarion Hampton       RB   23     6791.0 Cornerstone
+      Brock Bowers       TE   23     7986.0 Cornerstone
+      Trey McBride       TE   26     7477.0 Cornerstone
+     Ja'Marr Chase       WR   26     9980.0 Cornerstone
+Jaxon Smith-Njigba       WR   24     9902.0 Cornerstone
+        Puka Nacua       WR   24     8621.0 Cornerstone
+ Amon-Ra St. Brown       WR   26     7812.0 Cornerstone
+  Justin Jefferson       WR   26     7773.0 Cornerstone
+      Malik Nabers       WR   22     7765.0 Cornerstone
+       CeeDee Lamb       WR   27     7251.0 Cornerstone
+      Drake London       WR   24     6910.0 Cornerstone
+
+Foundational players:
+             name position  age  KTC Value     tier_new
+   Justin Herbert       QB   28     6839.0 Foundational
+  Trevor Lawrence       QB   26     6283.0 Foundational
+      Jalen Hurts       QB   27     6249.0 Foundational
+           Bo Nix       QB   26     6078.0 Foundational
+      Brock Purdy       QB   26     5829.0 Foundational
+      Jordan Love       QB   27     5621.0 Foundational
+       James Cook       RB   26     5988.0 Foundational
+  Jonathan Taylor       RB   27     5974.0 Foundational
+      Breece Hall       RB   24     5436.0 Foundational
+ Colston Loveland       TE   22     6094.0 Foundational
+     Tucker Kraft       TE   25     4864.0 Foundational
+      Sam LaPorta       TE   25     4546.0 Foundational
+Tetairoa McMillan       WR   23     6592.0 Foundational
+   George Pickens       WR   25     5937.0 Foundational
+   Garrett Wilson       WR   25     5663.0 Foundational
+     Nico Collins       WR   27     5594.0 Foundational
+      Chris Olave       WR   25     5469.0 Foundational
+    DeVonta Smith       WR   27     5279.0 Foundational
+      Tee Higgins       WR   27     4902.0 Foundational
+    Jaylen Waddle       WR   27     4868.0 Foundational
+       A.J. Brown       WR   28     4831.0 Foundational
+      Zay Flowers       WR   25     4758.0 Foundational
+ Jameson Williams       WR   25     4707.0 Foundational
+
+Upside Premier players:
+            name position  age  KTC Value       tier_new
+     Jaxson Dart       QB   23     6599.0 Upside Premier
+        Cam Ward       QB   23     5387.0 Upside Premier
+Quinshon Judkins       RB   22     5500.0 Upside Premier
+    Bucky Irving       RB   23     4879.0 Upside Premier
+    Cam Skattebo       RB   24     4655.0 Upside Premier
+    Tyler Warren       TE   23     5726.0 Upside Premier
+   Harold Fannin       TE   21     4885.0 Upside Premier
+    Emeka Egbuka       WR   23     6153.0 Upside Premier
+     Rome Odunze       WR   23     5430.0 Upside Premier
+   Ladd McConkey       WR   24     5412.0 Upside Premier
+   Luther Burden       WR   22     5276.0 Upside Premier
+ Marvin Harrison       WR   23     5114.0 Upside Premier
+    Brian Thomas       WR   23     4890.0 Upside Premier
+   Travis Hunter       WR   23     3373.0 Upside Premier
+✅ Tier column updated with new unified tiers
+
+Final tier distribution:
+tier
+Serviceable              62
+Jag Insurance            28
+Mainstay                 28
+Jag Developmental        24
+Upside Shot              23
+Foundational             23
+Cornerstone              22
+Upside Premier           14
+Replaceable              11
+Short-term Production    11
+Productive Vet            6
+Short-term Winner         2
+Name: count, dtype: int64
+Pulling seasons: 2005 — 2025
+Rostered players: 254
+Pulling Sleeper season stats...
+  2005: 7594 players
+  2006: 7594 players
+  2007: 7594 players
+  2008: 7594 players
+  2009: 8126 players
+  2010: 8274 players
+  2011: 8434 players
+  2012: 8638 players
+  2013: 8851 players
+  2014: 9058 players
+  2015: 9099 players
+  2016: 8901 players
+  2017: 8670 players
+  2018: 8412 players
+  2019: 8095 players
+  2020: 8129 players
+  2021: 8216 players
+  2022: 8202 players
+  2023: 8199 players
+  2024: 8214 players
+  2025: 8213 players
+✅ Season stats pulled
+
+Rows built:
+  QB: 259
+  RB: 270
+  WR: 361
+  TE: 159
+Dynamic position needs based on your roster:
+  QB: need=0.33  grade=6365  rank=#4 of 10
+  WR: need=0.33  grade=5696  rank=#4 of 10
+  TE: need=0.22  grade=5409  rank=#3 of 10
+  RB: need=0.10  grade=6005  rank=#1 of 10
+All analysis built ✅
+Outlook classified ✅
+         owner                outlook  CF_total  value_share  production_share  share_gap
+      jsinykin                 Reload       5.5        12.31              7.36       4.95
+  ekleiner1123              Contender       6.0        11.99             10.37       1.62
+   SvenMoney34              Contender      10.5        11.41             10.74       0.67
+      gavinw20              Contender       7.0        10.23             11.05      -0.82
+sethfriedman12                 Reload       3.0        10.21              9.84       0.37
+  GiantHawkTua                 Reload       6.5        10.07             10.17      -0.10
+ nchernandez19 Rebuild (future value)       5.0         9.79              8.48       1.31
+      Akracoon Rebuild (future value)       1.5         9.35              9.09       0.26
+GreyWaedekin27       Window Contender       3.0         7.31             10.72      -3.41
+  Herschey6153       Window Contender       4.0         7.31             12.19      -4.88
+Trade engine built ✅
+
+Top 10 buy targets:
+             name position  age  KTC Value           tier          owner  buy_score
+     Malik Nabers       WR   22     7765.0    Cornerstone       Akracoon     1.0201
+     Brock Bowers       TE   23     7986.0    Cornerstone  nchernandez19     1.0079
+   Bijan Robinson       RB   24     9999.0    Cornerstone  nchernandez19     0.9818
+ Justin Jefferson       WR   26     7773.0    Cornerstone GreyWaedekin27     0.9669
+      CeeDee Lamb       WR   27     7251.0    Cornerstone GreyWaedekin27     0.9551
+    Lamar Jackson       QB   29     7660.0    Cornerstone   Herschey6153     0.9312
+Amon-Ra St. Brown       WR   26     7812.0    Cornerstone   GiantHawkTua     0.9289
+   Caleb Williams       QB   24     7880.0    Cornerstone       jsinykin     0.9190
+  Marvin Harrison       WR   23     5114.0 Upside Premier  nchernandez19     0.9045
+      Jaxson Dart       QB   23     6599.0 Upside Premier       jsinykin     0.9041
+Trade package builder ready ✅
+Trade evaluator ready ✅
+League history: [('2026', '13121301...'), ('2025', '11804125...'), ('2024', '10596444...')]
+Pulling all trades...
+  2026: 8 trades found
+  2025: 35 trades found
+  2024: 24 trades found
+Total trades: 67
+Pulling draft results...
+  2025 rookie draft: 40 picks
+  2024 startup draft: 280 picks
+
+Pick lookup built: 320 picks
+Zero-value non-trivial picks: 33 (retired/cut players)
+Grading all trades with adjustment...
+Graded 67 trades
+Trade history built: 67 trades
+Trade Grades ready ✅
+Pulling league history...
+
+Pulling 2025...
+  Pulling 2025 regular season...
+  Pulling 2025 playoffs...
+
+Pulling 2024...
+  Pulling 2024 regular season...
+  Pulling 2024 playoffs...
+
+✅ League history built for seasons: ['2025', '2024']
+
+2025 Champion: GreyWaedekin27 🏆
+Standings:
+  #1 Herschey6153: 12-2 | PF: 2237.96 | PPG: 159.85 | MaxPF: 2420.92 | Best: 221.64
+  #2 GreyWaedekin27: 9-5 | PF: 2145.18 | PPG: 153.23 | MaxPF: 2310.3 | Best: 193.34 🏆
+  #3 gavinw20: 8-6 | PF: 2138.22 | PPG: 152.73 | MaxPF: 2274.26 | Best: 205.2
+  #4 sethfriedman12: 8-6 | PF: 2106.14 | PPG: 150.44 | MaxPF: 2202.36 | Best: 175.94
+  #5 SvenMoney34: 7-7 | PF: 2116.52 | PPG: 151.18 | MaxPF: 2382.42 | Best: 181.32
+  #6 nchernandez19: 7-7 | PF: 1993.9 | PPG: 142.42 | MaxPF: 2015.62 | Best: 175.18
+  #7 GiantHawkTua: 7-7 | PF: 1984.98 | PPG: 141.78 | MaxPF: 2154.46 | Best: 194.32
+  #8 Akracoon: 6-8 | PF: 1965.96 | PPG: 140.43 | MaxPF: 2098.52 | Best: 174.52
+  #9 ekleiner1123: 4-10 | PF: 1822.12 | PPG: 130.15 | MaxPF: 2019.08 | Best: 180.56
+  #10 jsinykin: 2-12 | PF: 1112.9 | PPG: 79.49 | MaxPF: 1920.8 | Best: 152.4
+
+2024 Champion: Herschey6153 🏆
+Standings:
+  #1 Akracoon: 12-2 | PF: 2278.8 | PPG: 162.77 | MaxPF: 2455.9 | Best: 174.92
+  #2 GreyWaedekin27: 11-3 | PF: 2096.34 | PPG: 149.74 | MaxPF: 2338.44 | Best: 183.54
+  #3 gavinw20: 10-4 | PF: 2019.64 | PPG: 144.26 | MaxPF: 2127.78 | Best: 186.54
+  #4 Herschey6153: 9-5 | PF: 2280.52 | PPG: 162.89 | MaxPF: 2532.06 | Best: 202.96 🏆
+  #5 GiantHawkTua: 7-7 | PF: 2033.46 | PPG: 145.25 | MaxPF: 2047.1 | Best: 183.32
+  #6 jsinykin: 6-8 | PF: 2070.36 | PPG: 147.88 | MaxPF: 2092.08 | Best: 196.86
+  #7 nchernandez19: 6-8 | PF: 1954.78 | PPG: 139.63 | MaxPF: 2033.24 | Best: 221.4
+  #8 sethfriedman12: 5-9 | PF: 1995.18 | PPG: 142.51 | MaxPF: 2182.48 | Best: 175.04
+  #9 ekleiner1123: 3-11 | PF: 1313.26 | PPG: 93.8 | MaxPF: 1773.66 | Best: 166.02
+  #10 SvenMoney34: 1-13 | PF: 1094.52 | PPG: 78.18 | MaxPF: 2006.74 | Best: 146.58
+
+All-time top 10 scoring weeks:
+  #1 Herschey6153 — 221.64 pts (2025 Week 13)
+  #2 nchernandez19 — 221.4 pts (2024 Week 13)
+  #3 Herschey6153 — 218.56 pts (2024 Week 16)
+  #4 gavinw20 — 205.2 pts (2025 Week 4)
+  #5 Herschey6153 — 202.96 pts (2024 Week 1)
+  #6 Herschey6153 — 199.62 pts (2024 Week 17)
+  #7 GreyWaedekin27 — 197.36 pts (2025 Week 16)
+  #8 jsinykin — 196.86 pts (2024 Week 12)
+  #9 GreyWaedekin27 — 195.08 pts (2025 Week 17)
+  #10 GreyWaedekin27 — 194.98 pts (2024 Week 16)
+
+All-time top 10 player games:
+  #1 Jahmyr Gibbs (RB) — 55.4 pts (2025 Week 12) [sethfriedman12] Starter
+  #2 Ja'Marr Chase (WR) — 55.4 pts (2024 Week 10) [Akracoon] Starter
+  #3 Josh Allen (QB) — 51.88 pts (2024 Week 14) [gavinw20] Starter
+  #4 Jonathan Taylor (RB) — 49.6 pts (2025 Week 10) [GiantHawkTua] Starter
+  #5 Puka Nacua (WR) — 46.5 pts (2025 Week 16) [ekleiner1123] Bench
+  #6 Jauan Jennings (WR) — 46.5 pts (2024 Week 3) [Herschey6153] Bench
+  #7 Saquon Barkley (RB) — 46.2 pts (2024 Week 12) [Herschey6153] Starter
+  #8 Kyle Pitts (TE) — 45.6 pts (2025 Week 15) [GiantHawkTua] Bench
+  #9 Derrick Henry (RB) — 45.6 pts (2025 Week 17) [Herschey6153] Starter
+  #10 Ja'Marr Chase (WR) — 45.1 pts (2024 Week 14) [Akracoon] Starter
+
+Top 10 QB games:
+  #1 Josh Allen — 51.88 pts (2024 Week 14) [gavinw20] Starter
+  #2 Josh Allen — 44.68 pts (2025 Week 11) [gavinw20] Starter
+  #3 Trevor Lawrence — 44.3 pts (2025 Week 15) [SvenMoney34] Starter
+  #4 Josh Allen — 41.28 pts (2024 Week 15) [gavinw20] Starter
+  #5 Jared Goff — 41.06 pts (2024 Week 15) [GreyWaedekin27] Bench
+  #6 Bo Nix — 39.96 pts (2025 Week 7) [gavinw20] Starter
+  #7 Josh Allen — 38.76 pts (2025 Week 1) [gavinw20] Starter
+  #8 Caleb Williams — 38.7 pts (2025 Week 9) [jsinykin] Bench
+  #9 Brock Purdy — 37.92 pts (2025 Week 17) [GreyWaedekin27] Starter
+  #10 Josh Allen — 37.84 pts (2025 Week 14) [gavinw20] Starter
+
+Top 10 RB games:
+  #1 Jahmyr Gibbs — 55.4 pts (2025 Week 12) [sethfriedman12] Starter
+  #2 Jonathan Taylor — 49.6 pts (2025 Week 10) [GiantHawkTua] Starter
+  #3 Saquon Barkley — 46.2 pts (2024 Week 12) [Herschey6153] Starter
+  #4 Derrick Henry — 45.6 pts (2025 Week 17) [Herschey6153] Starter
+  #5 Alvin Kamara — 44.0 pts (2024 Week 2) [Akracoon] Starter
+  #6 De'Von Achane — 40.5 pts (2025 Week 10) [SvenMoney34] Starter
+  #7 Bijan Robinson — 39.9 pts (2025 Week 17) [nchernandez19] Starter
+  #8 Jonathan Taylor — 39.8 pts (2024 Week 16) [GiantHawkTua] Starter
+  #9 Christian McCaffrey — 39.1 pts (2025 Week 7) [GreyWaedekin27] Starter
+  #10 Zach Charbonnet — 38.3 pts (2024 Week 14) [gavinw20] Starter
+
+Top 10 WR games:
+  #1 Ja'Marr Chase — 55.4 pts (2024 Week 10) [Akracoon] Starter
+  #2 Puka Nacua — 46.5 pts (2025 Week 16) [ekleiner1123] Bench
+  #3 Jauan Jennings — 46.5 pts (2024 Week 3) [Herschey6153] Bench
+  #4 Ja'Marr Chase — 45.1 pts (2024 Week 14) [Akracoon] Starter
+  #5 Davante Adams — 42.8 pts (2024 Week 15) [Herschey6153] Starter
+  #6 Puka Nacua — 41.8 pts (2024 Week 14) [ekleiner1123] Starter
+  #7 Amon-Ra St. Brown — 41.4 pts (2025 Week 15) [GiantHawkTua] Starter
+  #8 Ja'Marr Chase — 41.3 pts (2024 Week 5) [Akracoon] Starter
+  #9 Tre Tucker — 40.9 pts (2025 Week 3) [sethfriedman12] Bench
+  #10 Jerry Jeudy — 40.5 pts (2024 Week 13) [sethfriedman12] Starter
+
+Top 10 TE games:
+  #1 Kyle Pitts — 45.6 pts (2025 Week 15) [GiantHawkTua] Bench
+  #2 Brock Bowers — 43.3 pts (2025 Week 9) [nchernandez19] Starter
+  #3 Taysom Hill — 42.52 pts (2024 Week 11) [SvenMoney34] Starter
+  #4 Trey McBride — 37.4 pts (2025 Week 15) [ekleiner1123] Starter
+  #5 Tucker Kraft — 33.3 pts (2025 Week 8) [nchernandez19] Starter
+  #6 Brock Bowers — 31.3 pts (2024 Week 11) [nchernandez19] Starter
+  #7 Trey McBride — 30.3 pts (2024 Week 17) [jsinykin] Bench
+  #8 Brock Bowers — 30.2 pts (2024 Week 13) [nchernandez19] Starter
+  #9 Colston Loveland — 29.8 pts (2025 Week 9) [SvenMoney34] Bench
+  #10 Trey McBride — 29.4 pts (2025 Week 7) [jsinykin] Bench
+Pushing Player Universe...
+Pushing Team Overview...
+Pushing Roster Grades...
+Pushing Positional Proportion...
+Pushing My Team Deep Dive...
+Pushing Trade Targets...
+Pushing Pick Portfolio...
+Pushing League Rosters...
+Pushing KTC Rankings...
+Pushing Career Season Stats...
+Pushing Pick Values Lookup...
+Pushing Trade History...
+Pushing League History Standings...
+History Standings pushed ✅
+Pushing League History Champions...
+History Champions pushed ✅
+Pushing History Top Weeks...
+History Top Weeks pushed ✅
+Pushing History Top Player Games...
+History Player Games pushed ✅
+Pushing History All-Time Standings...
+History All-Time pushed ✅
+Pushing League History Brackets...
+History Brackets pushed ✅
+
+✅ All tabs pushed successfully!
+https://docs.google.com/spreadsheets/d/1zm152q_sTfKIYEXvTmw-DDKloHNyT3uxmiW1rivt4xk
+✅ All CSVs exported to ./tableau_exports/
+
+Files exported:
+  team_overview.csv                      1,559 bytes
+  ktc_rankings.csv                      34,927 bytes
+  positional_proportion.csv                929 bytes
+  player_universe.csv                   26,839 bytes
+  buy_targets.csv                        2,703 bytes
+  roster_grades.csv                      2,439 bytes
+  sell_candidates.csv                    1,816 bytes
+  pick_portfolio.csv                     4,902 bytes
+Run finished: Thu May 21 20:33:17 CDT 2026
+
