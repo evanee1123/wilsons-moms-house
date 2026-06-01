@@ -7,9 +7,15 @@ export default function PickPortfolio({ data }) {
   const [sortDir,     setSortDir]     = useState('desc')
 
   const picks = useMemo(() => {
-    const seen = new Set()
-    return (data?.pickPortfolio || []).filter(p => {
-      const key = `${p['Pick Name']}|${p['Original Owner']}|${p['Current Owner']}`
+    const raw   = data?.pickPortfolio || []
+    const years = [...new Set(raw.map(p => p.Year))].sort()
+    const syntheticYear = years[years.length - 1]
+    const seen  = new Set()
+    return raw.filter(p => {
+      // Synthetic year picks are generated per-slot not per-trade, so dedup by name+owner only
+      const key = p.Year === syntheticYear
+        ? `${p['Pick Name']}|${p['Current Owner']}`
+        : `${p['Pick Name']}|${p['Original Owner']}|${p['Current Owner']}`
       if (seen.has(key)) return false
       seen.add(key)
       return true
