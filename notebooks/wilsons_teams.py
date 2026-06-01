@@ -795,6 +795,10 @@ draft_details  = requests.get(f"https://api.sleeper.app/v1/draft/{DRAFT_ID}").js
 slot_to_roster = draft_details["slot_to_roster_id"]
 print(f"Draft ID: {DRAFT_ID} | Status: {upcoming_draft['status']}")
 
+if upcoming_draft['status'] == 'complete':
+    all_picks = all_picks[~all_picks["Name"].str.startswith(CURRENT_DRAFT_YEAR)].copy()
+    print(f"  Filtered out {CURRENT_DRAFT_YEAR} picks from all_picks (draft complete)")
+
 # Build slot to owner name map
 slot_to_owner = {}
 for slot_str, roster_id in slot_to_roster.items():
