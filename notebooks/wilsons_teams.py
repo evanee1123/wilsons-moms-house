@@ -49,7 +49,7 @@ def get_current_season():
     return now.year if now.month >= 7 else now.year - 1
 
 current_season = get_current_season()
-YEARS = [str(current_season + 1), str(current_season + 2), str(current_season + 3)]
+YEARS = [str(current_season + 1), str(current_season + 2), str(current_season + 3), str(current_season + 4)]
 CURRENT_DRAFT_YEAR = str(current_season + 1)  # the upcoming draft year
 
 # Position-adjusted age limits
@@ -799,6 +799,27 @@ if upcoming_draft['status'] == 'complete':
     all_picks = all_picks[~all_picks["Name"].str.startswith(CURRENT_DRAFT_YEAR)].copy()
     print(f"  Filtered out {CURRENT_DRAFT_YEAR} picks from all_picks (draft complete)")
 
+# Generate synthetic KTC values for the furthest year (YEARS[-1]) if KTC doesn't have them yet.
+# Uses YEARS[-2] values as baseline with ±10% random variance per pick.
+# Auto-skipped once KTC publishes real values for that year.
+furthest_year = YEARS[-1]
+baseline_year = YEARS[-2]
+if not all_picks["Name"].str.startswith(furthest_year).any():
+    import random as _random
+    tiers  = ["Early", "Mid", "Late"]
+    rounds = ["1st", "2nd", "3rd", "4th"]
+    synthetic_rows = []
+    for tier in tiers:
+        for rnd in rounds:
+            baseline_match = all_picks[all_picks["Name"] == f"{baseline_year} {tier} {rnd}"]
+            if not baseline_match.empty:
+                base_val      = int(baseline_match["KTC Value"].iloc[0])
+                synthetic_val = round(base_val * (1 + _random.uniform(-0.10, 0.10)))
+                synthetic_rows.append({"Name": f"{furthest_year} {tier} {rnd}", "KTC Value": synthetic_val})
+    if synthetic_rows:
+        all_picks = pd.concat([all_picks, pd.DataFrame(synthetic_rows)], ignore_index=True)
+        print(f"  Generated {len(synthetic_rows)} synthetic pick values for {furthest_year} (based on {baseline_year})")
+
 # Build slot to owner name map
 slot_to_owner = {}
 for slot_str, roster_id in slot_to_roster.items():
@@ -844,7 +865,7 @@ if upcoming_draft['status'] not in ['complete']:
 else:
     print(f"  Skipping {CURRENT_DRAFT_YEAR} picks — draft already complete")
 
-future_years = YEARS[1:] if upcoming_draft['status'] not in ['complete'] else YEARS[1:] + [str(current_season + 4)]
+future_years = YEARS[1:]  # YEARS[0] is current draft year; [1:] covers all tradeable future years
 for year in future_years:
     for roster in rosters:
         for rnd in ROUNDS:
