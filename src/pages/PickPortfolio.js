@@ -6,7 +6,15 @@ export default function PickPortfolio({ data }) {
   const [sortBy,      setSortBy]      = useState('KTC Value')
   const [sortDir,     setSortDir]     = useState('desc')
 
-  const picks = useMemo(() => data?.pickPortfolio || [], [data])
+  const picks = useMemo(() => {
+    const seen = new Set()
+    return (data?.pickPortfolio || []).filter(p => {
+      const key = `${p['Pick Name']}|${p['Original Owner']}|${p['Current Owner']}`
+      if (seen.has(key)) return false
+      seen.add(key)
+      return true
+    })
+  }, [data])
 
   const years = useMemo(() => (
     ['ALL', ...new Set(picks.map(p => p.Year).filter(Boolean))]

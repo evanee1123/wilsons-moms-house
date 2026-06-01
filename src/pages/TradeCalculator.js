@@ -346,28 +346,14 @@ export default function TradeCalculator({ data }) {
 
   // ── Search pool: players + owner-enriched picks + generic picks ─────────────
   const allPlayers = useMemo(() => {
-    const players = data?.playerUniverse || []
-
-    // Owner-enriched picks from pickPortfolio (carry original owner context)
-    const enrichedPicks = (data?.pickPortfolio || []).map(p => ({
-      'Player / Pick':    `${p['Original Owner']} ${p['Pick Name']}`,
-      Position:           'Pick',
-      'KTC Value':        p['KTC Value'],
-      'Combined Score':   p['KTC Value'],
-      pickYear:           p.Year,
-      pickOriginalOwner:  p['Original Owner'],
-      pickCurrentOwner:   p['Current Owner'],
-    }))
-
-    // Generic picks from pickValues — no owner context, but still searchable
+    const players      = data?.playerUniverse || []
     const genericPicks = (data?.pickValues || []).map(p => ({
       'Player / Pick':  p['Pick Name'],
       Position:         'Pick',
       'KTC Value':      p['KTC Value'],
       'Combined Score': p['KTC Value'],
     }))
-
-    return [...players, ...enrichedPicks, ...genericPicks]
+    return [...players, ...genericPicks]
   }, [data])
 
   // ── Adjusted values (final — no breakdown exposed) ──────────────────────────
