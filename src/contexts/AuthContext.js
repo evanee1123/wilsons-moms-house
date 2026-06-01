@@ -30,14 +30,24 @@ export function AuthProvider({ children }) {
   async function login(emailOrUsername, password) {
     let email = emailOrUsername.trim()
 
-    // No @ → treat as Sleeper username, look up the email in Firestore
     if (!email.includes('@')) {
-      const q    = query(collection(db, 'users'), where('sleeperUsername', '==', email))
-      const snap = await getDocs(q)
-      if (snap.empty) throw new Error('No account found for that username.')
-      email = snap.docs[0].data().email
+      console.log('[login] username input, querying Firestore for:', email)
+      try {
+        const q    = query(collection(db, 'users'), where('sleeperUsername', '==', email))
+        const snap = await getDocs(q)
+        console.log('[login] Firestore returned', snap.size, 'doc(s)')
+        if (snap.empty) throw new Error('No account found for that username.')
+        email = snap.docs[0].data().email
+        console.log('[login] resolved to email:', email)
+      } catch (err) {
+        console.error('[login] Firestore lookup error — code:', err.code, 'message:', err.message)
+        // Permission denied = Firestore rules block unauthenticated reads.
+        // Update rules: match /users/{uid} { allow read: if true; }
+        throw err.code ? new Error('Login failed. Try signing in with your email instead.') : err
+      }
     }
 
+    console.log('[login] calling signInWithEmailAndPassword with:', email)
     const result = await signInWithEmailAndPassword(auth, email, password)
     await loadProfile(result.user.uid)
     return result

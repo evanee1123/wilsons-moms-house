@@ -93,17 +93,28 @@ function findTrades(giveAssets, myOwner, myOutlook, data, outlookByOwner, positi
   const lo = giveTotal * 0.80
   const hi = giveTotal * 1.20
 
+  // Build value lookup from pickValues — pickPortfolio 2029 entries have KTC Value = 0
+  const pickValueMap = {}
+  ;(data.pickValues || []).forEach(p => { pickValueMap[p['Pick Name']] = p['KTC Value'] })
+
   const otherOwners = [...new Set((data.playerUniverse || []).map(p => p['Dynasty Owner']).filter(Boolean))].filter(o => o !== myOwner)
   const candidates  = []
 
   for (const theirOwner of otherOwners) {
     const theirOutlook = outlookByOwner[theirOwner] || ''
     const theirPlayers = (data.playerUniverse || []).filter(p => p['Dynasty Owner'] === theirOwner && parseInt(p['KTC Value'] || 0) > 1500)
-    const theirPicks   = (data.pickPortfolio  || []).filter(p => p['Current Owner'] === theirOwner).map(p => ({
-      'Player / Pick': `${p['Original Owner']} ${p['Pick Name']}`,
-      Position: 'Pick', 'KTC Value': p['KTC Value'], 'Combined Score': p['KTC Value'],
-      pickYear: p.Year, pickOriginalOwner: p['Original Owner'],
-    }))
+    const theirPicks   = (data.pickPortfolio  || [])
+      .filter(p => p['Current Owner'] === theirOwner)
+      .map(p => {
+        const ktc = pickValueMap[p['Pick Name']] || p['KTC Value'] || 0
+        if (!ktc) return null  // skip picks with no value in either source
+        return {
+          'Player / Pick': `${p['Original Owner']} ${p['Pick Name']}`,
+          Position: 'Pick', 'KTC Value': ktc, 'Combined Score': ktc,
+          pickYear: p.Year, pickOriginalOwner: p['Original Owner'],
+        }
+      })
+      .filter(Boolean)
     const pool = [...theirPlayers, ...theirPicks]
       .filter(a => tradeCompatible(myOutlook, theirOutlook, a))
       .map(a    => ({ ...a, _val: calcAdjusted(a, 'receive', adjCtx) }))
@@ -270,6 +281,7 @@ function GoalsSection({ uid, myOwner, myOutlook, positionalRankings, pickYears }
 
   useEffect(() => {
     if (!uid || !myOwner || !myOutlook) return
+    console.log('[GoalsSection] loading goals for uid:', uid, '| owner:', myOwner, '| outlook:', myOutlook)
     setLoading(true)
     loadGoals(uid).then(async existing => {
       const hasOutlook = existing.some(g => g.type === 'auto' && g.outlookContext === myOutlook)
@@ -378,6 +390,7 @@ function WatchlistSection({ uid, data, allAssets, outlookByOwner }) {
 
   useEffect(() => {
     if (!uid) return
+    console.log('[WatchlistSection] loading watchlist for uid:', uid)
     loadWatchlist(uid).then(items => { setWatchlist(items); setLoading(false) })
   }, [uid])
 
@@ -589,9 +602,13 @@ export default function Blueprint({ data, setPage }) {
   const { currentUser, userProfile, viewAsOwner } = useAuth()
   const myOwner = viewAsOwner || userProfile?.rosterOwnerName
   // uid is always the real logged-in user — never swapped by viewAsOwner
-  const uid     = currentUser?.uid
-
-  const myOutlook = useMemo(() => data?.teamOverview?.find(t => t.Owner === myOwner)?.Outlook || '', [data, myOwner])
+  const uid           = currentUser?.uid
+  // personalOwner/personalOutlook are NEVER affected by viewAsOwner.
+  // Used for all Firestore reads/writes (goals, watchlist) so data stays
+  // tied to the real user regardless of which team admin is viewing.
+  const personalOwner   = userProfile?.rosterOwnerName
+  const myOutlook       = useMemo(() => data?.teamOverview?.find(t => t.Owner === myOwner)?.Outlook       || '', [data, myOwner])
+  const personalOutlook = useMemo(() => data?.teamOverview?.find(t => t.Owner === personalOwner)?.Outlook || '', [data, personalOwner])
 
   const outlookByOwner = useMemo(() => {
     const map = {}
@@ -611,15 +628,27 @@ export default function Blueprint({ data, setPage }) {
   const pickYears   = useMemo(() => [...new Set((data?.pickPortfolio || []).map(p => p.Year))].sort(), [data])
   const adjustYears = useMemo(() => new Set([pickYears[1], pickYears[2]].filter(Boolean)), [pickYears])
 
+  const pickValueMap = useMemo(() => {
+    const map = {}
+    ;(data?.pickValues || []).forEach(p => { map[p['Pick Name']] = p['KTC Value'] })
+    return map
+  }, [data])
+
   const allAssets = useMemo(() => {
     const players = data?.playerUniverse || []
-    const picks   = (data?.pickPortfolio || []).map(p => ({
-      'Player / Pick': `${p['Original Owner']} ${p['Pick Name']}`,
-      Position: 'Pick', 'KTC Value': p['KTC Value'], 'Combined Score': p['KTC Value'],
-      pickYear: p.Year, pickOriginalOwner: p['Original Owner'],
-    }))
+    const picks   = (data?.pickPortfolio || [])
+      .map(p => {
+        const ktc = pickValueMap[p['Pick Name']] || p['KTC Value'] || 0
+        if (!ktc) return null
+        return {
+          'Player / Pick': `${p['Original Owner']} ${p['Pick Name']}`,
+          Position: 'Pick', 'KTC Value': ktc, 'Combined Score': ktc,
+          pickYear: p.Year, pickOriginalOwner: p['Original Owner'],
+        }
+      })
+      .filter(Boolean)
     return [...players, ...picks]
-  }, [data])
+  }, [data, pickValueMap])
 
   if (!myOwner) return (
     <div className='page'>
@@ -636,7 +665,7 @@ export default function Blueprint({ data, setPage }) {
         {viewAsOwner && <span style={{ marginLeft: '10px', fontSize: '11px', background: 'rgba(246,224,94,0.15)', color: '#d69e2e', padding: '2px 8px', borderRadius: '99px' }}>Admin view</span>}
       </div>
 
-      <GoalsSection uid={uid} myOwner={myOwner} myOutlook={myOutlook} positionalRankings={positionalRankings} pickYears={pickYears} />
+      <GoalsSection uid={uid} myOwner={personalOwner} myOutlook={personalOutlook} positionalRankings={positionalRankings} pickYears={pickYears} />
       <WatchlistSection uid={uid} data={data} allAssets={allAssets} outlookByOwner={outlookByOwner} />
       <SuggestionsSection uid={uid} myOwner={myOwner} myOutlook={myOutlook} data={data} outlookByOwner={outlookByOwner} positionalRankings={positionalRankings} />
       <TradeFinderSection myOwner={myOwner} myOutlook={myOutlook} data={data} allAssets={allAssets} outlookByOwner={outlookByOwner} positionalRankings={positionalRankings} adjustYears={adjustYears} />
