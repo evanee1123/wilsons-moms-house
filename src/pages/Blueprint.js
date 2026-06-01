@@ -135,9 +135,18 @@ function findTrades(giveAssets, myOwner, myOutlook, data, outlookByOwner, positi
 
 // ── Buy / Sell suggestion computation ────────────────────────────────────────
 function computeBuySuggestions(myOwner, myOutlook, playerUniverse, outlookByOwner, positionalRankings, dismissedSet) {
-  const myRanks = positionalRankings[myOwner] || {}
+  const myRanks  = positionalRankings[myOwner] || {}
+  const isRebuild = outlookIsRebuild(myOutlook)
+  const isReload  = myOutlook === 'Reload'
   return (playerUniverse || [])
-    .filter(p => p['Dynasty Owner'] && p['Dynasty Owner'] !== myOwner && parseInt(p['KTC Value'] || 0) > 3000 && !dismissedSet.has(`${p.Player}:buy`))
+    .filter(p => {
+      if (!p['Dynasty Owner'] || p['Dynasty Owner'] === myOwner) return false
+      if (parseInt(p['KTC Value'] || 0) <= 3000) return false
+      if (dismissedSet.has(`${p.Player}:buy`)) return false
+      // Rebuild and Reload teams should never target age-inappropriate players
+      if ((isRebuild || isReload) && isAgedTradeCandidate(p)) return false
+      return true
+    })
     .map(p => {
       const pos          = p.Position || ''
       const age          = parseInt(p.Age || 30)
