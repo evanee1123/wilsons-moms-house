@@ -1,10 +1,9 @@
 import { useState, useMemo, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import PlayerDetailModal from '../components/PlayerDetailModal'
+import { calcAdjusted, UPSIDE_TIERS, SKILL_POS } from '../utils/tradeLogic'
 
-const HISTORY_KEY  = 'dynasty_trade_history'
-const UPSIDE_TIERS = new Set(['Cornerstone', 'Foundational', 'Upside Premier', 'Upside Shot'])
-const SKILL_POS    = new Set(['QB', 'RB', 'WR', 'TE'])
+const HISTORY_KEY = 'dynasty_trade_history'
 
 // ── Stud tax (unchanged) ──────────────────────────────────────────────────────
 function ktcValueAdjustment(targetKtc, nPieces, starSideTotal = null) {
@@ -20,54 +19,6 @@ function ktcValueAdjustment(targetKtc, nPieces, starSideTotal = null) {
   return adj
 }
 
-// ── Dynamic context adjustments (pure — no React deps) ───────────────────────
-function calcAdjusted(asset, side, ctx) {
-  const { userOwner, outlookByOwner, positionalRankings, adjustYears } = ctx
-  const base = parseInt(asset['Combined Score'] || asset['KTC Value'] || 0)
-  const pos  = asset.Position || ''
-
-  // Adjustment 3: pick outlook based on YEARS[1] and YEARS[2] only
-  if (pos === 'Pick') {
-    if (
-      side === 'receive' &&
-      asset.pickOriginalOwner &&
-      asset.pickYear &&
-      adjustYears.has(asset.pickYear)
-    ) {
-      const origOutlook = outlookByOwner[asset.pickOriginalOwner] || ''
-      if (origOutlook === 'Rebuild' || origOutlook === 'Rebuild (future value)') return Math.round(base * 1.12)
-      if (origOutlook === 'Contender') return Math.round(base * 0.90)
-    }
-    return base
-  }
-
-  // Adjustments 1 & 2: players you receive, requires login
-  if (side !== 'receive' || !userOwner) return base
-
-  const myOutlook   = outlookByOwner[userOwner] || ''
-  const isRebuild   = myOutlook === 'Rebuild' || myOutlook === 'Rebuild (future value)'
-  const isContender = myOutlook === 'Contender'
-
-  const isYoung = parseInt(asset.Age || 30) <= 25 || UPSIDE_TIERS.has(asset.Tier || '')
-
-  let bonus = 0
-
-  // Adjustment 1: roster context (young player fit)
-  if (isYoung) {
-    if (isRebuild)        bonus += 0.08
-    else if (isContender) bonus -= 0.05
-  }
-
-  // Adjustment 2: positional need (bottom 3 in league = ranks 8–10)
-  if (SKILL_POS.has(pos)) {
-    const rank = positionalRankings[userOwner]?.[pos] || 0
-    if (rank >= 8) bonus += 0.08
-  }
-
-  // Cap combined positive bonus at +20%; negatives pass through uncapped
-  const finalBonus = bonus > 0 ? Math.min(bonus, 0.20) : bonus
-  return Math.round(base * (1 + finalBonus))
-}
 
 // ── Team Fit Indicator ────────────────────────────────────────────────────────
 function TeamFitIndicator({ giveAssets, data, outlookByOwner, positionalRankings, adjustYears }) {

@@ -1,0 +1,632 @@
+import { useState, useEffect, useMemo } from 'react'
+import { useAuth } from '../contexts/AuthContext'
+import {
+  loadGoals, saveGoal, updateGoalStatus, deleteGoal,
+  loadWatchlist, addToWatchlist, removeFromWatchlist,
+  loadDismissed, dismissSuggestion, loadSaved, saveSuggestion, removeSavedSuggestion,
+} from '../services/blueprintService'
+import {
+  calcAdjusted, fitScore as calcFitScore, tradeCompatible,
+  outlookIsRebuild, outlookIsContender, isYoungUpside, isAgedTradeCandidate,
+  SKILL_POS, TIER_RANK,
+} from '../utils/tradeLogic'
+
+// ── Shared styles ─────────────────────────────────────────────────────────────
+const actionBtn = {
+  padding: '3px 8px', border: '1px solid var(--card-border)', borderRadius: '6px',
+  fontSize: '11px', cursor: 'pointer', background: 'var(--page-bg)', color: 'var(--text-muted)',
+}
+
+// ── Outlook color ─────────────────────────────────────────────────────────────
+function outlookColor(o) {
+  if (outlookIsContender(o))  return 'var(--green)'
+  if (o === 'Window Contender') return 'var(--blue)'
+  if (o === 'Reload')           return 'var(--orange)'
+  if (outlookIsRebuild(o))    return 'var(--red)'
+  return 'var(--text-secondary)'
+}
+
+// ── Auto-goal generation ──────────────────────────────────────────────────────
+function generateAutoGoals(myOutlook, positionalRankings, myOwner, pickYears) {
+  const g   = text => ({ text, type: 'auto', outlookContext: myOutlook, status: 'active', createdAt: new Date().toISOString() })
+  const y1  = pickYears[1] || ''
+  const y2  = pickYears[2] || ''
+  const y3  = pickYears[3] || ''
+  const goals = []
+
+  if (outlookIsContender(myOutlook)) {
+    goals.push(g('Add to your Cornerstone/Foundational core — look to acquire top-50 KTC players'))
+    goals.push(g('Monitor your RBs age 27+, WRs/TEs age 29+, and QBs age 32+ — consider selling before value drops'))
+    goals.push(g('Look to win now — prioritize proven starters over developmental upside'))
+  } else if (myOutlook === 'Window Contender') {
+    goals.push(g('Target proven starters over upside picks'))
+    goals.push(g('Address your weakest positional grade before the trade deadline'))
+  } else if (myOutlook === 'Reload') {
+    goals.push(g('Sell RBs age 27+, WRs/TEs age 29+, and QBs age 32+ for youth or pick capital'))
+    if (y1 && y2) goals.push(g(`Accumulate ${y1} and ${y2} first-round picks`))
+    goals.push(g("Protect your best young players — don't trade from strength"))
+  } else if (outlookIsRebuild(myOutlook)) {
+    if (y1 && y2 && y3) goals.push(g(`Accumulate ${y1}, ${y2}, and ${y3} first-round picks`))
+    else if (y1 && y2)  goals.push(g(`Accumulate ${y1} and ${y2} first-round picks`))
+    goals.push(g('Target players age 25 or younger in trades'))
+    goals.push(g('Consider trading veteran players — RBs age 27+, WRs/TEs age 29+, QBs age 32+'))
+    goals.push(g('Build roster depth at every position before targeting starters'))
+  }
+
+  // Data-personalized: worst positional grade in bottom 3
+  const myRanks  = positionalRankings[myOwner] || {}
+  const worstPos = ['QB', 'RB', 'WR', 'TE']
+    .map(pos => ({ pos, rank: myRanks[pos] || 5 }))
+    .filter(x => x.rank >= 8)
+    .sort((a, b) => b.rank - a.rank)[0]
+  if (worstPos) goals.push(g(`Address your ${worstPos.pos} depth — ranked #${worstPos.rank} in the league`))
+
+  return goals
+}
+
+// ── Trade Finder helpers ──────────────────────────────────────────────────────
+function getValueLabel(give, receive) {
+  const r = receive / give
+  if (r >= 1.08) return 'winning'
+  if (r >= 0.92) return 'fair value'
+  if (r >= 0.85) return 'slight overpay'
+  return 'overpaying'
+}
+
+function buildReason(candidate, myOutlook, positionalRankings, myOwner) {
+  const myRanks = positionalRankings[myOwner] || {}
+  const needFill = candidate.receive.find(a => (myRanks[a.Position || ''] || 5) >= 8)
+  if (needFill) return `Fills your ${needFill.Position} need — ${candidate.valueLabel}`
+  if (outlookIsRebuild(myOutlook) && candidate.receive.some(a => isYoungUpside(a) && a.Position !== 'Pick'))
+    return 'Young upside fits your rebuild window'
+  if (candidate.receive.some(a => a.Position === 'Pick') && (outlookIsRebuild(myOutlook) || myOutlook === 'Reload'))
+    return `Pick capital for your rebuild — ${candidate.valueLabel}`
+  if (outlookIsContender(myOutlook)) return `Proven contributor — ${candidate.valueLabel}`
+  return `Solid return — ${candidate.valueLabel}`
+}
+
+function findTrades(giveAssets, myOwner, myOutlook, data, outlookByOwner, positionalRankings, adjustYears) {
+  if (!giveAssets.length || !myOwner || !data) return []
+  const adjCtx   = { userOwner: myOwner, outlookByOwner, positionalRankings, adjustYears }
+  const giveTotal = giveAssets.reduce((s, a) => s + calcAdjusted(a, 'give', adjCtx), 0)
+  if (giveTotal === 0) return []
+  const lo = giveTotal * 0.80
+  const hi = giveTotal * 1.20
+
+  const otherOwners = [...new Set((data.playerUniverse || []).map(p => p['Dynasty Owner']).filter(Boolean))].filter(o => o !== myOwner)
+  const candidates  = []
+
+  for (const theirOwner of otherOwners) {
+    const theirOutlook = outlookByOwner[theirOwner] || ''
+    const theirPlayers = (data.playerUniverse || []).filter(p => p['Dynasty Owner'] === theirOwner && parseInt(p['KTC Value'] || 0) > 1500)
+    const theirPicks   = (data.pickPortfolio  || []).filter(p => p['Current Owner'] === theirOwner).map(p => ({
+      'Player / Pick': `${p['Original Owner']} ${p['Pick Name']}`,
+      Position: 'Pick', 'KTC Value': p['KTC Value'], 'Combined Score': p['KTC Value'],
+      pickYear: p.Year, pickOriginalOwner: p['Original Owner'],
+    }))
+    const pool = [...theirPlayers, ...theirPicks]
+      .filter(a => tradeCompatible(myOutlook, theirOutlook, a))
+      .map(a    => ({ ...a, _val: calcAdjusted(a, 'receive', adjCtx) }))
+
+    for (const a of pool) {
+      if (a._val >= lo && a._val <= hi)
+        candidates.push({ team: theirOwner, outlook: theirOutlook, receive: [a], receiveValue: a._val, giveValue: giveTotal })
+    }
+    for (let i = 0; i < pool.length; i++) {
+      for (let j = i + 1; j < pool.length; j++) {
+        const tot = pool[i]._val + pool[j]._val
+        if (tot >= lo && tot <= hi)
+          candidates.push({ team: theirOwner, outlook: theirOutlook, receive: [pool[i], pool[j]], receiveValue: tot, giveValue: giveTotal })
+      }
+    }
+  }
+
+  return candidates
+    .map(c => ({
+      ...c,
+      fitScore:     calcFitScore(c.receive, myOutlook, positionalRankings, myOwner),
+      valueFairness: 1 - Math.abs(c.receiveValue - c.giveValue) / c.giveValue,
+      valueLabel:   getValueLabel(c.giveValue, c.receiveValue),
+    }))
+    .sort((a, b) => (b.fitScore * 0.6 + b.valueFairness * 0.4) - (a.fitScore * 0.6 + a.valueFairness * 0.4))
+    .slice(0, 5)
+    .map(c => ({ ...c, reason: buildReason(c, myOutlook, positionalRankings, myOwner) }))
+}
+
+// ── Buy / Sell suggestion computation ────────────────────────────────────────
+function computeBuySuggestions(myOwner, myOutlook, playerUniverse, outlookByOwner, positionalRankings, dismissedSet) {
+  const myRanks = positionalRankings[myOwner] || {}
+  return (playerUniverse || [])
+    .filter(p => p['Dynasty Owner'] && p['Dynasty Owner'] !== myOwner && parseInt(p['KTC Value'] || 0) > 3000 && !dismissedSet.has(`${p.Player}:buy`))
+    .map(p => {
+      const pos          = p.Position || ''
+      const age          = parseInt(p.Age || 30)
+      const ownerOutlook = outlookByOwner[p['Dynasty Owner']] || ''
+      const rank         = myRanks[pos] || 5
+      let score = 0
+      if (rank >= 8) score += 30
+      else if (rank >= 6) score += 15
+      if (outlookIsRebuild(myOutlook) && age <= 25) score += 20
+      if (outlookIsContender(myOutlook) && age >= 26 && age <= 31) score += 15
+      if (outlookIsRebuild(ownerOutlook) && isAgedTradeCandidate(p)) score += 25
+      if (ownerOutlook === 'Reload' && isAgedTradeCandidate(p)) score += 15
+      let reason = rank >= 8
+        ? `Fills your ${pos} need`
+        : outlookIsRebuild(ownerOutlook) && isAgedTradeCandidate(p)
+        ? `${p['Dynasty Owner']} likely selling (${ownerOutlook})`
+        : outlookIsRebuild(myOutlook) && age <= 25
+        ? 'Young upside fits your rebuild'
+        : outlookIsContender(myOutlook) && age >= 26 && age <= 31
+        ? 'Proven contributor fits your window'
+        : 'High value available'
+      return { ...p, _score: score, _reason: reason }
+    })
+    .sort((a, b) => b._score - a._score)
+    .slice(0, 4)
+}
+
+function computeSellSuggestions(myOwner, myOutlook, playerUniverse, positionalRankings, dismissedSet) {
+  const myRanks = positionalRankings[myOwner] || {}
+  return (playerUniverse || [])
+    .filter(p => p['Dynasty Owner'] === myOwner && !dismissedSet.has(`${p.Player}:sell`))
+    .map(p => {
+      const pos        = p.Position || ''
+      const age        = parseInt(p.Age || 0)
+      const rank       = myRanks[pos] || 5
+      const ktc        = parseInt(p['KTC Value'] || 0)
+      const tierRank   = TIER_RANK[p.Tier] || 99
+      const posCount   = (playerUniverse || []).filter(x => x['Dynasty Owner'] === myOwner && x.Position === pos).length
+      let reason = null
+      if ((outlookIsRebuild(myOutlook) || myOutlook === 'Reload') && isAgedTradeCandidate(p))
+        reason = `${pos} age ${age} — sell before value drops`
+      else if (outlookIsContender(myOutlook) && tierRank >= 9)
+        reason = 'Low tier — no longer fits your contention window'
+      else if (rank <= 2 && posCount >= 4 && ktc > 3000)
+        reason = `${pos} surplus — consider selling depth`
+      return reason ? { ...p, _reason: reason } : null
+    })
+    .filter(Boolean)
+    .slice(0, 4)
+}
+
+// ── Shared search dropdown ────────────────────────────────────────────────────
+function AssetSearch({ onAdd, allAssets, placeholder, disabled }) {
+  const [query, setQuery] = useState('')
+  const [open,  setOpen]  = useState(false)
+  const results = useMemo(() => {
+    if (!query || query.length < 2) return []
+    return allAssets
+      .filter(p => (p.Player || p['Player / Pick'] || '').toLowerCase().includes(query.toLowerCase()))
+      .sort((a, b) => parseInt(b['KTC Value'] || 0) - parseInt(a['KTC Value'] || 0))
+      .slice(0, 20)
+  }, [query, allAssets])
+  return (
+    <div style={{ position: 'relative' }}>
+      <input
+        value={query}
+        onChange={e => { setQuery(e.target.value); setOpen(true) }}
+        onFocus={() => setOpen(true)}
+        onBlur={() => setTimeout(() => setOpen(false), 150)}
+        placeholder={placeholder || 'Search...'}
+        disabled={disabled}
+        style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', fontSize: '13px', border: '1px solid var(--card-border)', background: 'var(--card-bg)', color: 'var(--text-primary)' }}
+      />
+      {open && results.length > 0 && (
+        <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 1000, background: 'var(--card-bg)', border: '1px solid var(--card-border)', borderRadius: '8px', boxShadow: '0 4px 16px rgba(0,0,0,0.15)', maxHeight: '280px', overflowY: 'auto', marginTop: '4px' }}>
+          {results.map((p, i) => {
+            const name = p.Player || p['Player / Pick'] || ''
+            const ktc  = parseInt(p['KTC Value'] || 0)
+            return (
+              <div key={i} onMouseDown={() => { onAdd(p); setQuery(''); setOpen(false) }}
+                style={{ padding: '8px 12px', cursor: 'pointer', fontSize: '13px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--card-border)' }}
+                onMouseEnter={e => e.currentTarget.style.background = 'var(--page-bg)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+              >
+                <span>
+                  <span style={{ fontWeight: 500 }}>{name}</span>
+                  {p.Position && <span style={{ fontSize: '11px', color: 'var(--text-muted)', marginLeft: '6px' }}>{p.Position}</span>}
+                </span>
+                <span style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 600 }}>{ktc.toLocaleString()}</span>
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── Section 1: Goals ──────────────────────────────────────────────────────────
+function GoalRow({ goal, onStatus, onDismiss, isCustom }) {
+  const done = goal.status === 'done'
+  return (
+    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', padding: '8px 0', borderBottom: '1px solid var(--card-border)' }}>
+      <div style={{ flex: 1, fontSize: '13px', color: done ? 'var(--text-muted)' : 'var(--text-primary)', textDecoration: done ? 'line-through' : 'none', paddingTop: '1px' }}>
+        {goal.text}
+      </div>
+      <div style={{ display: 'flex', gap: '4px', flexShrink: 0 }}>
+        <button onClick={() => onStatus(goal.id, done ? 'active' : 'done')} title={done ? 'Mark active' : 'Mark done'}
+          style={{ ...actionBtn, background: done ? 'var(--green-bg)' : 'var(--page-bg)', color: done ? 'var(--green)' : 'var(--text-muted)' }}>✓</button>
+        <button onClick={() => onDismiss(goal.id)} title={isCustom ? 'Delete' : 'Dismiss'} style={actionBtn}>×</button>
+      </div>
+    </div>
+  )
+}
+
+function GoalsSection({ uid, myOwner, myOutlook, positionalRankings, pickYears }) {
+  const [goals,   setGoals]   = useState([])
+  const [loading, setLoading] = useState(true)
+  const [text,    setText]    = useState('')
+  const [saving,  setSaving]  = useState(false)
+
+  useEffect(() => {
+    if (!uid || !myOwner || !myOutlook) return
+    setLoading(true)
+    loadGoals(uid).then(async existing => {
+      const hasOutlook = existing.some(g => g.type === 'auto' && g.outlookContext === myOutlook)
+      if (!hasOutlook) {
+        const generated = generateAutoGoals(myOutlook, positionalRankings, myOwner, pickYears)
+        const saved     = await Promise.all(generated.map(g => saveGoal(uid, g)))
+        setGoals([...saved, ...existing.filter(g => g.type === 'custom')])
+      } else {
+        setGoals(existing)
+      }
+      setLoading(false)
+    })
+  }, [uid, myOwner, myOutlook]) // eslint-disable-line
+
+  async function handleStatus(id, status) {
+    setGoals(prev => prev.map(g => g.id === id ? { ...g, status } : g))
+    await updateGoalStatus(uid, id, status)
+  }
+  async function handleDelete(id) {
+    setGoals(prev => prev.filter(g => g.id !== id))
+    await deleteGoal(uid, id)
+  }
+  async function handleAdd() {
+    if (!text.trim() || saving) return
+    setSaving(true)
+    const goal  = { text: text.trim(), type: 'custom', outlookContext: myOutlook, status: 'active', createdAt: new Date().toISOString() }
+    const saved = await saveGoal(uid, goal)
+    setGoals(prev => [...prev, saved])
+    setText('')
+    setSaving(false)
+  }
+
+  const visible = goals.filter(g => g.status !== 'dismissed')
+  const autoV   = visible.filter(g => g.type === 'auto' && g.outlookContext === myOutlook)
+  const custV   = visible.filter(g => g.type === 'custom')
+
+  return (
+    <div className='card' style={{ marginBottom: '1.25rem' }}>
+      <div className='card-header'><h3>Roster Composition Goals</h3></div>
+      <div style={{ padding: '1rem' }}>
+        {loading
+          ? <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>Loading...</div>
+          : <>
+              {autoV.map(g => <GoalRow key={g.id} goal={g} onStatus={handleStatus} onDismiss={id => handleStatus(id, 'dismissed')} />)}
+              {custV.length > 0 && <>
+                <div style={{ fontSize: '11px', color: 'var(--text-muted)', margin: '12px 0 8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Custom</div>
+                {custV.map(g => <GoalRow key={g.id} goal={g} onStatus={handleStatus} onDismiss={handleDelete} isCustom />)}
+              </>}
+              <div style={{ display: 'flex', gap: '8px', marginTop: '14px' }}>
+                <input value={text} onChange={e => setText(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAdd()}
+                  placeholder='Add a custom goal...'
+                  style={{ flex: 1, padding: '8px 12px', borderRadius: '8px', fontSize: '13px', border: '1px solid var(--card-border)', background: 'var(--page-bg)', color: 'var(--text-primary)' }}
+                />
+                <button onClick={handleAdd} disabled={saving || !text.trim()}
+                  style={{ padding: '8px 14px', borderRadius: '8px', fontSize: '13px', fontWeight: 600, background: '#3182ce', color: '#fff', border: 'none', cursor: 'pointer' }}>
+                  Add
+                </button>
+              </div>
+            </>
+        }
+      </div>
+    </div>
+  )
+}
+
+// ── Section 2: Watchlist ──────────────────────────────────────────────────────
+function WatchlistRow({ item, data, outlookByOwner, onRemove }) {
+  const player = useMemo(() => {
+    const p = (data?.playerUniverse || []).find(x => x.Player === item.playerName)
+    if (p) return p
+    const pick = (data?.pickPortfolio || []).find(x => `${x['Original Owner']} ${x['Pick Name']}` === item.playerName)
+    if (pick) return { Player: item.playerName, Position: 'Pick', 'KTC Value': pick['KTC Value'], Tier: '—', 'Dynasty Owner': pick['Current Owner'] }
+    return null
+  }, [item, data])
+
+  if (!player) return (
+    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 10px', background: 'var(--page-bg)', borderRadius: '8px', border: '1px solid var(--card-border)' }}>
+      <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>{item.playerName} — not found in current data</span>
+      <button onClick={() => onRemove(item.id)} style={actionBtn}>Remove</button>
+    </div>
+  )
+
+  const ownerOutlook = outlookByOwner[player['Dynasty Owner']] || ''
+  const mightSell    = outlookIsRebuild(ownerOutlook) || ownerOutlook === 'Reload'
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 10px', background: 'var(--page-bg)', borderRadius: '8px', border: '1px solid var(--card-border)' }}>
+      <div style={{ flex: 1 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+          <span style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-primary)' }}>{player.Player}</span>
+          <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{player.Position}</span>
+          {mightSell && <span style={{ fontSize: '10px', padding: '1px 6px', borderRadius: '99px', background: 'var(--orange-bg)', color: 'var(--orange)', fontWeight: 600 }}>Might sell</span>}
+        </div>
+        <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
+          KTC {parseInt(player['KTC Value'] || 0).toLocaleString()} · {player.Tier} · {player['Dynasty Owner']} ({ownerOutlook || 'Unknown'})
+        </div>
+      </div>
+      <button onClick={() => onRemove(item.id)} style={{ ...actionBtn, marginLeft: '8px' }}>Remove</button>
+    </div>
+  )
+}
+
+function WatchlistSection({ uid, data, allAssets, outlookByOwner }) {
+  const [watchlist, setWatchlist] = useState([])
+  const [loading,   setLoading]   = useState(true)
+
+  useEffect(() => {
+    if (!uid) return
+    loadWatchlist(uid).then(items => { setWatchlist(items); setLoading(false) })
+  }, [uid])
+
+  async function handleAdd(asset) {
+    const name = asset.Player || asset['Player / Pick'] || ''
+    if (!name || watchlist.some(w => w.playerName === name)) return
+    const saved = await addToWatchlist(uid, { playerName: name })
+    setWatchlist(prev => [...prev, saved])
+  }
+  async function handleRemove(id) {
+    setWatchlist(prev => prev.filter(w => w.id !== id))
+    await removeFromWatchlist(uid, id)
+  }
+
+  return (
+    <div className='card' style={{ marginBottom: '1.25rem' }}>
+      <div className='card-header'><h3>Watchlist</h3></div>
+      <div style={{ padding: '1rem' }}>
+        <div style={{ marginBottom: '10px' }}>
+          <AssetSearch onAdd={handleAdd} allAssets={allAssets} placeholder='Add a player or pick to monitor...' />
+        </div>
+        {loading
+          ? <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>Loading...</div>
+          : watchlist.length === 0
+          ? <div style={{ fontSize: '13px', color: 'var(--text-muted)', textAlign: 'center', padding: '1rem' }}>No players on your watchlist yet.</div>
+          : <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              {watchlist.map(item => <WatchlistRow key={item.id} item={item} data={data} outlookByOwner={outlookByOwner} onRemove={handleRemove} />)}
+            </div>
+        }
+      </div>
+    </div>
+  )
+}
+
+// ── Section 3: Trade Suggestions ──────────────────────────────────────────────
+function SuggestionRow({ player, type, isSaved, onDismiss, onSave, onUnsave }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid var(--card-border)' }}>
+      <div style={{ flex: 1 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+          <span style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-primary)' }}>{player.Player}</span>
+          <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{player.Position} · Age {player.Age}</span>
+          <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>KTC {parseInt(player['KTC Value'] || 0).toLocaleString()}</span>
+          {isSaved && <span style={{ fontSize: '10px', padding: '1px 6px', borderRadius: '99px', background: 'var(--blue-bg)', color: 'var(--blue)', fontWeight: 600 }}>Saved</span>}
+        </div>
+        <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>{player._reason}</div>
+      </div>
+      <div style={{ display: 'flex', gap: '4px', flexShrink: 0, marginLeft: '8px' }}>
+        <button onClick={() => isSaved ? onUnsave(player.Player, type) : onSave(player, type)}
+          style={{ ...actionBtn, color: isSaved ? 'var(--blue)' : 'var(--text-muted)' }}
+          title={isSaved ? 'Unsave' : 'Save'}>{isSaved ? '★' : '☆'}</button>
+        <button onClick={() => onDismiss(player.Player, type)} style={actionBtn} title='Dismiss'>×</button>
+      </div>
+    </div>
+  )
+}
+
+function SuggestionsSection({ uid, myOwner, myOutlook, data, outlookByOwner, positionalRankings }) {
+  const [dismissed, setDismissed] = useState([])
+  const [saved,     setSaved]     = useState([])
+  const [loading,   setLoading]   = useState(true)
+
+  useEffect(() => {
+    if (!uid) return
+    Promise.all([loadDismissed(uid), loadSaved(uid)]).then(([d, s]) => {
+      setDismissed(d); setSaved(s); setLoading(false)
+    })
+  }, [uid])
+
+  const dismissedSet = useMemo(() => new Set(dismissed.map(d => `${d.playerName}:${d.type}`)), [dismissed])
+  const savedSet     = useMemo(() => new Set(saved.map(s => `${s.playerName}:${s.type}`)), [saved])
+
+  const buys  = useMemo(() => computeBuySuggestions(myOwner, myOutlook, data?.playerUniverse, outlookByOwner, positionalRankings, dismissedSet),  [myOwner, myOutlook, data, outlookByOwner, positionalRankings, dismissedSet])
+  const sells = useMemo(() => computeSellSuggestions(myOwner, myOutlook, data?.playerUniverse, positionalRankings, dismissedSet), [myOwner, myOutlook, data, positionalRankings, dismissedSet])
+
+  async function handleDismiss(playerName, type) {
+    setDismissed(prev => [...prev, { playerName, type }])
+    await dismissSuggestion(uid, playerName, type)
+  }
+  async function handleSave(player, type) {
+    const s = await saveSuggestion(uid, { playerName: player.Player, type, reason: player._reason, ktc: player['KTC Value'] })
+    setSaved(prev => [...prev, s])
+  }
+  async function handleUnsave(playerName, type) {
+    const match = saved.find(s => s.playerName === playerName && s.type === type)
+    if (!match) return
+    setSaved(prev => prev.filter(s => s.id !== match.id))
+    await removeSavedSuggestion(uid, match.id)
+  }
+
+  return (
+    <div className='card' style={{ marginBottom: '1.25rem' }}>
+      <div className='card-header'><h3>Personalized Trade Suggestions</h3></div>
+      <div style={{ padding: '1rem' }}>
+        {loading ? <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>Loading...</div> : <>
+          <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--green)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>Buy Targets</div>
+          {buys.length === 0
+            ? <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '12px' }}>No buy suggestions right now.</div>
+            : buys.map((p, i) => <SuggestionRow key={i} player={p} type='buy' isSaved={savedSet.has(`${p.Player}:buy`)} onDismiss={handleDismiss} onSave={handleSave} onUnsave={handleUnsave} />)
+          }
+          <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--red)', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '12px 0 8px' }}>Sell Candidates</div>
+          {sells.length === 0
+            ? <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>No sell suggestions right now.</div>
+            : sells.map((p, i) => <SuggestionRow key={i} player={p} type='sell' isSaved={savedSet.has(`${p.Player}:sell`)} onDismiss={handleDismiss} onSave={handleSave} onUnsave={handleUnsave} />)
+          }
+        </>}
+      </div>
+    </div>
+  )
+}
+
+// ── Section 4: Trade Finder ───────────────────────────────────────────────────
+function TradeResultCard({ result, giveAssets }) {
+  const fitColor = result.fitScore >= 8 ? 'var(--green)' : result.fitScore >= 5 ? 'var(--orange)' : 'var(--red)'
+  const valColor = result.valueLabel === 'winning' ? 'var(--green)' : result.valueLabel === 'fair value' ? 'var(--blue)' : 'var(--orange)'
+  return (
+    <div style={{ padding: '12px', background: 'var(--page-bg)', borderRadius: '10px', border: '1px solid var(--card-border)' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+        <div>
+          <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)' }}>{result.team}</span>
+          <span style={{ fontSize: '11px', color: 'var(--text-muted)', marginLeft: '6px' }}>{result.outlook}</span>
+        </div>
+        <div style={{ display: 'flex', gap: '6px' }}>
+          <span style={{ fontSize: '11px', fontWeight: 600, color: fitColor, padding: '2px 8px', borderRadius: '99px', border: `1px solid ${fitColor}` }}>Fit {result.fitScore}/10</span>
+          <span style={{ fontSize: '11px', fontWeight: 600, color: valColor, padding: '2px 8px', borderRadius: '99px', border: `1px solid ${valColor}`, textTransform: 'capitalize' }}>{result.valueLabel}</span>
+        </div>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '8px' }}>
+        <div>
+          <div style={{ fontSize: '10px', fontWeight: 600, color: '#e53e3e', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>You Give</div>
+          {giveAssets.map((a, i) => <div key={i} style={{ fontSize: '12px', color: 'var(--text-primary)' }}>{a.Player || a['Player / Pick']}</div>)}
+        </div>
+        <div>
+          <div style={{ fontSize: '10px', fontWeight: 600, color: '#38a169', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>You Receive</div>
+          {result.receive.map((a, i) => <div key={i} style={{ fontSize: '12px', color: 'var(--text-primary)' }}>{a.Player || a['Player / Pick']}</div>)}
+        </div>
+      </div>
+      <div style={{ fontSize: '12px', color: 'var(--text-secondary)', fontStyle: 'italic', borderTop: '1px solid var(--card-border)', paddingTop: '8px' }}>
+        {result.reason}
+      </div>
+    </div>
+  )
+}
+
+function TradeFinderSection({ myOwner, myOutlook, data, allAssets, outlookByOwner, positionalRankings, adjustYears }) {
+  const [giveAssets, setGiveAssets] = useState([])
+  const [results,    setResults]    = useState([])
+  const [searched,   setSearched]   = useState(false)
+  const [searching,  setSearching]  = useState(false)
+
+  function handleAdd(asset) {
+    if (giveAssets.length >= 3) return
+    setGiveAssets(prev => [...prev, asset])
+    setResults([]); setSearched(false)
+  }
+  function handleRemove(i) {
+    setGiveAssets(prev => prev.filter((_, idx) => idx !== i))
+    setResults([]); setSearched(false)
+  }
+  function handleFind() {
+    setSearching(true)
+    setTimeout(() => {
+      setResults(findTrades(giveAssets, myOwner, myOutlook, data, outlookByOwner, positionalRankings, adjustYears))
+      setSearched(true)
+      setSearching(false)
+    }, 0)
+  }
+
+  return (
+    <div className='card' style={{ marginBottom: '1.25rem' }}>
+      <div className='card-header'><h3>Trade Finder</h3></div>
+      <div style={{ padding: '1rem' }}>
+        <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '10px' }}>Add 1–3 assets you're willing to give. We'll find fair return packages from other rosters.</div>
+        <div style={{ marginBottom: '8px' }}>
+          <AssetSearch onAdd={handleAdd} allAssets={allAssets} placeholder='Search assets to give...' disabled={giveAssets.length >= 3} />
+        </div>
+        {giveAssets.length > 0 && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginBottom: '12px' }}>
+            {giveAssets.map((a, i) => (
+              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 10px', background: 'var(--page-bg)', borderRadius: '8px', border: '1px solid var(--card-border)' }}>
+                <span style={{ fontSize: '13px' }}>{a.Player || a['Player / Pick']} <span style={{ color: 'var(--text-muted)', fontSize: '11px' }}>· KTC {parseInt(a['KTC Value'] || 0).toLocaleString()}</span></span>
+                <button onClick={() => handleRemove(i)} style={actionBtn}>×</button>
+              </div>
+            ))}
+          </div>
+        )}
+        <button onClick={handleFind} disabled={!giveAssets.length || searching}
+          style={{ padding: '8px 16px', borderRadius: '8px', fontSize: '13px', fontWeight: 600, background: !giveAssets.length ? 'var(--card-border)' : '#3182ce', color: !giveAssets.length ? 'var(--text-muted)' : '#fff', border: 'none', cursor: !giveAssets.length ? 'default' : 'pointer' }}>
+          {searching ? 'Searching...' : 'Find Trades'}
+        </button>
+        {searched && results.length === 0 && (
+          <div style={{ marginTop: '16px', fontSize: '13px', color: 'var(--text-muted)' }}>No matching packages found. Try different assets.</div>
+        )}
+        {results.length > 0 && (
+          <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {results.map((r, i) => <TradeResultCard key={i} result={r} giveAssets={giveAssets} />)}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ── Main export ───────────────────────────────────────────────────────────────
+export default function Blueprint({ data, setPage }) {
+  const { currentUser, userProfile, viewAsOwner } = useAuth()
+  const myOwner = viewAsOwner || userProfile?.rosterOwnerName
+  const uid     = currentUser?.uid
+
+  const myOutlook = useMemo(() => data?.teamOverview?.find(t => t.Owner === myOwner)?.Outlook || '', [data, myOwner])
+
+  const outlookByOwner = useMemo(() => {
+    const map = {}
+    data?.teamOverview?.forEach(t => { map[t.Owner] = t.Outlook })
+    return map
+  }, [data])
+
+  const positionalRankings = useMemo(() => {
+    const result = {}
+    ;['QB', 'RB', 'WR', 'TE'].forEach(pos => {
+      const sorted = [...(data?.rosterGrades || [])].sort((a, b) => b[`${pos} Grade`] - a[`${pos} Grade`])
+      sorted.forEach((t, idx) => { if (!result[t.Owner]) result[t.Owner] = {}; result[t.Owner][pos] = idx + 1 })
+    })
+    return result
+  }, [data])
+
+  const pickYears   = useMemo(() => [...new Set((data?.pickPortfolio || []).map(p => p.Year))].sort(), [data])
+  const adjustYears = useMemo(() => new Set([pickYears[1], pickYears[2]].filter(Boolean)), [pickYears])
+
+  const allAssets = useMemo(() => {
+    const players = data?.playerUniverse || []
+    const picks   = (data?.pickPortfolio || []).map(p => ({
+      'Player / Pick': `${p['Original Owner']} ${p['Pick Name']}`,
+      Position: 'Pick', 'KTC Value': p['KTC Value'], 'Combined Score': p['KTC Value'],
+      pickYear: p.Year, pickOriginalOwner: p['Original Owner'],
+    }))
+    return [...players, ...picks]
+  }, [data])
+
+  if (!myOwner) return (
+    <div className='page'>
+      <div style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>Your account isn't linked to a roster. Contact the commissioner.</div>
+    </div>
+  )
+
+  return (
+    <div className='page'>
+      <div className='page-title'>My Blueprint</div>
+      <div className='page-subtitle' style={{ marginBottom: '1.5rem' }}>
+        {myOwner} ·{' '}
+        <span style={{ fontWeight: 600, color: outlookColor(myOutlook) }}>{myOutlook}</span>
+        {viewAsOwner && <span style={{ marginLeft: '10px', fontSize: '11px', background: 'rgba(246,224,94,0.15)', color: '#d69e2e', padding: '2px 8px', borderRadius: '99px' }}>Admin view</span>}
+      </div>
+
+      <GoalsSection uid={uid} myOwner={myOwner} myOutlook={myOutlook} positionalRankings={positionalRankings} pickYears={pickYears} />
+      <WatchlistSection uid={uid} data={data} allAssets={allAssets} outlookByOwner={outlookByOwner} />
+      <SuggestionsSection uid={uid} myOwner={myOwner} myOutlook={myOutlook} data={data} outlookByOwner={outlookByOwner} positionalRankings={positionalRankings} />
+      <TradeFinderSection myOwner={myOwner} myOutlook={myOutlook} data={data} allAssets={allAssets} outlookByOwner={outlookByOwner} positionalRankings={positionalRankings} adjustYears={adjustYears} />
+    </div>
+  )
+}

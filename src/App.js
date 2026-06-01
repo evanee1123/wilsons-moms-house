@@ -12,6 +12,7 @@ import LeagueHistory from './pages/LeagueHistory'
 import Login from './pages/Login'
 import Signup from './pages/Signup'
 import ProtectedRoute from './components/ProtectedRoute'
+import Blueprint from './pages/Blueprint'
 import './App.css'
 
 function AppInner() {
@@ -100,7 +101,7 @@ function AppInner() {
         </div>
         <div style={{ flex: 1 }}>
           {page === 'blueprint'
-            ? <ProtectedRoute setPage={setPage}><div className='page'><h2>Blueprint — coming soon</h2></div></ProtectedRoute>
+            ? <ProtectedRoute setPage={setPage}><Blueprint data={data} setPage={setPage} /></ProtectedRoute>
             : <PageComponent data={data} owner={owner} setPage={setPage} />
           }
         </div>
