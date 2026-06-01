@@ -2114,23 +2114,27 @@ def classify_outlook(row):
     vr, pr, cf = row["value_rank"], row["production_rank"], row["CF_total"]
     gap, tf    = row["share_gap"],  row["total_firsts"]
 
-    # Window Contender — producing well but low value/foundation
-    # Must have value rank 6+ so high value teams can't be window contenders
+    # Top-value teams with terrible production and a large gap are building,
+    # not reloading — must be caught before the Reload check fires
+    if vr <= 3 and pr >= 8 and gap > 3:            return "Rebuild"
+
+    # Window Contender — producing well but lower value rank
     if pr <= 4 and vr >= 8:                        return "Window Contender"
     if pr <= 5 and vr >= 7:                        return "Window Contender"
+    # High production + mid value with strong roster = window contender
+    if vr <= 7 and pr <= 3 and cf >= 5:            return "Window Contender"
 
     # True Contender
     if vr <= 3 and pr <= 6 and cf >= 3:
         return "Contender (needs production)" if gap > 4 else "Contender"
-    if vr <= 5 and pr <= 5 and cf >= 4:            return "Contender"
+    if vr <= 5 and pr <= 6 and cf >= 4:            return "Contender"
 
     # Reload
     if vr <= 6 and cf >= 3 and tf >= 2:            return "Reload"
     if vr <= 5 and gap > 3:                        return "Reload (sell vets for youth)"
 
-    # Rebuild
-    if vr >= 7 or cf <= 2:
-        return "Rebuild (future value)" if tf >= 3 else "Rebuild"
+    # Rebuild — no future value split, one tier
+    if vr >= 7 or cf <= 2:                         return "Rebuild"
 
     return "Reload"
 
