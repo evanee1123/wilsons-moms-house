@@ -3,10 +3,11 @@ import { useAuth } from '../contexts/AuthContext';
 
 export default function Login({ setPage }) {
   const { login } = useAuth();
-  const [email,    setEmail]    = useState('');
-  const [password, setPassword] = useState('');
-  const [error,    setError]    = useState('');
-  const [loading,  setLoading]  = useState(false);
+  const [email,       setEmail]       = useState('');
+  const [password,    setPassword]    = useState('');
+  const [showPw,      setShowPw]      = useState(false);
+  const [error,       setError]       = useState('');
+  const [loading,     setLoading]     = useState(false);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -68,14 +69,29 @@ export default function Login({ setPage }) {
                             display: 'block', marginBottom: '6px' }}>
               Password
             </label>
-            <input
-              type='password'
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              required
-              autoComplete='current-password'
-              style={inputStyle}
-            />
+            <div style={{ position: 'relative' }}>
+              <input
+                type={showPw ? 'text' : 'password'}
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                required
+                autoComplete='current-password'
+                style={{ ...inputStyle, paddingRight: '40px' }}
+              />
+              <button
+                type='button'
+                onClick={() => setShowPw(v => !v)}
+                style={{
+                  position: 'absolute', right: '10px', top: '50%',
+                  transform: 'translateY(-50%)', background: 'none',
+                  border: 'none', cursor: 'pointer', padding: '2px',
+                  color: 'var(--text-muted)', fontSize: '16px', lineHeight: 1,
+                }}
+                aria-label={showPw ? 'Hide password' : 'Show password'}
+              >
+                {showPw ? '🙈' : '👁'}
+              </button>
+            </div>
           </div>
 
           {error && (

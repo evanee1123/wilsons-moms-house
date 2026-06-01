@@ -5,6 +5,7 @@ export default function Signup({ setPage }) {
   const { signup } = useAuth();
   const [email,    setEmail]    = useState('');
   const [password, setPassword] = useState('');
+  const [showPw,   setShowPw]   = useState(false);
   const [username, setUsername] = useState('');
   const [error,    setError]    = useState('');
   const [loading,  setLoading]  = useState(false);
@@ -87,14 +88,29 @@ export default function Signup({ setPage }) {
 
           <div>
             <label style={labelStyle}>Password</label>
-            <input
-              type='password'
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              required
-              autoComplete='new-password'
-              style={inputStyle}
-            />
+            <div style={{ position: 'relative' }}>
+              <input
+                type={showPw ? 'text' : 'password'}
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                required
+                autoComplete='new-password'
+                style={{ ...inputStyle, paddingRight: '40px' }}
+              />
+              <button
+                type='button'
+                onClick={() => setShowPw(v => !v)}
+                style={{
+                  position: 'absolute', right: '10px', top: '50%',
+                  transform: 'translateY(-50%)', background: 'none',
+                  border: 'none', cursor: 'pointer', padding: '2px',
+                  color: 'var(--text-muted)', fontSize: '16px', lineHeight: 1,
+                }}
+                aria-label={showPw ? 'Hide password' : 'Show password'}
+              >
+                {showPw ? '🙈' : '👁'}
+              </button>
+            </div>
             <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
               At least 6 characters.
             </div>
