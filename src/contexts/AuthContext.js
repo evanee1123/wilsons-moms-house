@@ -5,7 +5,7 @@ import {
   signOut,
   onAuthStateChanged,
 } from 'firebase/auth';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { auth, db } from '../firebase';
 
 const LEAGUE_ID = '1312130103358021632';
@@ -27,10 +27,20 @@ export function AuthProvider({ children }) {
     if (snap.exists()) setUserProfile(snap.data());
   }
 
-  async function login(email, password) {
-    const result = await signInWithEmailAndPassword(auth, email, password);
-    await loadProfile(result.user.uid);
-    return result;
+  async function login(emailOrUsername, password) {
+    let email = emailOrUsername.trim()
+
+    // No @ → treat as Sleeper username, look up the email in Firestore
+    if (!email.includes('@')) {
+      const q    = query(collection(db, 'users'), where('sleeperUsername', '==', email))
+      const snap = await getDocs(q)
+      if (snap.empty) throw new Error('No account found for that username.')
+      email = snap.docs[0].data().email
+    }
+
+    const result = await signInWithEmailAndPassword(auth, email, password)
+    await loadProfile(result.user.uid)
+    return result
   }
 
   async function signup(email, password, sleeperUsername) {

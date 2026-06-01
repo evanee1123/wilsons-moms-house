@@ -3,7 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 
 export default function Login({ setPage }) {
   const { login } = useAuth();
-  const [email,       setEmail]       = useState('');
+  const [email,       setEmail]       = useState(''); // email or username
   const [password,    setPassword]    = useState('');
   const [showPw,      setShowPw]      = useState(false);
   const [error,       setError]       = useState('');
@@ -18,7 +18,9 @@ export default function Login({ setPage }) {
       setPage('home');
     } catch (err) {
       const code = err.code;
-      if (code === 'auth/user-not-found' || code === 'auth/wrong-password' || code === 'auth/invalid-credential') {
+      if (err.message && !code) {
+        setError(err.message); // username-not-found or other pre-auth errors
+      } else if (code === 'auth/user-not-found' || code === 'auth/wrong-password' || code === 'auth/invalid-credential') {
         setError('Incorrect email or password.');
       } else if (code === 'auth/too-many-requests') {
         setError('Too many failed attempts. Try again later.');
@@ -52,14 +54,14 @@ export default function Login({ setPage }) {
           <div>
             <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)',
                             display: 'block', marginBottom: '6px' }}>
-              Email
+              Email or Sleeper username
             </label>
             <input
-              type='email'
+              type='text'
               value={email}
               onChange={e => setEmail(e.target.value)}
               required
-              autoComplete='email'
+              autoComplete='username'
               style={inputStyle}
             />
           </div>

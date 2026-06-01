@@ -500,9 +500,12 @@ function TradeResultCard({ result, giveAssets }) {
           <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)' }}>{result.team}</span>
           <span style={{ fontSize: '11px', color: 'var(--text-muted)', marginLeft: '6px' }}>{result.outlook}</span>
         </div>
-        <div style={{ display: 'flex', gap: '6px' }}>
+        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
           <span style={{ fontSize: '11px', fontWeight: 600, color: fitColor, padding: '2px 8px', borderRadius: '99px', border: `1px solid ${fitColor}` }}>Fit {result.fitScore}/10</span>
           <span style={{ fontSize: '11px', fontWeight: 600, color: valColor, padding: '2px 8px', borderRadius: '99px', border: `1px solid ${valColor}`, textTransform: 'capitalize' }}>{result.valueLabel}</span>
+          <span style={{ fontSize: '11px', color: 'var(--text-muted)', padding: '2px 8px', borderRadius: '99px', border: '1px solid var(--card-border)' }}>
+            {result.giveValue.toLocaleString()} → {result.receiveValue.toLocaleString()}
+          </span>
         </div>
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '8px' }}>
@@ -585,6 +588,7 @@ function TradeFinderSection({ myOwner, myOutlook, data, allAssets, outlookByOwne
 export default function Blueprint({ data, setPage }) {
   const { currentUser, userProfile, viewAsOwner } = useAuth()
   const myOwner = viewAsOwner || userProfile?.rosterOwnerName
+  // uid is always the real logged-in user — never swapped by viewAsOwner
   const uid     = currentUser?.uid
 
   const myOutlook = useMemo(() => data?.teamOverview?.find(t => t.Owner === myOwner)?.Outlook || '', [data, myOwner])

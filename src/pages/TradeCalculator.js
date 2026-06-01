@@ -344,16 +344,32 @@ export default function TradeCalculator({ data }) {
 
   const adjCtx = { userOwner, outlookByOwner, positionalRankings, adjustYears }
 
-  // ── Search pool: players + owner-enriched picks + generic picks ─────────────
+  // ── Search pool: players + picks ─────────────────────────────────────────────
   const allPlayers = useMemo(() => {
-    const players      = data?.playerUniverse || []
+    const players = data?.playerUniverse || []
+
+    // Generic picks from pickValues (covers 2026–2028)
     const genericPicks = (data?.pickValues || []).map(p => ({
       'Player / Pick':  p['Pick Name'],
       Position:         'Pick',
       'KTC Value':      p['KTC Value'],
       'Combined Score': p['KTC Value'],
     }))
-    return [...players, ...genericPicks]
+
+    // Add picks for years not in pickValues (e.g. synthetic 2029), deduped by name
+    const coveredYears = new Set(genericPicks.map(p => (p['Player / Pick'] || '').match(/^\d{4}/)?.[0]))
+    const seen         = new Set(genericPicks.map(p => p['Player / Pick']))
+    const extraPicks   = (data?.pickPortfolio || [])
+      .filter(p => !coveredYears.has(p.Year))
+      .filter(p => { if (seen.has(p['Pick Name'])) return false; seen.add(p['Pick Name']); return true })
+      .map(p => ({
+        'Player / Pick':  p['Pick Name'],
+        Position:         'Pick',
+        'KTC Value':      p['KTC Value'],
+        'Combined Score': p['KTC Value'],
+      }))
+
+    return [...players, ...genericPicks, ...extraPicks]
   }, [data])
 
   // ── Adjusted values (final — no breakdown exposed) ──────────────────────────
