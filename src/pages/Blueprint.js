@@ -8,7 +8,7 @@ import {
 import {
   calcAdjusted, fitScore as calcFitScore, tradeCompatible,
   outlookIsRebuild, outlookIsContender, isYoungUpside, isAgedTradeCandidate,
-  SKILL_POS, TIER_RANK,
+  TIER_RANK,
 } from '../utils/tradeLogic'
 
 // ── Shared styles ─────────────────────────────────────────────────────────────
