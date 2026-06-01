@@ -1,8 +1,12 @@
 import { useState, useMemo, useEffect } from 'react'
+import { useAuth } from '../contexts/AuthContext'
 import PlayerDetailModal from '../components/PlayerDetailModal'
 
-const HISTORY_KEY = 'dynasty_trade_history'
+const HISTORY_KEY  = 'dynasty_trade_history'
+const UPSIDE_TIERS = new Set(['Cornerstone', 'Foundational', 'Upside Premier', 'Upside Shot'])
+const SKILL_POS    = new Set(['QB', 'RB', 'WR', 'TE'])
 
+// ── Stud tax (unchanged) ──────────────────────────────────────────────────────
 function ktcValueAdjustment(targetKtc, nPieces, starSideTotal = null) {
   if (nPieces <= 1) return 0
   const baseRates = { 2: 0.46, 3: 0.55, 4: 0.63, 5: 0.70 }
@@ -16,6 +20,141 @@ function ktcValueAdjustment(targetKtc, nPieces, starSideTotal = null) {
   return adj
 }
 
+// ── Dynamic context adjustments (pure — no React deps) ───────────────────────
+function calcAdjusted(asset, side, ctx) {
+  const { userOwner, outlookByOwner, positionalRankings, adjustYears } = ctx
+  const base = parseInt(asset['Combined Score'] || asset['KTC Value'] || 0)
+  const pos  = asset.Position || ''
+
+  // Adjustment 3: pick outlook based on YEARS[1] and YEARS[2] only
+  if (pos === 'Pick') {
+    if (
+      side === 'receive' &&
+      asset.pickOriginalOwner &&
+      asset.pickYear &&
+      adjustYears.has(asset.pickYear)
+    ) {
+      const origOutlook = outlookByOwner[asset.pickOriginalOwner] || ''
+      if (origOutlook === 'Rebuild' || origOutlook === 'Rebuild (future value)') return Math.round(base * 1.12)
+      if (origOutlook === 'Contender') return Math.round(base * 0.90)
+    }
+    return base
+  }
+
+  // Adjustments 1 & 2: players you receive, requires login
+  if (side !== 'receive' || !userOwner) return base
+
+  const myOutlook   = outlookByOwner[userOwner] || ''
+  const isRebuild   = myOutlook === 'Rebuild' || myOutlook === 'Rebuild (future value)'
+  const isContender = myOutlook === 'Contender'
+
+  const isYoung = parseInt(asset.Age || 30) <= 25 || UPSIDE_TIERS.has(asset.Tier || '')
+
+  let bonus = 0
+
+  // Adjustment 1: roster context (young player fit)
+  if (isYoung) {
+    if (isRebuild)        bonus += 0.08
+    else if (isContender) bonus -= 0.05
+  }
+
+  // Adjustment 2: positional need (bottom 3 in league = ranks 8–10)
+  if (SKILL_POS.has(pos)) {
+    const rank = positionalRankings[userOwner]?.[pos] || 0
+    if (rank >= 8) bonus += 0.08
+  }
+
+  // Cap combined positive bonus at +20%; negatives pass through uncapped
+  const finalBonus = bonus > 0 ? Math.min(bonus, 0.20) : bonus
+  return Math.round(base * (1 + finalBonus))
+}
+
+// ── Team Fit Indicator ────────────────────────────────────────────────────────
+function TeamFitIndicator({ giveAssets, data, outlookByOwner, positionalRankings, adjustYears }) {
+  if (!giveAssets.length) return null
+
+  const fits = giveAssets.map(asset => {
+    const name     = asset.Player || asset['Player / Pick'] || ''
+    const pos      = asset.Position || ''
+    let suggestions = []
+
+    if (pos === 'Pick') {
+      // Derive year from enriched pick field or pick name string
+      const pickYear = asset.pickYear || (name.match(/^.*?(\d{4})/) || [])[1]
+      const isNearTerm = pickYear && adjustYears.has(pickYear)
+
+      // Near-term picks (YEARS[1]/YEARS[2]): contenders want near-term production
+      // Far picks: rebuilders accumulate future capital
+      suggestions = (data?.teamOverview || [])
+        .filter(t => isNearTerm
+          ? t.Outlook === 'Contender' || t.Outlook === 'Window Contender'
+          : t.Outlook === 'Rebuild'   || t.Outlook === 'Rebuild (future value)'
+        )
+        .slice(0, 3)
+        .map(t => ({ owner: t.Owner, reason: isNearTerm ? 'Near-term pick' : 'Future pick' }))
+
+    } else if (SKILL_POS.has(pos)) {
+      const isYoung = parseInt(asset.Age || 30) <= 25 || UPSIDE_TIERS.has(asset.Tier || '')
+
+      // Teams with positional need (bottom 4 = ranks 7–10) sorted worst-first
+      const needTeams = (data?.rosterGrades || [])
+        .map(t => ({
+          owner:   t.Owner,
+          rank:    positionalRankings[t.Owner]?.[pos] || 10,
+          outlook: outlookByOwner[t.Owner] || '',
+        }))
+        .filter(t => t.rank >= 7)
+        .sort((a, b) => b.rank - a.rank)
+
+      // Prefer outlook-compatible teams; fall back to pure need
+      const compatible = needTeams.filter(t =>
+        isYoung
+          ? t.outlook === 'Rebuild' || t.outlook === 'Rebuild (future value)' || t.outlook === 'Reload'
+          : t.outlook === 'Contender' || t.outlook === 'Window Contender'
+      )
+
+      suggestions = (compatible.length ? compatible : needTeams)
+        .slice(0, 3)
+        .map(t => ({ owner: t.owner, reason: `${pos} Need` }))
+    }
+
+    return { name, suggestions }
+  }).filter(f => f.suggestions.length > 0)
+
+  if (!fits.length) return null
+
+  return (
+    <div className='card' style={{ padding: '1rem', marginBottom: '1.25rem' }}>
+      <div style={{
+        fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)',
+        textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '10px'
+      }}>
+        Team Fit — Who Wants What You're Giving
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        {fits.map((f, i) => (
+          <div key={i}>
+            <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '5px' }}>
+              {f.name}
+            </div>
+            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+              {f.suggestions.map((s, j) => (
+                <span key={j} style={{
+                  fontSize: '11px', padding: '3px 8px', borderRadius: '99px',
+                  background: 'var(--blue-bg)', color: 'var(--blue)', fontWeight: 500,
+                }}>
+                  {s.owner} · {s.reason}
+                </span>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ── SearchBox (unchanged) ─────────────────────────────────────────────────────
 function SearchBox({ label, assets, onAdd, allPlayers }) {
   const [query, setQuery] = useState('')
   const [open,  setOpen]  = useState(false)
@@ -91,11 +230,13 @@ function SearchBox({ label, assets, onAdd, allPlayers }) {
   )
 }
 
-function AssetList({ assets, onRemove, onViewDetail }) {
+// ── AssetList (shows final adjusted value, no breakdown) ──────────────────────
+function AssetList({ assets, adjustedValues, onRemove, onViewDetail }) {
   if (assets.length === 0) return (
-    <div style={{ padding: '1rem', textAlign: 'center', fontSize: '13px',
-                  color: 'var(--text-muted)', border: '1px dashed var(--card-border)',
-                  borderRadius: '8px' }}>
+    <div style={{
+      padding: '1rem', textAlign: 'center', fontSize: '13px',
+      color: 'var(--text-muted)', border: '1px dashed var(--card-border)', borderRadius: '8px'
+    }}>
       No assets added yet
     </div>
   )
@@ -103,23 +244,20 @@ function AssetList({ assets, onRemove, onViewDetail }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
       {assets.map((p, i) => {
-        const name     = p.Player || p['Player / Pick'] || ''
-        const ktc      = parseInt(p['KTC Value'] || 0)
-        const combined = parseInt(p['Combined Score'] || p['KTC Value'] || 0)
-        const pos      = p.Position || ''
+        const name = p.Player || p['Player / Pick'] || ''
+        const ktc  = parseInt(p['KTC Value'] || 0)
+        const adj  = adjustedValues?.[i] ?? parseInt(p['Combined Score'] || p['KTC Value'] || 0)
+        const pos  = p.Position || ''
         return (
           <div key={i} style={{
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
             padding: '8px 10px', background: 'var(--page-bg)', borderRadius: '8px',
             border: '1px solid var(--card-border)'
           }}>
-            <div
-              onClick={() => onViewDetail && onViewDetail(p)}
-              style={{ flex: 1, cursor: 'pointer' }}
-            >
+            <div onClick={() => onViewDetail && onViewDetail(p)} style={{ flex: 1, cursor: 'pointer' }}>
               <div style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-primary)' }}>{name}</div>
               <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '1px' }}>
-                {pos && `${pos} · `}KTC: {ktc.toLocaleString()} · Combined: {combined.toLocaleString()}
+                {pos && `${pos} · `}KTC: {ktc.toLocaleString()} · Value: {adj.toLocaleString()}
               </div>
             </div>
             <button
@@ -137,6 +275,7 @@ function AssetList({ assets, onRemove, onViewDetail }) {
   )
 }
 
+// ── ValueBar (unchanged) ──────────────────────────────────────────────────────
 function ValueBar({ giveCombined, receiveCombined, nGive, nReceive }) {
   let giveNeeded, receiveNeeded, adj
 
@@ -175,16 +314,16 @@ function ValueBar({ giveCombined, receiveCombined, nGive, nReceive }) {
           <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px' }}>You Give</div>
           <div style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-primary)' }}>{giveNeeded.toLocaleString()}</div>
           <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '2px' }}>
-            Face: {giveCombined.toLocaleString()}
-            {nReceive > nGive && adj > 0 && ` + ${adj.toLocaleString()} value adjustment`}
+            Total: {giveCombined.toLocaleString()}
+            {nReceive > nGive && adj > 0 && ` + ${adj.toLocaleString()} piece adj`}
           </div>
         </div>
         <div style={{ background: 'var(--page-bg)', borderRadius: '8px', padding: '10px 12px' }}>
           <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px' }}>You Receive</div>
           <div style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-primary)' }}>{receiveNeeded.toLocaleString()}</div>
           <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '2px' }}>
-            Face: {receiveCombined.toLocaleString()}
-            {nGive > nReceive && adj > 0 && ` + ${adj.toLocaleString()} value adjustment`}
+            Total: {receiveCombined.toLocaleString()}
+            {nGive > nReceive && adj > 0 && ` + ${adj.toLocaleString()} piece adj`}
           </div>
         </div>
       </div>
@@ -209,7 +348,11 @@ function ValueBar({ giveCombined, receiveCombined, nGive, nReceive }) {
   )
 }
 
+// ── Main component ────────────────────────────────────────────────────────────
 export default function TradeCalculator({ data }) {
+  const { userProfile } = useAuth()
+  const userOwner = userProfile?.rosterOwnerName || null
+
   const [giveAssets,     setGiveAssets]     = useState([])
   const [receiveAssets,  setReceiveAssets]  = useState([])
   const [selectedPlayer, setSelectedPlayer] = useState(null)
@@ -222,18 +365,67 @@ export default function TradeCalculator({ data }) {
     localStorage.setItem(HISTORY_KEY, JSON.stringify(history))
   }, [history])
 
+  // ── Lookup maps ─────────────────────────────────────────────────────────────
+  const outlookByOwner = useMemo(() => {
+    const map = {}
+    data?.teamOverview?.forEach(t => { map[t.Owner] = t.Outlook })
+    return map
+  }, [data])
+
+  const positionalRankings = useMemo(() => {
+    // result[owner][pos] = 1-based rank (1 = best, 10 = worst)
+    const result = {}
+    ;['QB', 'RB', 'WR', 'TE'].forEach(pos => {
+      const sorted = [...(data?.rosterGrades || [])].sort((a, b) => b[`${pos} Grade`] - a[`${pos} Grade`])
+      sorted.forEach((t, idx) => {
+        if (!result[t.Owner]) result[t.Owner] = {}
+        result[t.Owner][pos] = idx + 1
+      })
+    })
+    return result
+  }, [data])
+
+  // YEARS[1] and YEARS[2] derived from pickPortfolio — never hardcoded
+  const adjustYears = useMemo(() => {
+    const years = [...new Set((data?.pickPortfolio || []).map(p => p.Year))].sort()
+    return new Set([years[1], years[2]].filter(Boolean))
+  }, [data])
+
+  const adjCtx = { userOwner, outlookByOwner, positionalRankings, adjustYears }
+
+  // ── Search pool: players + owner-enriched picks + generic picks ─────────────
   const allPlayers = useMemo(() => {
     const players = data?.playerUniverse || []
-    const picks = (data?.pickValues || []).map(p => ({
-      Player:           p['Pick Name'],
+
+    // Owner-enriched picks from pickPortfolio (carry original owner context)
+    const enrichedPicks = (data?.pickPortfolio || []).map(p => ({
+      'Player / Pick':    `${p['Original Owner']} ${p['Pick Name']}`,
+      Position:           'Pick',
+      'KTC Value':        p['KTC Value'],
+      'Combined Score':   p['KTC Value'],
+      pickYear:           p.Year,
+      pickOriginalOwner:  p['Original Owner'],
+      pickCurrentOwner:   p['Current Owner'],
+    }))
+
+    // Generic picks from pickValues — no owner context, but still searchable
+    const genericPicks = (data?.pickValues || []).map(p => ({
       'Player / Pick':  p['Pick Name'],
       Position:         'Pick',
       'KTC Value':      p['KTC Value'],
       'Combined Score': p['KTC Value'],
     }))
-    return [...players, ...picks]
+
+    return [...players, ...enrichedPicks, ...genericPicks]
   }, [data])
 
+  // ── Adjusted values (final — no breakdown exposed) ──────────────────────────
+  const giveAdjusted    = giveAssets.map(p    => calcAdjusted(p, 'give',    adjCtx))
+  const receiveAdjusted = receiveAssets.map(p => calcAdjusted(p, 'receive', adjCtx))
+  const giveTotal       = giveAdjusted.reduce((s, v) => s + v, 0)
+  const receiveTotal    = receiveAdjusted.reduce((s, v) => s + v, 0)
+
+  // ── Handlers ─────────────────────────────────────────────────────────────────
   function handleViewDetail(p) {
     const name = p.Player || p['Player / Pick'] || ''
     const full = data?.playerUniverse?.find(u => u.Player === name)
@@ -246,7 +438,7 @@ export default function TradeCalculator({ data }) {
   function removeFromReceive(i) { setReceiveAssets(prev => prev.filter((_, idx) => idx !== i)) }
 
   function saveToHistory() {
-    if (giveAssets.length === 0 || receiveAssets.length === 0) return
+    if (!giveAssets.length || !receiveAssets.length) return
     const entry = {
       id:      Date.now(),
       date:    new Date().toLocaleDateString(),
@@ -264,15 +456,18 @@ export default function TradeCalculator({ data }) {
     setReceiveAssets([])
   }
 
-  const giveTotal    = giveAssets.reduce((s, p) => s + parseInt(p['Combined Score'] || p['KTC Value'] || 0), 0)
-  const receiveTotal = receiveAssets.reduce((s, p) => s + parseInt(p['Combined Score'] || p['KTC Value'] || 0), 0)
-  const hasAssets    = giveAssets.length > 0 || receiveAssets.length > 0
+  const hasAssets = giveAssets.length > 0 || receiveAssets.length > 0
 
   return (
     <div className='page'>
       <div className='page-title'>Trade Calculator</div>
       <div className='page-subtitle'>
-        Uses combined score (60% KTC + 40% production) · Includes value adjustment
+        Combined score (60% KTC + 40% production) · Context-adjusted values · Team fit
+        {!userOwner && (
+          <span style={{ color: 'var(--blue)', marginLeft: '8px' }}>
+            · Sign in for personalized adjustments
+          </span>
+        )}
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem', marginBottom: '1.25rem' }}>
@@ -281,7 +476,7 @@ export default function TradeCalculator({ data }) {
             You Give ({giveAssets.length}/5)
           </div>
           <SearchBox label='give' assets={giveAssets} onAdd={addToGive} allPlayers={allPlayers} />
-          <AssetList assets={giveAssets} onRemove={removeFromGive} onViewDetail={handleViewDetail} />
+          <AssetList assets={giveAssets} adjustedValues={giveAdjusted} onRemove={removeFromGive} onViewDetail={handleViewDetail} />
         </div>
 
         <div className='card' style={{ padding: '1rem' }}>
@@ -289,12 +484,22 @@ export default function TradeCalculator({ data }) {
             You Receive ({receiveAssets.length}/5)
           </div>
           <SearchBox label='receive' assets={receiveAssets} onAdd={addToReceive} allPlayers={allPlayers} />
-          <AssetList assets={receiveAssets} onRemove={removeFromReceive} onViewDetail={handleViewDetail} />
+          <AssetList assets={receiveAssets} adjustedValues={receiveAdjusted} onRemove={removeFromReceive} onViewDetail={handleViewDetail} />
         </div>
       </div>
 
+      {giveAssets.length > 0 && (
+        <TeamFitIndicator
+          giveAssets={giveAssets}
+          data={data}
+          outlookByOwner={outlookByOwner}
+          positionalRankings={positionalRankings}
+          adjustYears={adjustYears}
+        />
+      )}
+
       {hasAssets && (
-        <div className='card'>
+        <div className='card' style={{ marginBottom: '1.25rem' }}>
           <ValueBar
             giveCombined={giveTotal}
             receiveCombined={receiveTotal}
