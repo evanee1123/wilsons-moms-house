@@ -6,7 +6,7 @@ import {
   loadDismissed, dismissSuggestion, loadSaved, saveSuggestion, removeSavedSuggestion,
 } from '../services/blueprintService'
 import {
-  calcAdjusted, tradeCompatible, computeQbNeed,
+  calcAdjusted, tradeCompatible, computeQbNeed, computeStudTax,
   outlookIsRebuild, outlookIsContender, isYoungUpside, isAgedTradeCandidate,
   TIER_RANK,
 } from '../utils/tradeLogic'
@@ -709,8 +709,11 @@ function SuggestionsSection({ uid, myOwner, myOutlook, data, outlookByOwner, pos
 
 // ── Section 4: Trade Finder ───────────────────────────────────────────────────
 function TradeResultCard({ result }) {
-  const fitColor = result.fitScore >= 8 ? 'var(--green)' : result.fitScore >= 5 ? 'var(--orange)' : 'var(--red)'
-  const valColor = result.valueLabel === 'winning' ? 'var(--green)' : result.valueLabel === 'fair value' ? 'var(--blue)' : 'var(--orange)'
+  const st          = computeStudTax(result.give || [], result.receive || [])
+  const displayGive = result.giveValue    + (st.giveAdj    || 0)
+  const displayRecv = result.receiveValue + (st.receiveAdj || 0)
+  const fitColor    = result.fitScore >= 8 ? 'var(--green)' : result.fitScore >= 5 ? 'var(--orange)' : 'var(--red)'
+  const valColor    = result.valueLabel === 'winning' ? 'var(--green)' : result.valueLabel === 'fair value' ? 'var(--blue)' : 'var(--orange)'
   return (
     <div style={{ padding: '12px', background: 'var(--page-bg)', borderRadius: '10px', border: '1px solid var(--card-border)' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
@@ -722,7 +725,7 @@ function TradeResultCard({ result }) {
           <span style={{ fontSize: '11px', fontWeight: 600, color: fitColor, padding: '2px 8px', borderRadius: '99px', border: `1px solid ${fitColor}` }}>Fit {result.fitScore}/10</span>
           <span style={{ fontSize: '11px', fontWeight: 600, color: valColor, padding: '2px 8px', borderRadius: '99px', border: `1px solid ${valColor}`, textTransform: 'capitalize' }}>{result.valueLabel}</span>
           <span style={{ fontSize: '11px', color: 'var(--text-muted)', padding: '2px 8px', borderRadius: '99px', border: '1px solid var(--card-border)' }}>
-            {result.giveValue.toLocaleString()} → {result.receiveValue.toLocaleString()}
+            {displayGive.toLocaleString()} → {displayRecv.toLocaleString()}
           </span>
         </div>
       </div>

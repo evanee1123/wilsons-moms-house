@@ -1,23 +1,9 @@
 import { useState, useMemo, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import PlayerDetailModal from '../components/PlayerDetailModal'
-import { calcAdjusted, computeQbNeed, UPSIDE_TIERS, SKILL_POS } from '../utils/tradeLogic'
+import { calcAdjusted, computeQbNeed, computeStudTax, UPSIDE_TIERS, SKILL_POS } from '../utils/tradeLogic'
 
 const HISTORY_KEY = 'dynasty_trade_history'
-
-// ── Stud tax (unchanged) ──────────────────────────────────────────────────────
-function ktcValueAdjustment(targetKtc, nPieces, starSideTotal = null) {
-  if (nPieces <= 1) return 0
-  const baseRates = { 2: 0.46, 3: 0.55, 4: 0.63, 5: 0.70 }
-  const baseRate  = baseRates[nPieces] || 0.75
-  const studMult  = 1.0 + Math.max(0, (targetKtc - 5000) / 100) * 0.003
-  let adj         = Math.round(targetKtc * baseRate * studMult)
-  if (starSideTotal && starSideTotal > targetKtc) {
-    const ratio = Math.pow(targetKtc / starSideTotal, 0.9)
-    adj         = Math.round(adj * ratio)
-  }
-  return adj
-}
 
 
 // ── Team Fit Indicator ────────────────────────────────────────────────────────
@@ -226,23 +212,12 @@ function AssetList({ assets, adjustedValues, onRemove, onViewDetail }) {
   )
 }
 
-// ── ValueBar (unchanged) ──────────────────────────────────────────────────────
-function ValueBar({ giveCombined, receiveCombined, nGive, nReceive }) {
-  let giveNeeded, receiveNeeded, adj
-
-  if (nGive > nReceive) {
-    adj           = ktcValueAdjustment(receiveCombined, nGive, receiveCombined)
-    giveNeeded    = giveCombined
-    receiveNeeded = receiveCombined + adj
-  } else if (nReceive > nGive) {
-    adj           = ktcValueAdjustment(giveCombined, nReceive, giveCombined)
-    giveNeeded    = giveCombined + adj
-    receiveNeeded = receiveCombined
-  } else {
-    adj           = 0
-    giveNeeded    = giveCombined
-    receiveNeeded = receiveCombined
-  }
+// ── ValueBar ──────────────────────────────────────────────────────────────────
+function ValueBar({ giveCombined, receiveCombined, giveAdj, receiveAdj }) {
+  const ga = giveAdj    || 0
+  const ra = receiveAdj || 0
+  const giveNeeded    = giveCombined    + ga
+  const receiveNeeded = receiveCombined + ra
 
   const surplus   = receiveNeeded - giveNeeded
   const maxVal    = Math.max(giveNeeded, receiveNeeded, 1000)
@@ -256,8 +231,6 @@ function ValueBar({ giveCombined, receiveCombined, nGive, nReceive }) {
     return '#e53e3e'
   }
 
-  const markerColor = getMarkerColor(markerPct)
-
   return (
     <div style={{ padding: '1.5rem 1rem 1rem' }}>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.25rem' }}>
@@ -266,7 +239,7 @@ function ValueBar({ giveCombined, receiveCombined, nGive, nReceive }) {
           <div style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-primary)' }}>{giveNeeded.toLocaleString()}</div>
           <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '2px' }}>
             Total: {giveCombined.toLocaleString()}
-            {nReceive > nGive && adj > 0 && ` + ${adj.toLocaleString()} piece adj`}
+            {ga > 0 && ` + ${ga.toLocaleString()} stud bonus`}
           </div>
         </div>
         <div style={{ background: 'var(--page-bg)', borderRadius: '8px', padding: '10px 12px' }}>
@@ -274,14 +247,14 @@ function ValueBar({ giveCombined, receiveCombined, nGive, nReceive }) {
           <div style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-primary)' }}>{receiveNeeded.toLocaleString()}</div>
           <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '2px' }}>
             Total: {receiveCombined.toLocaleString()}
-            {nGive > nReceive && adj > 0 && ` + ${adj.toLocaleString()} piece adj`}
+            {ra > 0 && ` + ${ra.toLocaleString()} stud bonus`}
           </div>
         </div>
       </div>
 
       <div style={{ marginBottom: '8px' }}>
         <div style={{ position: 'relative', height: '12px', borderRadius: '99px', background: 'linear-gradient(to right, #38a169, #68d391, #d69e2e, #dd6b20, #e53e3e)', overflow: 'visible' }}>
-          <div style={{ position: 'absolute', top: '50%', transform: 'translate(-50%, -50%)', left: `${markerPct}%`, width: '20px', height: '20px', borderRadius: '50%', background: markerColor, border: '3px solid var(--card-bg)', transition: 'left 0.3s ease', boxShadow: '0 2px 8px rgba(0,0,0,0.3)', zIndex: 1 }} />
+          <div style={{ position: 'absolute', top: '50%', transform: 'translate(-50%, -50%)', left: `${markerPct}%`, width: '20px', height: '20px', borderRadius: '50%', background: getMarkerColor(markerPct), border: '3px solid var(--card-bg)', transition: 'left 0.3s ease', boxShadow: '0 2px 8px rgba(0,0,0,0.3)', zIndex: 1 }} />
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--text-muted)', marginTop: '6px' }}>
           <span>Winning</span>
@@ -452,16 +425,19 @@ export default function TradeCalculator({ data }) {
         />
       )}
 
-      {hasAssets && (
-        <div className='card' style={{ marginBottom: '1.25rem' }}>
-          <ValueBar
-            giveCombined={giveTotal}
-            receiveCombined={receiveTotal}
-            nGive={giveAssets.length}
-            nReceive={receiveAssets.length}
-          />
-        </div>
-      )}
+      {hasAssets && (() => {
+        const st = computeStudTax(giveAssets, receiveAssets)
+        return (
+          <div className='card' style={{ marginBottom: '1.25rem' }}>
+            <ValueBar
+              giveCombined={giveTotal}
+              receiveCombined={receiveTotal}
+              giveAdj={st.giveAdj}
+              receiveAdj={st.receiveAdj}
+            />
+          </div>
+        )
+      })()}
 
       <div style={{ display: 'flex', gap: '10px', marginBottom: '1.25rem' }}>
         {hasAssets && (

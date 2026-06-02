@@ -73,6 +73,43 @@ export function computeQbNeed(myOwner, playerUniverse) {
   return qb1Rank >= 8 && qb2Rank >= 8  // both top-2 QBs must be bottom-3 league-wide
 }
 
+// Quadratic baseRate calibrated to verified KTC stud tax data points
+function quadraticBaseRate(topKtc) {
+  const raw = 1.2803 - 0.00028679 * topKtc + 0.000000021420 * topKtc * topKtc
+  return Math.max(0.30, Math.min(0.65, raw))
+}
+
+// Stud tax: find the top asset, boost that side by the premium it commands.
+// adj = 0 for 1v1 trades. Uses KTC value (not Combined Score) per KTC formula.
+export function computeStudTax(giveAssets, receiveAssets) {
+  const nGive    = (giveAssets    || []).length
+  const nReceive = (receiveAssets || []).length
+  if (nGive + nReceive <= 2) return { giveAdj: 0, receiveAdj: 0 }
+
+  const allAssets = [...(giveAssets || []), ...(receiveAssets || [])]
+  const topAsset  = allAssets.reduce((best, a) =>
+    parseInt(a['KTC Value'] || 0) > parseInt(best['KTC Value'] || 0) ? a : best
+  )
+  const topKtc  = parseInt(topAsset['KTC Value'] || 0)
+  if (topKtc === 0) return { giveAdj: 0, receiveAdj: 0 }
+
+  const topName    = topAsset.Player || topAsset['Player / Pick'] || ''
+  const studOnGive = (giveAssets || []).some(a =>
+    (a.Player || a['Player / Pick'] || '') === topName
+  )
+  const studSide      = studOnGive ? (giveAssets || []) : (receiveAssets || [])
+  const studSideTotal = studSide.reduce((s, a) => s + parseInt(a['KTC Value'] || 0), 0)
+
+  const baseRate = quadraticBaseRate(topKtc)
+  const studMult = 1.0 + Math.max(0, (topKtc - 5000) / 100) * 0.001
+  const dilution = topKtc / studSideTotal
+  const adj      = Math.round(topKtc * baseRate * studMult * dilution)
+
+  return studOnGive
+    ? { giveAdj: adj, receiveAdj: 0 }
+    : { giveAdj: 0, receiveAdj: adj }
+}
+
 export function calcAdjusted(asset, side, ctx) {
   const { userOwner, outlookByOwner, positionalRankings, adjustYears, qbNeed } = ctx
   const base = parseInt(asset['Combined Score'] || asset['KTC Value'] || 0)
