@@ -171,20 +171,8 @@ function findTrades(giveAssets, myOwner, myOutlook, data, outlookByOwner, positi
   const pickValueMap = {}
   ;(data.pickValues || []).forEach(p => { pickValueMap[p['Pick Name']] = p['KTC Value'] })
 
-  // ── DEBUG: log give-side values (same formula trade calculator uses) ──────────
-  console.log('[TradeFinder] Give assets:')
-  giveAssets.forEach(a => {
-    const name      = a.Player || a['Player / Pick'] || '?'
-    const combined  = parseInt(a['Combined Score'] || 0)
-    const ktc       = parseInt(a['KTC Value'] || 0)
-    const finalVal  = calcAdjusted(a, 'give', adjCtx)
-    console.log(`  ${name} | Combined Score field=${combined} | KTC field=${ktc} | calcAdjusted(give)=${finalVal}`)
-  })
-  // ─────────────────────────────────────────────────────────────────────────────
-
   const baseGiveTotal = giveAssets.reduce((s, a) => s + calcAdjusted(a, 'give', adjCtx), 0)
   if (baseGiveTotal === 0) return []
-  console.log(`[TradeFinder] baseGiveTotal=${baseGiveTotal}`)
 
   const looseLo = baseGiveTotal * 0.90
   const looseHi = baseGiveTotal * 1.25
@@ -194,11 +182,16 @@ function findTrades(giveAssets, myOwner, myOutlook, data, outlookByOwner, positi
     (a.Position === 'Pick' && (a.Player || a['Player / Pick'] || '').includes('1st'))
   )
 
-  // myPool for auto-add: my players (KTC > 2500) + my picks, not already on give side
+  // myPool for auto-add: my players (KTC > 2500) + my picks, not already on give side.
+  // _val for all assets uses calcAdjusted(give) — identical formula to the trade calculator's give total.
   const giveNames = new Set(giveAssets.map(a => a.Player || a['Player / Pick'] || ''))
   const myPlayers = (data.playerUniverse || [])
     .filter(p => p['Dynasty Owner'] === myOwner && parseInt(p['KTC Value'] || 0) > 2500 && !giveNames.has(p.Player))
-    .map(p => ({ ...p, _val: calcAdjusted(p, 'give', adjCtx) }))
+    .map(p => ({
+      ...p,
+      'Combined Score': parseFloat(p['Combined Score']) || parseFloat(p['KTC Value']) || 0,
+      _val: calcAdjusted(p, 'give', adjCtx),
+    }))
   const seenMyPicks = new Set()
   const myPicks = (data.pickPortfolio || [])
     .filter(p => p['Current Owner'] === myOwner)
@@ -207,13 +200,12 @@ function findTrades(giveAssets, myOwner, myOutlook, data, outlookByOwner, positi
       const dName = `${p['Original Owner']} ${p['Pick Name']}`
       if (!ktc || seenMyPicks.has(p['Pick Name']) || giveNames.has(dName)) return null
       seenMyPicks.add(p['Pick Name'])
-      return { 'Player / Pick': dName, Position: 'Pick', 'KTC Value': ktc, 'Combined Score': ktc,
-               pickYear: p.Year, pickOriginalOwner: p['Original Owner'], _val: ktc }
+      const asset = { 'Player / Pick': dName, Position: 'Pick', 'KTC Value': ktc, 'Combined Score': ktc,
+                      pickYear: p.Year, pickOriginalOwner: p['Original Owner'] }
+      return { ...asset, _val: calcAdjusted(asset, 'give', adjCtx) }
     })
     .filter(Boolean)
   const myPool = [...myPlayers, ...myPicks]
-  console.log(`[TradeFinder] myPool: ${myPool.length} assets available for auto-add`)
-  myPool.forEach(a => console.log(`  ${a.Player || a['Player / Pick'] || '?'} | _val=${a._val} | field used: ${a['Combined Score'] != null ? 'Combined Score' : 'KTC'}`))
 
   const myRanks = positionalRankings[myOwner] || {}
 
@@ -224,7 +216,8 @@ function findTrades(giveAssets, myOwner, myOutlook, data, outlookByOwner, positi
     const theirOutlook   = outlookByOwner[theirOwner] || ''
     const theirIsRebuild = outlookIsRebuild(theirOutlook)
 
-    // Their player pool: filtered, valued, compat-checked, top 15 by value for combos
+    // Their player pool: filtered, valued, compat-checked, top 15 by value for combos.
+    // Explicitly carries Combined Score so calcAdjusted always reads the correct field.
     const theirPlayers = (data.playerUniverse || [])
       .filter(p => {
         if (p['Dynasty Owner'] !== theirOwner) return false
@@ -234,7 +227,11 @@ function findTrades(giveAssets, myOwner, myOutlook, data, outlookByOwner, positi
         if ((p.Position || '') === 'QB' && parseInt(p.Age || 0) >= 32 && (myRanks['QB'] || 5) < 8) return false
         return true
       })
-      .map(p => ({ ...p, _val: calcAdjusted(p, 'receive', adjCtx) }))
+      .map(p => ({
+        ...p,
+        'Combined Score': parseFloat(p['Combined Score']) || parseFloat(p['KTC Value']) || 0,
+        _val: calcAdjusted(p, 'receive', adjCtx),
+      }))
       .filter(a => tradeCompatible(myOutlook, theirOutlook, a))
       .sort((a, b) => b._val - a._val)
       .slice(0, 15)
@@ -305,11 +302,8 @@ function findTrades(giveAssets, myOwner, myOutlook, data, outlookByOwner, positi
     }
   }
 
-  console.log(`[TradeFinder] rawCandidates before auto-add: ${rawCandidates.length}`)
-
   // Auto-add pass + ±10% fairness filter
   const candidates = []
-  let autoAddCount = 0
   for (const c of rawCandidates) {
     const ratio = c.receiveValue / baseGiveTotal
     if (ratio >= (1 - FAIR_THRESHOLD) && ratio <= (1 + FAIR_THRESHOLD)) {
@@ -321,15 +315,10 @@ function findTrades(giveAssets, myOwner, myOutlook, data, outlookByOwner, positi
         const delta   = Math.abs(c.receiveValue / adjGive - 1)
         if (delta <= FAIR_THRESHOLD && delta < bestDelta) { bestDelta = delta; bestAutoAdd = asset }
       }
-      if (bestAutoAdd) {
-        const addedName = bestAutoAdd.Player || bestAutoAdd['Player / Pick'] || '?'
-        console.log(`[TradeFinder] auto-add: ${addedName} (_val=${bestAutoAdd._val}) → receive=${c.receiveValue} adjustedGive=${baseGiveTotal + bestAutoAdd._val}`)
+      if (bestAutoAdd)
         candidates.push({ ...c, give: [...giveAssets, bestAutoAdd], giveValue: baseGiveTotal + bestAutoAdd._val })
-        autoAddCount++
-      }
     }
   }
-  console.log(`[TradeFinder] After auto-add: ${candidates.length} total | ${candidates.length - autoAddCount} without auto-add | ${autoAddCount} with auto-add`)
 
   // Score using redesigned fit function — true 0–10 range, not bunched at 5–6
   const scored = candidates.map(c => {
