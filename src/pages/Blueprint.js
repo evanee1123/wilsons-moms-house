@@ -171,8 +171,20 @@ function findTrades(giveAssets, myOwner, myOutlook, data, outlookByOwner, positi
   const pickValueMap = {}
   ;(data.pickValues || []).forEach(p => { pickValueMap[p['Pick Name']] = p['KTC Value'] })
 
+  // ── DEBUG: log give-side values (same formula trade calculator uses) ──────────
+  console.log('[TradeFinder] Give assets:')
+  giveAssets.forEach(a => {
+    const name      = a.Player || a['Player / Pick'] || '?'
+    const combined  = parseInt(a['Combined Score'] || 0)
+    const ktc       = parseInt(a['KTC Value'] || 0)
+    const finalVal  = calcAdjusted(a, 'give', adjCtx)
+    console.log(`  ${name} | Combined Score field=${combined} | KTC field=${ktc} | calcAdjusted(give)=${finalVal}`)
+  })
+  // ─────────────────────────────────────────────────────────────────────────────
+
   const baseGiveTotal = giveAssets.reduce((s, a) => s + calcAdjusted(a, 'give', adjCtx), 0)
   if (baseGiveTotal === 0) return []
+  console.log(`[TradeFinder] baseGiveTotal=${baseGiveTotal}`)
 
   const looseLo = baseGiveTotal * 0.90
   const looseHi = baseGiveTotal * 1.25
@@ -200,6 +212,8 @@ function findTrades(giveAssets, myOwner, myOutlook, data, outlookByOwner, positi
     })
     .filter(Boolean)
   const myPool = [...myPlayers, ...myPicks]
+  console.log(`[TradeFinder] myPool: ${myPool.length} assets available for auto-add`)
+  myPool.forEach(a => console.log(`  ${a.Player || a['Player / Pick'] || '?'} | _val=${a._val} | field used: ${a['Combined Score'] != null ? 'Combined Score' : 'KTC'}`))
 
   const myRanks = positionalRankings[myOwner] || {}
 
@@ -291,8 +305,11 @@ function findTrades(giveAssets, myOwner, myOutlook, data, outlookByOwner, positi
     }
   }
 
-  // Auto-add pass + ±10% fairness filter (unchanged)
+  console.log(`[TradeFinder] rawCandidates before auto-add: ${rawCandidates.length}`)
+
+  // Auto-add pass + ±10% fairness filter
   const candidates = []
+  let autoAddCount = 0
   for (const c of rawCandidates) {
     const ratio = c.receiveValue / baseGiveTotal
     if (ratio >= (1 - FAIR_THRESHOLD) && ratio <= (1 + FAIR_THRESHOLD)) {
@@ -304,10 +321,15 @@ function findTrades(giveAssets, myOwner, myOutlook, data, outlookByOwner, positi
         const delta   = Math.abs(c.receiveValue / adjGive - 1)
         if (delta <= FAIR_THRESHOLD && delta < bestDelta) { bestDelta = delta; bestAutoAdd = asset }
       }
-      if (bestAutoAdd)
+      if (bestAutoAdd) {
+        const addedName = bestAutoAdd.Player || bestAutoAdd['Player / Pick'] || '?'
+        console.log(`[TradeFinder] auto-add: ${addedName} (_val=${bestAutoAdd._val}) → receive=${c.receiveValue} adjustedGive=${baseGiveTotal + bestAutoAdd._val}`)
         candidates.push({ ...c, give: [...giveAssets, bestAutoAdd], giveValue: baseGiveTotal + bestAutoAdd._val })
+        autoAddCount++
+      }
     }
   }
+  console.log(`[TradeFinder] After auto-add: ${candidates.length} total | ${candidates.length - autoAddCount} without auto-add | ${autoAddCount} with auto-add`)
 
   // Score using redesigned fit function — true 0–10 range, not bunched at 5–6
   const scored = candidates.map(c => {
