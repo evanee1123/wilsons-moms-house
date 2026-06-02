@@ -769,7 +769,10 @@ function TradeFinderSection({ myOwner, myOutlook, data, allAssets, outlookByOwne
 
   return (
     <div className='card' style={{ marginBottom: '1.25rem' }}>
-      <div className='card-header'><h3>Trade Finder</h3></div>
+      <div className='card-header'>
+        <h3>Trade Finder</h3>
+        <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontFamily: 'monospace' }}>TF v1</span>
+      </div>
       <div style={{ padding: '1rem' }}>
         <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '10px' }}>Add 1–3 assets you're willing to give. We'll find fair return packages from other rosters.</div>
         <div style={{ marginBottom: '8px' }}>
