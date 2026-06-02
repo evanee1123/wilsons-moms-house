@@ -77,6 +77,40 @@ function getValueLabel(give, receive) {
   return 'overpaying'
 }
 
+// Asset-specific motivation — considers what is actually being traded, not just team outlook
+function getMotivation(theirOutlook, primaryAsset) {
+  const pos     = primaryAsset?.Position || ''
+  const isVet   = isAgedTradeCandidate(primaryAsset || {})
+  const isYoung = isYoungUpside(primaryAsset || {})
+
+  if (pos === 'Pick') {
+    if (outlookIsRebuild(theirOutlook))   return 'acquire proven talent with their pick capital'
+    if (theirOutlook === 'Reload')        return 'convert future capital into immediate help'
+    if (outlookIsContender(theirOutlook)) return 'trade draft capital for proven talent'
+    return 'trade pick capital for immediate value'
+  }
+
+  if (outlookIsRebuild(theirOutlook)) {
+    if (isVet)   return 'looking to move aging assets for youth and picks'
+    if (isYoung) return 'has positional redundancy at this spot'
+    return "moving assets that don't fit their rebuild timeline"
+  }
+  if (theirOutlook === 'Reload') {
+    if (isVet)   return 'moving aging assets to retool around youth'
+    if (isYoung) return 'has depth at this position and can deal from surplus'
+    return 'retooling around younger, cheaper assets'
+  }
+  if (theirOutlook === 'Window Contender') {
+    return !isYoung
+      ? 'making a push this season with proven contributors'
+      : 'converting upside pieces into proven help for their window'
+  }
+  // Contender
+  if (isYoung && !isVet) return 'prioritizing proven contributors over developmental upside'
+  if (isVet)             return 'managing roster age while staying competitive'
+  return 'looking to fill a specific roster need'
+}
+
 function buildReason(candidate, myOutlook, positionalRankings, myOwner) {
   const myRanks      = positionalRankings[myOwner] || {}
   const theirOwner   = candidate.team
@@ -87,26 +121,19 @@ function buildReason(candidate, myOutlook, positionalRankings, myOwner) {
     : theirOutlook === 'Window Contender' ? 'Window Contender'
     : 'Contender'
 
-  const motivation = outlookIsRebuild(theirOutlook)
-    ? 'sell veterans for picks and youth'
-    : theirOutlook === 'Reload'
-    ? 'move aging assets for future capital'
-    : theirOutlook === 'Window Contender'
-    ? 'make a push this season'
-    : 'acquire proven contributors now'
-
-  // Primary received asset: first one that fills a positional need, else highest KTC
   const needFill = candidate.receive.find(a =>
     SKILL_POS_TF.has(a.Position || '') && (myRanks[a.Position] || 10) >= 7
   )
+  const primary    = needFill ||
+    [...candidate.receive].sort((a, b) => (b['KTC Value'] || 0) - (a['KTC Value'] || 0))[0]
+  const motivation = getMotivation(theirOutlook, primary)
+
   if (needFill) {
     const name = needFill.Player || needFill['Player / Pick'] || ''
     return `${name} fills your ${needFill.Position} need — ${theirOwner} is a ${outlookLabel} likely to ${motivation}`
   }
-
-  const primary   = [...candidate.receive].sort((a, b) => (b['KTC Value'] || 0) - (a['KTC Value'] || 0))[0]
-  const pName     = primary?.Player || primary?.['Player / Pick'] || 'this package'
-  const ageStr    = primary?.Age ? ` (age ${primary.Age})` : ''
+  const pName  = primary?.Player || primary?.['Player / Pick'] || 'this package'
+  const ageStr = primary?.Age ? ` (age ${primary.Age})` : ''
   if (primary?.Position === 'Pick')
     return `${pName} adds pick capital — ${theirOwner} is a ${outlookLabel} likely to ${motivation}`
   return `${pName}${ageStr} — ${theirOwner} is a ${outlookLabel} likely to ${motivation}`
@@ -122,13 +149,15 @@ function findTrades(giveAssets, myOwner, myOutlook, data, outlookByOwner, positi
   const baseGiveTotal = giveAssets.reduce((s, a) => s + calcAdjusted(a, 'give', adjCtx), 0)
   if (baseGiveTotal === 0) return []
 
-  // Stud rule: give side qualifies if it contains a CF/Foundational player OR a 1st-round pick
+  const looseLo = baseGiveTotal * 0.90
+  const looseHi = baseGiveTotal * 1.25
+
   const giveHasStud = giveAssets.some(a =>
     STUD_TIERS_TF.has(a.Tier || '') ||
     (a.Position === 'Pick' && (a.Player || a['Player / Pick'] || '').includes('1st'))
   )
 
-  // Build myPool for auto-add: my players (KTC > 2500) + my picks, not already on give side
+  // myPool for auto-add: my players (KTC > 2500) + my picks, not already on give side
   const giveNames = new Set(giveAssets.map(a => a.Player || a['Player / Pick'] || ''))
   const myPlayers = (data.playerUniverse || [])
     .filter(p => p['Dynasty Owner'] === myOwner && parseInt(p['KTC Value'] || 0) > 2500 && !giveNames.has(p.Player))
@@ -137,7 +166,7 @@ function findTrades(giveAssets, myOwner, myOutlook, data, outlookByOwner, positi
   const myPicks = (data.pickPortfolio || [])
     .filter(p => p['Current Owner'] === myOwner)
     .map(p => {
-      const ktc  = pickValueMap[p['Pick Name']] || p['KTC Value'] || 0
+      const ktc   = pickValueMap[p['Pick Name']] || p['KTC Value'] || 0
       const dName = `${p['Original Owner']} ${p['Pick Name']}`
       if (!ktc || seenMyPicks.has(p['Pick Name']) || giveNames.has(dName)) return null
       seenMyPicks.add(p['Pick Name'])
@@ -151,71 +180,111 @@ function findTrades(giveAssets, myOwner, myOutlook, data, outlookByOwner, positi
   const isContenderOrWindow = outlookIsContender(myOutlook) || myOutlook === 'Window Contender'
   const isRebuildOrReload   = outlookIsRebuild(myOutlook)   || myOutlook === 'Reload'
 
-  // Generate candidates from each other team (±25% window to allow auto-add room)
-  const otherOwners    = [...new Set((data.playerUniverse || []).map(p => p['Dynasty Owner']).filter(Boolean))].filter(o => o !== myOwner)
-  const rawCandidates  = []
+  const otherOwners   = [...new Set((data.playerUniverse || []).map(p => p['Dynasty Owner']).filter(Boolean))].filter(o => o !== myOwner)
+  const rawCandidates = []
 
   for (const theirOwner of otherOwners) {
-    const theirOutlook  = outlookByOwner[theirOwner] || ''
+    const theirOutlook   = outlookByOwner[theirOwner] || ''
     const theirIsRebuild = outlookIsRebuild(theirOutlook)
 
-    const theirPlayers = (data.playerUniverse || []).filter(p => {
-      if (p['Dynasty Owner'] !== theirOwner) return false
-      if (parseInt(p['KTC Value'] || 0) <= 1500) return false
-      if (theirIsRebuild && !giveHasStud && STUD_TIERS_TF.has(p.Tier || '')) return false
-      return true
-    })
+    // Their player pool: filtered, valued, compat-checked, top 15 by value for combos
+    const theirPlayers = (data.playerUniverse || [])
+      .filter(p => {
+        if (p['Dynasty Owner'] !== theirOwner) return false
+        if (parseInt(p['KTC Value'] || 0) <= 1500) return false
+        if (theirIsRebuild && !giveHasStud && STUD_TIERS_TF.has(p.Tier || '')) return false
+        return true
+      })
+      .map(p => ({ ...p, _val: calcAdjusted(p, 'receive', adjCtx) }))
+      .filter(a => tradeCompatible(myOutlook, theirOutlook, a))
+      .sort((a, b) => b._val - a._val)
+      .slice(0, 15)
+
+    // Their pick pool: deduped, valued, sorted ascending (cheapest first) for gap-filling
+    const seenPicks = new Set()
     const theirPicks = (data.pickPortfolio || [])
       .filter(p => p['Current Owner'] === theirOwner)
       .map(p => {
         const ktc = pickValueMap[p['Pick Name']] || p['KTC Value'] || 0
-        if (!ktc) return null
-        return { 'Player / Pick': `${p['Original Owner']} ${p['Pick Name']}`,
-                 Position: 'Pick', 'KTC Value': ktc, 'Combined Score': ktc,
-                 pickYear: p.Year, pickOriginalOwner: p['Original Owner'] }
+        if (!ktc || seenPicks.has(p['Pick Name'])) return null
+        seenPicks.add(p['Pick Name'])
+        const asset = { 'Player / Pick': `${p['Original Owner']} ${p['Pick Name']}`,
+                        Position: 'Pick', 'KTC Value': ktc, 'Combined Score': ktc,
+                        pickYear: p.Year, pickOriginalOwner: p['Original Owner'] }
+        return { ...asset, _val: calcAdjusted(asset, 'receive', adjCtx) }
       })
       .filter(Boolean)
+      .sort((a, b) => a._val - b._val)
 
-    const pool = [...theirPlayers, ...theirPicks]
-      .filter(a => tradeCompatible(myOutlook, theirOutlook, a))
-      .map(a    => ({ ...a, _val: calcAdjusted(a, 'receive', adjCtx) }))
+    const picks8 = theirPicks.slice(0, 8)
 
-    const looseLo = baseGiveTotal * 0.90
-    const looseHi = baseGiveTotal * 1.25
-    for (const a of pool) {
-      if (a._val >= looseLo && a._val <= looseHi)
-        rawCandidates.push({ team: theirOwner, outlook: theirOutlook, receive: [a], receiveValue: a._val })
+    // Helper: push candidate if QB count ≤ 1 and total in range
+    const push = (receive) => {
+      const tot = receive.reduce((s, a) => s + a._val, 0)
+      if (tot < looseLo || tot > looseHi) return
+      if (receive.filter(a => a.Position === 'QB').length > 1) return
+      rawCandidates.push({ team: theirOwner, outlook: theirOutlook, receive, receiveValue: tot })
     }
-    for (let i = 0; i < pool.length; i++) {
-      for (let j = i + 1; j < pool.length; j++) {
-        const tot = pool[i]._val + pool[j]._val
-        if (tot >= looseLo && tot <= looseHi)
-          rawCandidates.push({ team: theirOwner, outlook: theirOutlook, receive: [pool[i], pool[j]], receiveValue: tot })
+
+    // 1. Single player — only emit if receive >= baseGiveTotal (not short).
+    //    Short players (0.90–1.00) are covered by player+pick combos below.
+    for (const p of theirPlayers) {
+      if (p._val >= baseGiveTotal) push([p])
+    }
+
+    // 2. Player + 1 pick (covers short singles that need a pick to reach fair value)
+    for (const p of theirPlayers) {
+      for (const pk of theirPicks) { push([p, pk]) }
+    }
+
+    // 3. Player + 2 picks (top-8 picks)
+    for (const p of theirPlayers) {
+      for (let i = 0; i < picks8.length; i++) {
+        for (let j = i + 1; j < picks8.length; j++) { push([p, picks8[i], picks8[j]]) }
+      }
+    }
+
+    // 4. 2 players
+    for (let i = 0; i < theirPlayers.length; i++) {
+      for (let j = i + 1; j < theirPlayers.length; j++) { push([theirPlayers[i], theirPlayers[j]]) }
+    }
+
+    // 5. 2 players + 1 pick (top-8 picks)
+    for (let i = 0; i < theirPlayers.length; i++) {
+      for (let j = i + 1; j < theirPlayers.length; j++) {
+        for (const pk of picks8) { push([theirPlayers[i], theirPlayers[j], pk]) }
+      }
+    }
+
+    // 6. 3 players
+    for (let i = 0; i < theirPlayers.length; i++) {
+      for (let j = i + 1; j < theirPlayers.length; j++) {
+        for (let k = j + 1; k < theirPlayers.length; k++) {
+          push([theirPlayers[i], theirPlayers[j], theirPlayers[k]])
+        }
       }
     }
   }
 
-  // Auto-add pass + fairness filter (±10%)
+  // Auto-add pass + ±10% fairness filter (unchanged)
   const candidates = []
   for (const c of rawCandidates) {
     const ratio = c.receiveValue / baseGiveTotal
     if (ratio >= (1 - FAIR_THRESHOLD) && ratio <= (1 + FAIR_THRESHOLD)) {
       candidates.push({ ...c, give: giveAssets, giveValue: baseGiveTotal })
     } else if (ratio > (1 + FAIR_THRESHOLD) && ratio <= 1.25) {
-      // Package costs more — find the single best auto-add piece to close the gap
       let bestAutoAdd = null, bestDelta = Infinity
       for (const asset of myPool) {
-        const adjGive  = baseGiveTotal + asset._val
-        const delta    = Math.abs(c.receiveValue / adjGive - 1)
+        const adjGive = baseGiveTotal + asset._val
+        const delta   = Math.abs(c.receiveValue / adjGive - 1)
         if (delta <= FAIR_THRESHOLD && delta < bestDelta) { bestDelta = delta; bestAutoAdd = asset }
       }
       if (bestAutoAdd)
         candidates.push({ ...c, give: [...giveAssets, bestAutoAdd], giveValue: baseGiveTotal + bestAutoAdd._val })
     }
-    // ratio < 0.90 or > 1.25 → skip
   }
 
-  // Score with position bias
+  // Score with position bias (unchanged)
   const scored = candidates.map(c => {
     let fit = calcFitScore(c.receive, myOutlook, positionalRankings, myOwner)
     if (isContenderOrWindow) {
@@ -234,16 +303,21 @@ function findTrades(giveAssets, myOwner, myOutlook, data, outlookByOwner, positi
 
   scored.sort((a, b) => (b.fitScore * 0.6 + b.valueFairness * 0.4) - (a.fitScore * 0.6 + a.valueFairness * 0.4))
 
-  // Variety dedup: max 2 results per player on receive side, max 2 per team → top 10
+  // Variety dedup: max 2/player on receive, max 2/team, max 2 QB-heavy → top 10
   const playerCount = {}, teamCount = {}, results = []
+  let qbHeavyCount = 0
   for (const c of scored) {
     if (results.length >= 10) break
     if ((teamCount[c.team] || 0) >= 2) continue
     const names = c.receive.map(a => a.Player || a['Player / Pick'] || '')
     if (names.some(n => (playerCount[n] || 0) >= 2)) continue
+    const topAsset  = [...c.receive].sort((a, b) => (b['KTC Value'] || 0) - (a['KTC Value'] || 0))[0]
+    const isQbHeavy = (topAsset?.Position || '') === 'QB'
+    if (isQbHeavy && qbHeavyCount >= 2) continue
     results.push(c)
     teamCount[c.team] = (teamCount[c.team] || 0) + 1
     names.forEach(n => { playerCount[n] = (playerCount[n] || 0) + 1 })
+    if (isQbHeavy) qbHeavyCount++
   }
 
   return results.map(c => ({ ...c, reason: buildReason(c, myOutlook, positionalRankings, myOwner) }))
