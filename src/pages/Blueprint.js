@@ -6,7 +6,7 @@ import {
   loadDismissed, dismissSuggestion, loadSaved, saveSuggestion, removeSavedSuggestion,
 } from '../services/blueprintService'
 import {
-  calcAdjusted, fitScore as calcFitScore, tradeCompatible,
+  calcAdjusted, tradeCompatible,
   outlookIsRebuild, outlookIsContender, isYoungUpside, isAgedTradeCandidate,
   TIER_RANK,
 } from '../utils/tradeLogic'
@@ -77,38 +77,38 @@ function getValueLabel(give, receive) {
   return 'overpaying'
 }
 
-// Asset-specific motivation — considers what is actually being traded, not just team outlook
+// Asset-specific motivation — verb phrase completing "likely to ___"
 function getMotivation(theirOutlook, primaryAsset) {
   const pos     = primaryAsset?.Position || ''
   const isVet   = isAgedTradeCandidate(primaryAsset || {})
   const isYoung = isYoungUpside(primaryAsset || {})
 
   if (pos === 'Pick') {
-    if (outlookIsRebuild(theirOutlook))   return 'acquire proven talent with their pick capital'
-    if (theirOutlook === 'Reload')        return 'convert future capital into immediate help'
-    if (outlookIsContender(theirOutlook)) return 'trade draft capital for proven talent'
+    if (outlookIsRebuild(theirOutlook))   return 'deal their pick capital for proven talent'
+    if (theirOutlook === 'Reload')        return 'convert pick capital into immediate help'
+    if (outlookIsContender(theirOutlook)) return 'trade pick capital for proven talent'
     return 'trade pick capital for immediate value'
   }
 
   if (outlookIsRebuild(theirOutlook)) {
-    if (isVet)   return 'looking to move aging assets for youth and picks'
-    if (isYoung) return 'has positional redundancy at this spot'
-    return "moving assets that don't fit their rebuild timeline"
+    if (isVet)   return 'move aging assets for youth and picks'
+    if (isYoung) return 'deal from positional surplus at this spot'
+    return "move assets that don't fit their rebuild timeline"
   }
   if (theirOutlook === 'Reload') {
-    if (isVet)   return 'moving aging assets to retool around youth'
-    if (isYoung) return 'has depth at this position and can deal from surplus'
-    return 'retooling around younger, cheaper assets'
+    if (isVet)   return 'move aging assets to retool around youth'
+    if (isYoung) return 'deal from depth at this position'
+    return 'retool around younger, cheaper assets'
   }
   if (theirOutlook === 'Window Contender') {
     return !isYoung
-      ? 'making a push this season with proven contributors'
-      : 'converting upside pieces into proven help for their window'
+      ? 'make a push this season with proven contributors'
+      : 'convert upside pieces into proven help for their window'
   }
   // Contender
-  if (isYoung && !isVet) return 'prioritizing proven contributors over developmental upside'
-  if (isVet)             return 'managing roster age while staying competitive'
-  return 'looking to fill a specific roster need'
+  if (isYoung && !isVet) return 'prioritize proven contributors over developmental upside'
+  if (isVet)             return 'manage roster age while staying competitive'
+  return 'fill a specific roster need'
 }
 
 function buildReason(candidate, myOutlook, positionalRankings, myOwner) {
@@ -135,8 +135,33 @@ function buildReason(candidate, myOutlook, positionalRankings, myOwner) {
   const pName  = primary?.Player || primary?.['Player / Pick'] || 'this package'
   const ageStr = primary?.Age ? ` (age ${primary.Age})` : ''
   if (primary?.Position === 'Pick')
-    return `${pName} adds pick capital — ${theirOwner} is a ${outlookLabel} likely to ${motivation}`
+    return `${theirOwner} is a ${outlookLabel} likely to ${motivation}`
   return `${pName}${ageStr} — ${theirOwner} is a ${outlookLabel} likely to ${motivation}`
+}
+
+// Fit scoring: starts at 0, gives true 0–10 spread based on actual positional need and outlook fit
+function tradeFitScore(receivedAssets, myOutlook, positionalRankings, myOwner) {
+  const myRanks = positionalRankings[myOwner] || {}
+  let score = 0
+  for (const asset of receivedAssets) {
+    const pos   = asset.Position || ''
+    const young = isYoungUpside(asset)
+    if (pos === 'Pick') {
+      if (outlookIsRebuild(myOutlook) || myOutlook === 'Reload') score += 3
+      else if (outlookIsContender(myOutlook))                    score += 0.5
+      else                                                        score += 1
+      continue
+    }
+    if (!SKILL_POS_TF.has(pos)) continue
+    const rank = myRanks[pos] || 5
+    // Positional need: 5pts for critical need (rank 8-10), 3pts moderate (6-7), 1pt mild (4-5)
+    score += rank >= 8 ? 5 : rank >= 6 ? 3 : rank >= 4 ? 1 : 0
+    // Outlook-age fit bonus
+    if (outlookIsRebuild(myOutlook) && young)                                                  score += 2
+    else if (myOutlook === 'Reload' && young)                                                  score += 1
+    else if ((outlookIsContender(myOutlook) || myOutlook === 'Window Contender') && !young)    score += 1.5
+  }
+  return Math.min(10, Math.round(score))
 }
 
 function findTrades(giveAssets, myOwner, myOutlook, data, outlookByOwner, positionalRankings, adjustYears) {
@@ -176,9 +201,7 @@ function findTrades(giveAssets, myOwner, myOutlook, data, outlookByOwner, positi
     .filter(Boolean)
   const myPool = [...myPlayers, ...myPicks]
 
-  const myRanks             = positionalRankings[myOwner] || {}
-  const isContenderOrWindow = outlookIsContender(myOutlook) || myOutlook === 'Window Contender'
-  const isRebuildOrReload   = outlookIsRebuild(myOutlook)   || myOutlook === 'Reload'
+  const myRanks = positionalRankings[myOwner] || {}
 
   const otherOwners   = [...new Set((data.playerUniverse || []).map(p => p['Dynasty Owner']).filter(Boolean))].filter(o => o !== myOwner)
   const rawCandidates = []
@@ -191,8 +214,10 @@ function findTrades(giveAssets, myOwner, myOutlook, data, outlookByOwner, positi
     const theirPlayers = (data.playerUniverse || [])
       .filter(p => {
         if (p['Dynasty Owner'] !== theirOwner) return false
-        if (parseInt(p['KTC Value'] || 0) <= 1500) return false
+        if (parseInt(p['KTC Value'] || 0) < 2000) return false
         if (theirIsRebuild && !giveHasStud && STUD_TIERS_TF.has(p.Tier || '')) return false
+        // Veteran QB filter: skip QBs 32+ unless QB is the manager's weakest positional grade
+        if ((p.Position || '') === 'QB' && parseInt(p.Age || 0) >= 32 && (myRanks['QB'] || 5) < 8) return false
         return true
       })
       .map(p => ({ ...p, _val: calcAdjusted(p, 'receive', adjCtx) }))
@@ -284,21 +309,10 @@ function findTrades(giveAssets, myOwner, myOutlook, data, outlookByOwner, positi
     }
   }
 
-  // Score with position bias (unchanged)
+  // Score using redesigned fit function — true 0–10 range, not bunched at 5–6
   const scored = candidates.map(c => {
-    let fit = calcFitScore(c.receive, myOutlook, positionalRankings, myOwner)
-    if (isContenderOrWindow) {
-      for (const a of c.receive)
-        if (SKILL_POS_TF.has(a.Position || '') && (myRanks[a.Position] || 10) >= 7)
-          fit = Math.min(10, fit + 2)
-    } else if (isRebuildOrReload) {
-      for (const a of c.receive) {
-        if (isYoungUpside(a) && a.Position !== 'Pick') fit = Math.min(10, fit + 1.5)
-        if (a.Position === 'Pick')                     fit = Math.min(10, fit + 1)
-      }
-    }
     const valueFairness = 1 - Math.abs(c.receiveValue - c.giveValue) / c.giveValue
-    return { ...c, fitScore: Math.round(fit), valueFairness, valueLabel: getValueLabel(c.giveValue, c.receiveValue) }
+    return { ...c, fitScore: tradeFitScore(c.receive, myOutlook, positionalRankings, myOwner), valueFairness, valueLabel: getValueLabel(c.giveValue, c.receiveValue) }
   })
 
   scored.sort((a, b) => (b.fitScore * 0.6 + b.valueFairness * 0.4) - (a.fitScore * 0.6 + a.valueFairness * 0.4))
