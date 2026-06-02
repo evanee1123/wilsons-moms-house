@@ -56,8 +56,25 @@ export function fitScore(receivedAssets, myOutlook, positionalRankings, myOwner)
   return Math.min(10, Math.round(score))
 }
 
+// Compute whether both of a manager's top-2 QBs rank in the bottom 3 league-wide.
+// Used instead of positional grade for QB in superflex leagues.
+export function computeQbNeed(myOwner, playerUniverse) {
+  if (!myOwner || !playerUniverse?.length) return false
+  const allOwners = [...new Set(playerUniverse.map(p => p['Dynasty Owner']).filter(Boolean))]
+  const topQbs = (owner, n) =>
+    playerUniverse
+      .filter(p => p['Dynasty Owner'] === owner && p.Position === 'QB')
+      .sort((a, b) => (b['KTC Value'] || 0) - (a['KTC Value'] || 0))
+      .slice(0, n)
+  const qb1List = allOwners.map(o => ({ o, ktc: topQbs(o, 1)[0]?.['KTC Value'] || 0 })).sort((a, b) => b.ktc - a.ktc)
+  const qb2List = allOwners.map(o => ({ o, ktc: topQbs(o, 2)[1]?.['KTC Value'] || 0 })).sort((a, b) => b.ktc - a.ktc)
+  const qb1Rank = qb1List.findIndex(x => x.o === myOwner) + 1
+  const qb2Rank = qb2List.findIndex(x => x.o === myOwner) + 1
+  return qb1Rank >= 8 && qb2Rank >= 8  // both top-2 QBs must be bottom-3 league-wide
+}
+
 export function calcAdjusted(asset, side, ctx) {
-  const { userOwner, outlookByOwner, positionalRankings, adjustYears } = ctx
+  const { userOwner, outlookByOwner, positionalRankings, adjustYears, qbNeed } = ctx
   const base = parseInt(asset['Combined Score'] || asset['KTC Value'] || 0)
   const pos  = asset.Position || ''
 
@@ -78,9 +95,14 @@ export function calcAdjusted(asset, side, ctx) {
     if (outlookIsRebuild(myOutlook))        bonus += 0.08
     else if (outlookIsContender(myOutlook)) bonus -= 0.05
   }
-  if (SKILL_POS.has(pos)) {
-    const rank = positionalRankings[userOwner]?.[pos] || 0
-    if (rank >= 8) bonus += 0.08
+  // Need bonus: only for KTC >= 4,500 (prevents inflating low-value high-production players).
+  // QB uses top-2 superflex ranking instead of positional grade. Max +5%.
+  const ktcVal = parseInt(asset['KTC Value'] || 0)
+  if (SKILL_POS.has(pos) && ktcVal >= 4500) {
+    const hasNeed = pos === 'QB'
+      ? (qbNeed === true)
+      : (positionalRankings[userOwner]?.[pos] || 0) >= 8
+    if (hasNeed) bonus += 0.05
   }
   const finalBonus = bonus > 0 ? Math.min(bonus, 0.20) : bonus
   return Math.round(base * (1 + finalBonus))

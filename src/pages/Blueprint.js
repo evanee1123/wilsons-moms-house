@@ -6,7 +6,7 @@ import {
   loadDismissed, dismissSuggestion, loadSaved, saveSuggestion, removeSavedSuggestion,
 } from '../services/blueprintService'
 import {
-  calcAdjusted, tradeCompatible,
+  calcAdjusted, tradeCompatible, computeQbNeed,
   outlookIsRebuild, outlookIsContender, isYoungUpside, isAgedTradeCandidate,
   TIER_RANK,
 } from '../utils/tradeLogic'
@@ -167,7 +167,8 @@ function tradeFitScore(receivedAssets, myOutlook, positionalRankings, myOwner) {
 function findTrades(giveAssets, myOwner, myOutlook, data, outlookByOwner, positionalRankings, adjustYears) {
   if (!giveAssets.length || !myOwner || !data) return []
 
-  const adjCtx   = { userOwner: myOwner, outlookByOwner, positionalRankings, adjustYears }
+  const qbNeed   = computeQbNeed(myOwner, data.playerUniverse)
+  const adjCtx   = { userOwner: myOwner, outlookByOwner, positionalRankings, adjustYears, qbNeed }
   const pickValueMap = {}
   ;(data.pickValues || []).forEach(p => { pickValueMap[p['Pick Name']] = p['KTC Value'] })
 

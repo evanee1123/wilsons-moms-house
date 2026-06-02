@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import PlayerDetailModal from '../components/PlayerDetailModal'
-import { calcAdjusted, UPSIDE_TIERS, SKILL_POS } from '../utils/tradeLogic'
+import { calcAdjusted, computeQbNeed, UPSIDE_TIERS, SKILL_POS } from '../utils/tradeLogic'
 
 const HISTORY_KEY = 'dynasty_trade_history'
 
@@ -342,7 +342,8 @@ export default function TradeCalculator({ data }) {
     return new Set([years[1], years[2]].filter(Boolean))
   }, [data])
 
-  const adjCtx = { userOwner, outlookByOwner, positionalRankings, adjustYears }
+  const qbNeed = computeQbNeed(userOwner, data?.playerUniverse)
+  const adjCtx = { userOwner, outlookByOwner, positionalRankings, adjustYears, qbNeed }
 
   // ── Search pool: players + picks ─────────────────────────────────────────────
   const allPlayers = useMemo(() => {
