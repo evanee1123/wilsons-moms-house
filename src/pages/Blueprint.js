@@ -709,9 +709,11 @@ function SuggestionsSection({ uid, myOwner, myOutlook, data, outlookByOwner, pos
 
 // ── Section 4: Trade Finder ───────────────────────────────────────────────────
 function TradeResultCard({ result }) {
+  const giveKtc     = (result.give || []).reduce((s, a) => s + parseInt(a['KTC Value'] || 0), 0)
+  const recvKtc     = (result.receive || []).reduce((s, a) => s + parseInt(a['KTC Value'] || 0), 0)
   const st          = computeStudTax(result.give || [], result.receive || [])
-  const displayGive = result.giveValue    + (st.giveAdj    || 0)
-  const displayRecv = result.receiveValue + (st.receiveAdj || 0)
+  const displayGive = giveKtc + (st.giveAdj    || 0)
+  const displayRecv = recvKtc + (st.receiveAdj || 0)
   const fitColor    = result.fitScore >= 8 ? 'var(--green)' : result.fitScore >= 5 ? 'var(--orange)' : 'var(--red)'
   const valColor    = result.valueLabel === 'winning' ? 'var(--green)' : result.valueLabel === 'fair value' ? 'var(--blue)' : 'var(--orange)'
   return (

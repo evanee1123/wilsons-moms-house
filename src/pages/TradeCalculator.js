@@ -349,8 +349,8 @@ export default function TradeCalculator({ data }) {
   // ── Adjusted values (final — no breakdown exposed) ──────────────────────────
   const giveAdjusted    = giveAssets.map(p    => calcAdjusted(p, 'give',    adjCtx))
   const receiveAdjusted = receiveAssets.map(p => calcAdjusted(p, 'receive', adjCtx))
-  const giveTotal       = giveAdjusted.reduce((s, v) => s + v, 0)
-  const receiveTotal    = receiveAdjusted.reduce((s, v) => s + v, 0)
+  const giveTotal       = giveAssets.reduce((s, p) => s + parseInt(p['KTC Value'] || 0), 0)
+  const receiveTotal    = receiveAssets.reduce((s, p) => s + parseInt(p['KTC Value'] || 0), 0)
 
   // ── Handlers ─────────────────────────────────────────────────────────────────
   function handleViewDetail(p) {
