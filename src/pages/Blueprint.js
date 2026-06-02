@@ -172,11 +172,11 @@ function findTrades(giveAssets, myOwner, myOutlook, data, outlookByOwner, positi
   const pickValueMap = {}
   ;(data.pickValues || []).forEach(p => { pickValueMap[p['Pick Name']] = p['KTC Value'] })
 
-  const baseGiveTotal = giveAssets.reduce((s, a) => s + calcAdjusted(a, 'give', adjCtx), 0)
-  if (baseGiveTotal === 0) return []
+  const baseGiveKtc = giveAssets.reduce((s, a) => s + parseInt(a['KTC Value'] || 0), 0)
+  if (baseGiveKtc === 0) return []
 
-  const looseLo = baseGiveTotal * 0.90
-  const looseHi = baseGiveTotal * 1.25
+  const looseLo = baseGiveKtc * 0.75
+  const looseHi = baseGiveKtc * 1.50
 
   const giveHasStud = giveAssets.some(a =>
     STUD_TIERS_TF.has(a.Tier || '') ||
@@ -184,14 +184,14 @@ function findTrades(giveAssets, myOwner, myOutlook, data, outlookByOwner, positi
   )
 
   // myPool for auto-add: my players (KTC > 2500) + my picks, not already on give side.
-  // _val for all assets uses calcAdjusted(give) — identical formula to the trade calculator's give total.
+  // _val uses raw KTC so auto-add comparisons match the KTC + stud tax filter.
   const giveNames = new Set(giveAssets.map(a => a.Player || a['Player / Pick'] || ''))
   const myPlayers = (data.playerUniverse || [])
     .filter(p => p['Dynasty Owner'] === myOwner && parseInt(p['KTC Value'] || 0) > 2500 && !giveNames.has(p.Player))
     .map(p => ({
       ...p,
       'Combined Score': parseFloat(p['Combined Score']) || parseFloat(p['KTC Value']) || 0,
-      _val: calcAdjusted(p, 'give', adjCtx),
+      _val: parseInt(p['KTC Value'] || 0),
     }))
   const seenMyPicks = new Set()
   const myPicks = (data.pickPortfolio || [])
@@ -203,7 +203,7 @@ function findTrades(giveAssets, myOwner, myOutlook, data, outlookByOwner, positi
       seenMyPicks.add(p['Pick Name'])
       const asset = { 'Player / Pick': dName, Position: 'Pick', 'KTC Value': ktc, 'Combined Score': ktc,
                       pickYear: p.Year, pickOriginalOwner: p['Original Owner'] }
-      return { ...asset, _val: calcAdjusted(asset, 'give', adjCtx) }
+      return { ...asset, _val: parseInt(ktc) }
     })
     .filter(Boolean)
   const myPool = [...myPlayers, ...myPicks]
@@ -231,7 +231,7 @@ function findTrades(giveAssets, myOwner, myOutlook, data, outlookByOwner, positi
       .map(p => ({
         ...p,
         'Combined Score': parseFloat(p['Combined Score']) || parseFloat(p['KTC Value']) || 0,
-        _val: calcAdjusted(p, 'receive', adjCtx),
+        _val: parseInt(p['KTC Value'] || 0),
       }))
       .filter(a => tradeCompatible(myOutlook, theirOutlook, a))
       .sort((a, b) => b._val - a._val)
@@ -248,7 +248,7 @@ function findTrades(giveAssets, myOwner, myOutlook, data, outlookByOwner, positi
         const asset = { 'Player / Pick': `${p['Original Owner']} ${p['Pick Name']}`,
                         Position: 'Pick', 'KTC Value': ktc, 'Combined Score': ktc,
                         pickYear: p.Year, pickOriginalOwner: p['Original Owner'] }
-        return { ...asset, _val: calcAdjusted(asset, 'receive', adjCtx) }
+        return { ...asset, _val: parseInt(ktc) }
       })
       .filter(Boolean)
       .sort((a, b) => a._val - b._val)
@@ -260,13 +260,13 @@ function findTrades(giveAssets, myOwner, myOutlook, data, outlookByOwner, positi
       const tot = receive.reduce((s, a) => s + a._val, 0)
       if (tot < looseLo || tot > looseHi) return
       if (receive.filter(a => a.Position === 'QB').length > 1) return
-      rawCandidates.push({ team: theirOwner, outlook: theirOutlook, receive, receiveValue: tot })
+      rawCandidates.push({ team: theirOwner, outlook: theirOutlook, receive, receiveKtc: tot })
     }
 
-    // 1. Single player — only emit if receive >= baseGiveTotal (not short).
+    // 1. Single player — only emit if receive >= baseGiveKtc (not short).
     //    Short players (0.90–1.00) are covered by player+pick combos below.
     for (const p of theirPlayers) {
-      if (p._val >= baseGiveTotal) push([p])
+      if (p._val >= baseGiveKtc) push([p])
     }
 
     // 2. Player + 1 pick (covers short singles that need a pick to reach fair value)
@@ -303,27 +303,40 @@ function findTrades(giveAssets, myOwner, myOutlook, data, outlookByOwner, positi
     }
   }
 
-  // Auto-add pass + ±10% fairness filter
+  // ±10% fairness filter on KTC + stud tax — matches display values exactly
   const candidates = []
   for (const c of rawCandidates) {
-    const ratio = c.receiveValue / baseGiveTotal
+    const st          = computeStudTax(giveAssets, c.receive)
+    const displayGive = baseGiveKtc + (st.giveAdj || 0)
+    const displayRecv = c.receiveKtc + (st.receiveAdj || 0)
+    const ratio       = displayRecv / displayGive
+
     if (ratio >= (1 - FAIR_THRESHOLD) && ratio <= (1 + FAIR_THRESHOLD)) {
-      candidates.push({ ...c, give: giveAssets, giveValue: baseGiveTotal })
-    } else if (ratio > (1 + FAIR_THRESHOLD) && ratio <= 1.25) {
+      candidates.push({ ...c, give: giveAssets, giveValue: displayGive, receiveValue: displayRecv })
+    } else if (ratio > (1 + FAIR_THRESHOLD) && ratio <= 1.50) {
       let bestAutoAdd = null, bestDelta = Infinity
       for (const asset of myPool) {
-        const adjGive = baseGiveTotal + asset._val
-        const delta   = Math.abs(c.receiveValue / adjGive - 1)
+        const newGive = [...giveAssets, asset]
+        const stNew   = computeStudTax(newGive, c.receive)
+        const adjGive = baseGiveKtc + asset._val + (stNew.giveAdj || 0)
+        const adjRecv = c.receiveKtc + (stNew.receiveAdj || 0)
+        const delta   = Math.abs(adjRecv / adjGive - 1)
         if (delta <= FAIR_THRESHOLD && delta < bestDelta) { bestDelta = delta; bestAutoAdd = asset }
       }
-      if (bestAutoAdd)
-        candidates.push({ ...c, give: [...giveAssets, bestAutoAdd], giveValue: baseGiveTotal + bestAutoAdd._val })
+      if (bestAutoAdd) {
+        const stFinal = computeStudTax([...giveAssets, bestAutoAdd], c.receive)
+        const giveVal = baseGiveKtc + bestAutoAdd._val + (stFinal.giveAdj || 0)
+        const recvVal = c.receiveKtc + (stFinal.receiveAdj || 0)
+        candidates.push({ ...c, give: [...giveAssets, bestAutoAdd], giveValue: giveVal, receiveValue: recvVal })
+      }
     }
   }
 
   // Score using redesigned fit function — true 0–10 range, not bunched at 5–6
   const scored = candidates.map(c => {
-    const valueFairness = 1 - Math.abs(c.receiveValue - c.giveValue) / c.giveValue
+    // Apply calcAdjusted post-filter for need/context ranking boost (not a gate)
+    const adjRecv       = c.receive.reduce((s, a) => s + calcAdjusted(a, 'receive', adjCtx), 0)
+    const valueFairness = 1 - Math.abs(adjRecv - c.giveValue) / c.giveValue
     return { ...c, fitScore: tradeFitScore(c.receive, myOutlook, positionalRankings, myOwner), valueFairness, valueLabel: getValueLabel(c.giveValue, c.receiveValue) }
   })
 
@@ -709,11 +722,8 @@ function SuggestionsSection({ uid, myOwner, myOutlook, data, outlookByOwner, pos
 
 // ── Section 4: Trade Finder ───────────────────────────────────────────────────
 function TradeResultCard({ result }) {
-  const giveKtc     = (result.give || []).reduce((s, a) => s + parseInt(a['KTC Value'] || 0), 0)
-  const recvKtc     = (result.receive || []).reduce((s, a) => s + parseInt(a['KTC Value'] || 0), 0)
-  const st          = computeStudTax(result.give || [], result.receive || [])
-  const displayGive = giveKtc + (st.giveAdj    || 0)
-  const displayRecv = recvKtc + (st.receiveAdj || 0)
+  const displayGive = result.giveValue    || 0
+  const displayRecv = result.receiveValue || 0
   const fitColor    = result.fitScore >= 8 ? 'var(--green)' : result.fitScore >= 5 ? 'var(--orange)' : 'var(--red)'
   const valColor    = result.valueLabel === 'winning' ? 'var(--green)' : result.valueLabel === 'fair value' ? 'var(--blue)' : 'var(--orange)'
   return (
