@@ -1,4 +1,4 @@
-export const UPSIDE_TIERS = new Set(['Cornerstone', 'Foundational', 'Upside Premier', 'Upside Shot'])
+export const UPSIDE_TIERS = new Set(['Cornerstone', 'Upside Premier', 'Upside Shot'])
 export const SKILL_POS    = new Set(['QB', 'RB', 'WR', 'TE'])
 
 export const POSITION_AGE_THRESHOLDS = { QB: 32, WR: 29, TE: 29, RB: 27 }

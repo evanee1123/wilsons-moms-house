@@ -209,56 +209,6 @@ function findTrades(giveAssets, myOwner, myOutlook, data, outlookByOwner, positi
 
   const myRanks = positionalRankings[myOwner] || {}
 
-  // ── DEBUG pipeline trace ──────────────────────────────────────────────────
-  const DEBUG_NAMES = ['Tee Higgins', 'A.J. Brown', 'Ladd McConkey', 'Breece Hall', 'Chase Brown']
-  const allOtherPlayers = (data.playerUniverse || []).filter(p => p['Dynasty Owner'] && p['Dynasty Owner'] !== myOwner)
-  const dPassKtc   = allOtherPlayers.filter(p => parseInt(p['KTC Value'] || 0) >= 2000)
-  const dPassCompat = dPassKtc.filter(p => tradeCompatible(myOutlook, outlookByOwner[p['Dynasty Owner']] || '', p))
-  const dPassStud  = dPassCompat.filter(p => {
-    const tO = outlookByOwner[p['Dynasty Owner']] || ''
-    if (outlookIsRebuild(tO) && !giveHasStud && STUD_TIERS_TF.has(p.Tier || '')) return false
-    if ((p.Position || '') === 'QB' && parseInt(p.Age || 0) >= 32 && (myRanks['QB'] || 5) < 8) return false
-    return true
-  })
-  const fairLo = baseGiveTotal * (1 - FAIR_THRESHOLD)
-  const fairHi = baseGiveTotal * (1 + FAIR_THRESHOLD)
-  const dInWindow = dPassStud.filter(p => {
-    const v = calcAdjusted({ ...p, 'Combined Score': parseFloat(p['Combined Score']) || parseFloat(p['KTC Value']) || 0 }, 'receive', adjCtx)
-    return v >= fairLo && v <= fairHi
-  })
-  console.log(`[Q1] Players on other rosters with KTC>=2000: ${dPassKtc.length}`)
-  console.log(`[Q2] After tradeCompatible: ${dPassCompat.length}`)
-  console.log(`[Q3] After stud+QB filters: ${dPassStud.length}`)
-  console.log(`[Q4] In ±10% window (${Math.round(fairLo)}–${Math.round(fairHi)}): ${dInWindow.length}`)
-  if (dInWindow.length) dInWindow.forEach(p => {
-    const v = calcAdjusted({ ...p, 'Combined Score': parseFloat(p['Combined Score']) || parseFloat(p['KTC Value']) || 0 }, 'receive', adjCtx)
-    console.log(`  IN WINDOW: ${p.Player} (${p['Dynasty Owner']}) KTC=${p['KTC Value']} Combined=${p['Combined Score']} adjReceive=${v}`)
-  })
-  console.log('[Q5] Tracing specific players:')
-  DEBUG_NAMES.forEach(name => {
-    const p = allOtherPlayers.find(x => x.Player === name)
-    if (!p) { console.log(`  ${name}: NOT FOUND`); return }
-    const tO        = outlookByOwner[p['Dynasty Owner']] || ''
-    const ktc       = parseInt(p['KTC Value'] || 0)
-    const combined  = parseFloat(p['Combined Score']) || 0
-    const adjV      = calcAdjusted({ ...p, 'Combined Score': combined }, 'receive', adjCtx)
-    const youngUpsd = parseInt(p.Age || 30) <= 25 || ['Cornerstone','Foundational','Upside Premier','Upside Shot'].includes(p.Tier)
-    const pKtc      = ktc >= 2000
-    const pCompat   = tradeCompatible(myOutlook, tO, p)
-    const pStud     = !(outlookIsRebuild(tO) && !giveHasStud && STUD_TIERS_TF.has(p.Tier || ''))
-    const pQb       = !((p.Position||'') === 'QB' && parseInt(p.Age||0) >= 32 && (myRanks['QB']||5) < 8)
-    const ratio     = adjV / baseGiveTotal
-    const singleOk  = adjV >= baseGiveTotal
-    console.log(`  ${name} | owner=${p['Dynasty Owner']} outlook=${tO} | tier=${p.Tier} age=${p.Age} isYoungUpside=${youngUpsd}`)
-    console.log(`    KTC=${ktc} Combined=${combined} adjReceive=${adjV} | ratio=${ratio.toFixed(3)} singleEligible=${singleOk}`)
-    console.log(`    filters: ktc=${pKtc} compat=${pCompat} stud=${pStud} qb=${pQb}`)
-    if (!singleOk && pKtc && pCompat && pStud && pQb) {
-      console.log(`    → SHORT: adjReceive(${adjV}) < baseGiveTotal(${baseGiveTotal}) — will only appear in player+pick combos`)
-      console.log(`    → Reason adjReceive < Combined: isYoungUpside=${youngUpsd}, myOutlook=${myOutlook}, bonus applied=${youngUpsd && myOutlook === 'Contender' ? '-5%' : youngUpsd && (myOutlook==='Rebuild'||myOutlook==='Rebuild (future value)') ? '+8%' : 'none'}`)
-    }
-  })
-  // ── END DEBUG ─────────────────────────────────────────────────────────────
-
   const otherOwners   = [...new Set((data.playerUniverse || []).map(p => p['Dynasty Owner']).filter(Boolean))].filter(o => o !== myOwner)
   const rawCandidates = []
 
