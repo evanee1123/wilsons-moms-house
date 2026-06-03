@@ -222,7 +222,7 @@ function findTrades(giveAssets, myOwner, myOutlook, data, outlookByOwner, positi
     const theirPlayers = (data.playerUniverse || [])
       .filter(p => {
         if (p['Dynasty Owner'] !== theirOwner) return false
-        if (parseInt(p['KTC Value'] || 0) < 2000) return false
+        if (parseInt(p['KTC Value'] || 0) < 2500) return false
         if (theirIsRebuild && !giveHasStud && STUD_TIERS_TF.has(p.Tier || '')) return false
         // Veteran QB filter: skip QBs 32+ unless QB is the manager's weakest positional grade
         if ((p.Position || '') === 'QB' && parseInt(p.Age || 0) >= 32 && (myRanks['QB'] || 5) < 8) return false
@@ -359,7 +359,7 @@ function findTrades(giveAssets, myOwner, myOutlook, data, outlookByOwner, positi
     if (isQbHeavy) qbHeavyCount++
   }
 
-  return results.map(c => ({ ...c, reason: buildReason(c, myOutlook, positionalRankings, myOwner) }))
+  return results
 }
 
 // ── Buy / Sell suggestion computation ────────────────────────────────────────
@@ -750,9 +750,6 @@ function TradeResultCard({ result }) {
           <div style={{ fontSize: '10px', fontWeight: 600, color: '#38a169', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>You Receive</div>
           {result.receive.map((a, i) => <div key={i} style={{ fontSize: '12px', color: 'var(--text-primary)' }}>{a.Player || a['Player / Pick']}</div>)}
         </div>
-      </div>
-      <div style={{ fontSize: '12px', color: 'var(--text-secondary)', fontStyle: 'italic', borderTop: '1px solid var(--card-border)', paddingTop: '8px' }}>
-        {result.reason}
       </div>
     </div>
   )
