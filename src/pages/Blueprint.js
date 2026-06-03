@@ -78,66 +78,6 @@ function getValueLabel(give, receive) {
 }
 
 // Asset-specific motivation — verb phrase completing "likely to ___"
-function getMotivation(theirOutlook, primaryAsset) {
-  const pos     = primaryAsset?.Position || ''
-  const isVet   = isAgedTradeCandidate(primaryAsset || {})
-  const isYoung = isYoungUpside(primaryAsset || {})
-
-  if (pos === 'Pick') {
-    if (outlookIsRebuild(theirOutlook))   return 'deal their pick capital for proven talent'
-    if (theirOutlook === 'Reload')        return 'convert pick capital into immediate help'
-    if (outlookIsContender(theirOutlook)) return 'trade pick capital for proven talent'
-    return 'trade pick capital for immediate value'
-  }
-
-  if (outlookIsRebuild(theirOutlook)) {
-    if (isVet)   return 'move aging assets for youth and picks'
-    if (isYoung) return 'deal from positional surplus at this spot'
-    return "move assets that don't fit their rebuild timeline"
-  }
-  if (theirOutlook === 'Reload') {
-    if (isVet)   return 'move aging assets to retool around youth'
-    if (isYoung) return 'deal from depth at this position'
-    return 'retool around younger, cheaper assets'
-  }
-  if (theirOutlook === 'Window Contender') {
-    return !isYoung
-      ? 'make a push this season with proven contributors'
-      : 'convert upside pieces into proven help for their window'
-  }
-  // Contender
-  if (isYoung && !isVet) return 'prioritize proven contributors over developmental upside'
-  if (isVet)             return 'manage roster age while staying competitive'
-  return 'fill a specific roster need'
-}
-
-function buildReason(candidate, myOutlook, positionalRankings, myOwner) {
-  const myRanks      = positionalRankings[myOwner] || {}
-  const theirOwner   = candidate.team
-  const theirOutlook = candidate.outlook
-
-  const outlookLabel = outlookIsRebuild(theirOutlook) ? 'Rebuilder'
-    : theirOutlook === 'Reload'           ? 'Reload team'
-    : theirOutlook === 'Window Contender' ? 'Window Contender'
-    : 'Contender'
-
-  const needFill = candidate.receive.find(a =>
-    SKILL_POS_TF.has(a.Position || '') && (myRanks[a.Position] || 10) >= 7
-  )
-  const primary    = needFill ||
-    [...candidate.receive].sort((a, b) => (b['KTC Value'] || 0) - (a['KTC Value'] || 0))[0]
-  const motivation = getMotivation(theirOutlook, primary)
-
-  if (needFill) {
-    const name = needFill.Player || needFill['Player / Pick'] || ''
-    return `${name} fills your ${needFill.Position} need — ${theirOwner} is a ${outlookLabel} likely to ${motivation}`
-  }
-  const pName  = primary?.Player || primary?.['Player / Pick'] || 'this package'
-  const ageStr = primary?.Age ? ` (age ${primary.Age})` : ''
-  if (primary?.Position === 'Pick')
-    return `${theirOwner} is a ${outlookLabel} likely to ${motivation}`
-  return `${pName}${ageStr} — ${theirOwner} is a ${outlookLabel} likely to ${motivation}`
-}
 
 // Fit scoring: starts at 0, gives true 0–10 spread based on actual positional need and outlook fit
 function tradeFitScore(receivedAssets, myOutlook, positionalRankings, myOwner) {
