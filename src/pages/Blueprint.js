@@ -10,6 +10,7 @@ import {
   outlookIsRebuild, outlookIsContender, isYoungUpside, isAgedTradeCandidate,
   TIER_RANK,
 } from '../utils/tradeLogic'
+import { findPlayerByName } from '../utils/playerUtils'
 
 // ── Shared styles ─────────────────────────────────────────────────────────────
 const actionBtn = {
@@ -299,6 +300,57 @@ function findTrades(giveAssets, myOwner, myOutlook, data, outlookByOwner, positi
     if (isQbHeavy) qbHeavyCount++
   }
 
+  // ── Template reordering: qualifying packages rise above non-qualifying ───────
+  // Step 1 — classify give side by highest tier present
+  let giveTier = null
+  outer: for (const targetTier of ['Cornerstone', 'Foundational']) {
+    for (const a of giveAssets) {
+      if ((a.Position || '') === 'Pick') continue
+      const name = a.Player || a['Player / Pick'] || ''
+      const p    = findPlayerByName(data.playerUniverse, name)
+      const tier = p?.Tier || a.Tier || ''
+      if (tier === targetTier) { giveTier = targetTier; break outer }
+    }
+  }
+
+  if (giveTier) {
+    // Step 2 — determine whether a result meets a qualifying template
+    const qualifies = (c) => {
+      const recv        = c.receive || []
+      const firstRounds = recv.filter(a =>
+        (a.Position || '') === 'Pick' && (a.Player || a['Player / Pick'] || '').includes('1st')
+      )
+      const anyPick = recv.filter(a => (a.Position || '') === 'Pick')
+      const hasTopTierPlayer = recv.some(a => {
+        if ((a.Position || '') === 'Pick') return false
+        const name = a.Player || a['Player / Pick'] || ''
+        const p    = findPlayerByName(data.playerUniverse, name)
+        const tier = p?.Tier || a.Tier || ''
+        return tier === 'Cornerstone' || tier === 'Foundational'
+      })
+
+      if (giveTier === 'Cornerstone') {
+        if (firstRounds.length >= 2) return true          // Template A: 2+ 1st round picks
+        if (hasTopTierPlayer)        return true          // Template B: Cornerstone/Foundational return
+        return false
+      }
+
+      // giveTier === 'Foundational'
+      if (firstRounds.length >= 1) {                      // Template A: 1st + another piece
+        const hasAdditionalPick  = anyPick.length >= 2
+        const hasPlayerOver3k    = recv.some(a => (a.Position || '') !== 'Pick' && parseInt(a['KTC Value'] || 0) > 3000)
+        if (hasAdditionalPick || hasPlayerOver3k) return true
+      }
+      if (hasTopTierPlayer) return true                   // Template B: Foundational/Cornerstone return
+      return false
+    }
+
+    // Step 3 — stable partition: qualifying first, non-qualifying after
+    const qualifying    = results.filter(c =>  qualifies(c))
+    const nonQualifying = results.filter(c => !qualifies(c))
+    return [...qualifying, ...nonQualifying]
+  }
+
   return results
 }
 
@@ -508,7 +560,7 @@ function GoalsSection({ uid, myOwner, myOutlook, positionalRankings, pickYears }
 // ── Section 2: Watchlist ──────────────────────────────────────────────────────
 function WatchlistRow({ item, data, outlookByOwner, onRemove }) {
   const player = useMemo(() => {
-    const p = (data?.playerUniverse || []).find(x => x.Player === item.playerName)
+    const p = findPlayerByName(data?.playerUniverse, item.playerName)
     if (p) return p
     const pick = (data?.pickPortfolio || []).find(x => `${x['Original Owner']} ${x['Pick Name']}` === item.playerName)
     if (pick) return { Player: item.playerName, Position: 'Pick', 'KTC Value': pick['KTC Value'], Tier: '—', 'Dynasty Owner': pick['Current Owner'] }

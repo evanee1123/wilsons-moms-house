@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react'
 import PlayerDetailModal from '../components/PlayerDetailModal'
+import { findPlayerByName } from '../utils/playerUtils'
 
 const VERDICT_COLORS = {
   win:  { bg: '#c6f6d5', color: '#276749', label: 'WIN' },
@@ -69,7 +70,7 @@ export default function TradeHistory({ data, owner }) {
   }
 
   function handleAssetClick(name) {
-    const full = data?.playerUniverse?.find(u => u.Player === name)
+    const full = findPlayerByName(data?.playerUniverse, name)
     if (full) setSelectedPlayer(full)
   }
 
