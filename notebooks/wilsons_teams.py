@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[29]:
+# In[34]:
 
 
 # ============================================================
@@ -49,7 +49,7 @@ def get_current_season():
     return now.year if now.month >= 7 else now.year - 1
 
 current_season = get_current_season()
-YEARS = [str(current_season + 1), str(current_season + 2), str(current_season + 3), str(current_season + 4)]
+YEARS = [str(current_season+1), str(current_season+2), str(current_season+3), str(current_season+4)]
 CURRENT_DRAFT_YEAR = str(current_season + 1)  # the upcoming draft year
 
 # Position-adjusted age limits
@@ -90,7 +90,7 @@ UNTOUCHABLE = [
 print("Config loaded ✅")
 
 
-# In[4]:
+# In[35]:
 
 
 # ============================================================
@@ -137,7 +137,7 @@ league_df = pd.DataFrame(all_players)
 print(f"Rosters loaded: {len(rosters)} teams, {len(league_df)} skill position players ✅")
 
 
-# In[5]:
+# In[36]:
 
 
 # ============================================================
@@ -153,6 +153,7 @@ from selenium.webdriver.common.by import By
 from webdriver_manager.chrome import ChromeDriverManager
 from bs4 import BeautifulSoup
 import time
+import random
 
 def scrape_ktc_page(page_num, driver):
     """Scrape a single page of KTC rankings."""
@@ -272,17 +273,54 @@ picks_ktc["Name"] = picks_ktc["Player"]
 rankings_df = rankings_df.rename(columns={"Value": "KTC Value"})
 picks_ktc   = picks_ktc.rename(columns={"Value": "KTC Value"})
 
+# ---- Generate synthetic pick values for the furthest draft year if KTC doesn't have them yet ----
+PICK_TIERS  = ["Early", "Mid", "Late"]
+PICK_ROUNDS = ["1st", "2nd", "3rd", "4th"]
+existing_years = picks_ktc["Name"].str.extract(r"(\d{4})")[0].dropna().unique().tolist()
+
+# YEARS is already defined in config as [current+1, current+2, current+3]
+furthest_year = YEARS[-1]   # e.g. "2029" this year, "2030" next year
+baseline_year = YEARS[-2]   # e.g. "2028" this year, "2029" next year
+
+if furthest_year not in existing_years and baseline_year in existing_years:
+    print(f"\n{furthest_year} picks not found in KTC — generating from {baseline_year} values with ±10% variance...")
+    synthetic_picks = []
+    for tier in PICK_TIERS:
+        for round_str in PICK_ROUNDS:
+            match = picks_ktc[picks_ktc["Name"].str.contains(
+                f"{baseline_year}.*{tier}.*{round_str}", case=False, na=False
+            )]
+            if not match.empty:
+                base_value = match.iloc[0]["KTC Value"]
+                new_value  = round(base_value * random.uniform(0.90, 1.10))
+                pick_name  = match.iloc[0]["Name"].replace(baseline_year, furthest_year)
+                synthetic_picks.append({"Name": pick_name, "KTC Value": new_value})
+                print(f"  {pick_name}: {new_value} (base {baseline_year} {tier} {round_str}: {base_value})")
+            else:
+                print(f"  WARNING: No {baseline_year} {tier} {round_str} found — skipping {furthest_year} {tier} {round_str}")
+
+    if synthetic_picks:
+        synthetic_df = pd.DataFrame(synthetic_picks)
+        for col in picks_ktc.columns:
+            if col not in synthetic_df.columns:
+                synthetic_df[col] = None
+        picks_ktc = pd.concat([picks_ktc, synthetic_df], ignore_index=True)
+        print(f"  ✅ Added {len(synthetic_picks)} synthetic {furthest_year} picks")
+elif furthest_year in existing_years:
+    print(f"\n{furthest_year} picks found in KTC — using real values, no generation needed")
+
 # Use picks_ktc as all_picks for the pick portfolio builder
 all_picks = picks_ktc[["Name", "KTC Value"]].copy()
 
 # ---- Summary ----
-print(f"✅ KTC scrape complete — {len(rankings_df)} players, {len(picks_ktc)} picks")
+print(f"\n✅ KTC scrape complete — {len(rankings_df)} players, {len(picks_ktc)} picks")
 print(f"   Top player: {rankings_df.iloc[0]['Player']} ({rankings_df.iloc[0]['KTC Value']:,})")
 print(f"   Last player: {rankings_df.iloc[-1]['Player']} ({rankings_df.iloc[-1]['KTC Value']:,})")
 print(f"   Pick range: {picks_ktc['KTC Value'].max():,} (highest) — {picks_ktc['KTC Value'].min():,} (lowest)")
+print(f"   Pick years present: {sorted(picks_ktc['Name'].str.extract(r'(\\d{4})')[0].dropna().unique().tolist())}")
 
 
-# In[6]:
+# In[37]:
 
 
 # ============================================================
@@ -400,7 +438,7 @@ multi_year_prod["multi_year_prod_score"] = (
 print(f"Multi-year production calculated: {len(multi_year_prod)} players ✅")
 
 
-# In[7]:
+# In[38]:
 
 
 # ============================================================
@@ -666,7 +704,7 @@ print(f"name_to_gsis built: {len(name_to_gsis)} players")
 print(f"Sample: {list(name_to_gsis.items())[:3]}")
 
 
-# In[8]:
+# In[39]:
 
 
 # ============================================================
@@ -720,7 +758,7 @@ print(f"   Players with production history: {rankings_df['avg_ppg'].gt(0).sum()}
 print(f"   Players without history (rookies): {rankings_df['avg_ppg'].eq(0).sum()}")
 
 
-# In[9]:
+# In[40]:
 
 
 # ============================================================
@@ -769,15 +807,12 @@ if not unmatched.empty:
     print(unmatched.to_string(index=False))
 
 
-# In[10]:
+# In[42]:
 
 
 # ============================================================
 # 8. Load Draft Picks
 # ============================================================
-
-# all_picks already built from KTC scraper in cell 2
-all_picks = picks_ktc[["Name", "KTC Value"]].copy()
 
 # Pull traded picks from Sleeper
 traded_picks = requests.get(
@@ -794,31 +829,6 @@ DRAFT_ID       = upcoming_draft['draft_id']
 draft_details  = requests.get(f"https://api.sleeper.app/v1/draft/{DRAFT_ID}").json()
 slot_to_roster = draft_details["slot_to_roster_id"]
 print(f"Draft ID: {DRAFT_ID} | Status: {upcoming_draft['status']}")
-
-if upcoming_draft['status'] == 'complete':
-    all_picks = all_picks[~all_picks["Name"].str.startswith(CURRENT_DRAFT_YEAR)].copy()
-    print(f"  Filtered out {CURRENT_DRAFT_YEAR} picks from all_picks (draft complete)")
-
-# Generate synthetic KTC values for the furthest year (YEARS[-1]) if KTC doesn't have them yet.
-# Uses YEARS[-2] values as baseline with ±10% random variance per pick.
-# Auto-skipped once KTC publishes real values for that year.
-furthest_year = YEARS[-1]
-baseline_year = YEARS[-2]
-if not all_picks["Name"].str.startswith(furthest_year).any():
-    import random as _random
-    tiers  = ["Early", "Mid", "Late"]
-    rounds = ["1st", "2nd", "3rd", "4th"]
-    synthetic_rows = []
-    for tier in tiers:
-        for rnd in rounds:
-            baseline_match = all_picks[all_picks["Name"] == f"{baseline_year} {tier} {rnd}"]
-            if not baseline_match.empty:
-                base_val      = int(baseline_match["KTC Value"].iloc[0])
-                synthetic_val = round(base_val * (1 + _random.uniform(-0.10, 0.10)))
-                synthetic_rows.append({"Name": f"{furthest_year} {tier} {rnd}", "KTC Value": synthetic_val})
-    if synthetic_rows:
-        all_picks = pd.concat([all_picks, pd.DataFrame(synthetic_rows)], ignore_index=True)
-        print(f"  Generated {len(synthetic_rows)} synthetic pick values for {furthest_year} (based on {baseline_year})")
 
 # Build slot to owner name map
 slot_to_owner = {}
@@ -865,7 +875,7 @@ if upcoming_draft['status'] not in ['complete']:
 else:
     print(f"  Skipping {CURRENT_DRAFT_YEAR} picks — draft already complete")
 
-future_years = YEARS[1:]  # YEARS[0] is current draft year; [1:] covers all tradeable future years
+future_years = YEARS[1:] if upcoming_draft['status'] not in ['complete'] else YEARS[1:]
 for year in future_years:
     for roster in rosters:
         for rnd in ROUNDS:
@@ -907,6 +917,7 @@ picks_master_df["ktc_value"] = picks_master_df["ktc_lookup_name"].apply(
 )
 
 print(f"✅ Pick portfolio built: {len(picks_master_df)} picks")
+print(f"   Pick years in all_picks: {sorted(all_picks['Name'].str.extract(r'(\\d{4})')[0].dropna().unique().tolist())}")
 
 # Sample output
 first_future = future_years[0]
@@ -923,7 +934,7 @@ if second_future:
     ].to_string(index=False))
 
 
-# In[11]:
+# In[43]:
 
 
 # ============================================================
@@ -1114,7 +1125,7 @@ for name in check:
         print(f"    RZ carries:    {r['rz5_carries']:.0f}" if pd.notna(r['rz5_carries']) else "    RZ carries:    N/A")
 
 
-# In[12]:
+# In[44]:
 
 
 # ============================================================
@@ -1250,7 +1261,7 @@ print(f"\nRB tier distribution:")
 print(merged_df[rb_mask]["rb_tier_new"].value_counts())
 
 
-# In[13]:
+# In[45]:
 
 
 # ============================================================
@@ -1392,7 +1403,7 @@ print(f"\nWR tier distribution:")
 print(merged_df[wr_mask]["wr_tier_new"].value_counts())
 
 
-# In[14]:
+# In[46]:
 
 
 # ============================================================
@@ -1531,7 +1542,7 @@ print(f"\nTE tier distribution:")
 print(merged_df[te_mask]["te_tier_new"].value_counts())
 
 
-# In[15]:
+# In[47]:
 
 
 # ============================================================
@@ -1665,7 +1676,7 @@ print(f"\nQB tier distribution:")
 print(merged_df[qb_mask]["qb_tier_new"].value_counts())
 
 
-# In[16]:
+# In[48]:
 
 
 # ============================================================
@@ -1733,7 +1744,7 @@ print(f"\nFinal tier distribution:")
 print(merged_df["tier"].value_counts())
 
 
-# In[17]:
+# In[49]:
 
 
 # ============================================================
@@ -1970,7 +1981,7 @@ print(f"  WR: {len(wr_df)}")
 print(f"  TE: {len(te_df)}")
 
 
-# In[18]:
+# In[50]:
 
 
 # ============================================================
@@ -2060,7 +2071,7 @@ pos_pivot["flex_pct"]   = pos_pivot["WR_pct"] + pos_pivot["RB_pct"]
 pos_pivot["onesie_pct"] = pos_pivot["QB_pct"] + pos_pivot["TE_pct"]
 
 # ---- Value & production share ----
-pick_value_by_owner = picks_master_df.groupby("current_owner_name")["ktc_value"].sum().reset_index()
+pick_value_by_owner = picks_master_df[picks_master_df["year"] != YEARS[-1]].groupby("current_owner_name")["ktc_value"].sum().reset_index()
 pick_value_by_owner.columns = ["owner", "pick_ktc_value"]
 pick_count_by_owner = picks_master_df[picks_master_df["round"]==1].groupby(
     "current_owner_name").size().reset_index(name="first_round_picks")
@@ -2095,7 +2106,7 @@ team_summary["production_rank"] = team_summary["production_share"].rank(ascendin
 print("All analysis built ✅")
 
 
-# In[19]:
+# In[51]:
 
 
 # ============================================================
@@ -2139,27 +2150,23 @@ def classify_outlook(row):
     vr, pr, cf = row["value_rank"], row["production_rank"], row["CF_total"]
     gap, tf    = row["share_gap"],  row["total_firsts"]
 
-    # Top-value teams with terrible production and a large gap are building,
-    # not reloading — must be caught before the Reload check fires
-    if vr <= 3 and pr >= 8 and gap > 3:            return "Rebuild"
-
-    # Window Contender — producing well but lower value rank
+    # Window Contender — producing well but low value/foundation
+    # Must have value rank 6+ so high value teams can't be window contenders
     if pr <= 4 and vr >= 8:                        return "Window Contender"
     if pr <= 5 and vr >= 7:                        return "Window Contender"
-    # High production + mid value with strong roster = window contender
-    if vr <= 7 and pr <= 3 and cf >= 5:            return "Window Contender"
 
     # True Contender
     if vr <= 3 and pr <= 6 and cf >= 3:
         return "Contender (needs production)" if gap > 4 else "Contender"
-    if vr <= 5 and pr <= 6 and cf >= 4:            return "Contender"
+    if vr <= 5 and pr <= 5 and cf >= 4:            return "Contender"
 
     # Reload
     if vr <= 6 and cf >= 3 and tf >= 2:            return "Reload"
     if vr <= 5 and gap > 3:                        return "Reload (sell vets for youth)"
 
-    # Rebuild — no future value split, one tier
-    if vr >= 7 or cf <= 2:                         return "Rebuild"
+    # Rebuild
+    if vr >= 7 or cf <= 2:
+        return "Rebuild (future value)" if tf >= 3 else "Rebuild"
 
     return "Reload"
 
@@ -2172,7 +2179,7 @@ print("Outlook classified ✅")
 print(outlook_df[["owner","outlook","CF_total","value_share","production_share","share_gap"]].to_string(index=False))
 
 
-# In[20]:
+# In[52]:
 
 
 # ============================================================
@@ -2259,7 +2266,7 @@ print(f"\nTop 10 buy targets:")
 print(top_buys[["name","position","age","KTC Value","tier","owner","buy_score"]].head(10).to_string(index=False))
 
 
-# In[21]:
+# In[53]:
 
 
 # ============================================================
@@ -2347,7 +2354,7 @@ def print_trade_packages(target_name, target_ktc, packages, max_show=5):
 print("Trade package builder ready ✅")
 
 
-# In[22]:
+# In[54]:
 
 
 # ============================================================
@@ -2459,7 +2466,7 @@ def evaluate_trade(giving, receiving):
 print("Trade evaluator ready ✅")
 
 
-# In[23]:
+# In[55]:
 
 
 # Build all league IDs dynamically
@@ -2478,7 +2485,7 @@ all_league_ids = get_all_league_ids(LEAGUE_ID)
 print(f"League history: {[(s, lid[:8]+'...') for s, lid in all_league_ids]}")
 
 
-# In[24]:
+# In[56]:
 
 
 # Pull all trades from all seasons
@@ -2505,7 +2512,7 @@ all_trades = get_all_trades(all_league_ids)
 print(f"Total trades: {len(all_trades)}")
 
 
-# In[25]:
+# In[57]:
 
 
 # ============================================================
@@ -2772,7 +2779,7 @@ print(f"Trade history built: {len(trade_history_df)} trades")
 print("Trade Grades ready ✅")
 
 
-# In[26]:
+# In[58]:
 
 
 # ============================================================
@@ -3065,7 +3072,7 @@ for pos in ['QB', 'RB', 'WR', 'TE']:
         print(f"  #{i+1} {g['name']} — {g['points']} pts ({g['label']}) [{g['owner']}] {g['started']}")
 
 
-# In[30]:
+# In[59]:
 
 
 # ============================================================
@@ -3134,16 +3141,19 @@ push_json('playerUniverse.json', df_to_records(
 
 # Team Overview
 print("Pushing Team Overview...")
+year_cols      = [col for year in YEARS for col in (f"first_{year}", f"dc_{year}")]
+year_col_names = [col for year in YEARS for col in (f"{year} 1sts", f"{year} Status")]
+
 to = outlook_df[[
     "owner","outlook","value_share","production_share","share_gap",
     "value_rank","production_rank","CF_total",
-    "first_2026","dc_2026","first_2027","dc_2027","first_2028","dc_2028",
+    *year_cols,
     "total_firsts","player_ktc_value","pick_ktc_value","total_ktc_value"
 ]].copy()
 to.columns = [
     "Owner","Outlook","Value Share %","Production Share %","Gap",
     "Value Rank","Production Rank","C+F Total",
-    "2026 1sts","2026 Status","2027 1sts","2027 Status","2028 1sts","2028 Status",
+    *year_col_names,
     "Total 1sts","Player Value","Pick Value","Total Value"
 ]
 push_json('teamOverview.json', df_to_records(to))
@@ -3203,7 +3213,8 @@ push_json('leagueRosters.json', df_to_records(league_rosters))
 
 # KTC Rankings
 print("Pushing KTC Rankings...")
-ktc_players = rankings_df[["Player","KTC Value","multi_year_prod_score","combined_score"]].copy()
+ktc_players = merged_df[["name","KTC Value","multi_year_prod_score","combined_score"]].copy()
+ktc_players = ktc_players.rename(columns={"name": "Player"})
 ktc_players["Type"] = "Player"
 ktc_picks = all_picks[["Name","KTC Value"]].copy()
 ktc_picks.columns = ["Player","KTC Value"]
@@ -3400,7 +3411,7 @@ push_json('standings.json', standings_data)
 print(f"\n✅ All JSON files pushed to {OUTPUT_DIR}")
 
 
-# In[195]:
+# In[60]:
 
 
 # ============================================================
@@ -3466,15 +3477,6 @@ print(f"\nFiles exported:")
 for f in os.listdir(EXPORT_PATH):
     size = os.path.getsize(f"{EXPORT_PATH}{f}")
     print(f"  {f:<35} {size:>8,} bytes")
-
-
-# In[28]:
-
-
-# Check current roster settings
-rosters = requests.get(f"https://api.sleeper.app/v1/league/{LEAGUE_ID}/rosters").json()
-for r in rosters[:3]:
-    print(f"Roster {r['roster_id']}: wins={r['settings'].get('wins')} losses={r['settings'].get('losses')}")
 
 
 # In[ ]:
