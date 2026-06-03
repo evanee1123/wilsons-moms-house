@@ -116,6 +116,14 @@ function findTrades(giveAssets, myOwner, myOutlook, data, outlookByOwner, positi
   const baseGiveKtc = giveAssets.reduce((s, a) => s + parseInt(a['KTC Value'] || 0), 0)
   if (baseGiveKtc === 0) return []
 
+  // Cornerstone give-side flag: packages with ≥1 first-round pick are prioritized in candidate pool
+  const requireFirstRound = giveAssets.some(a => {
+    if ((a.Position || '') === 'Pick') return false
+    const name = a.Player || a['Player / Pick'] || ''
+    const p    = findPlayerByName(data.playerUniverse, name)
+    return (p?.Tier || a.Tier || '') === 'Cornerstone'
+  })
+
   const looseLo = baseGiveKtc * 0.75
   const looseHi = baseGiveKtc * 1.50
 
@@ -242,6 +250,15 @@ function findTrades(giveAssets, myOwner, myOutlook, data, outlookByOwner, positi
         }
       }
     }
+  }
+
+  // When giving a Cornerstone, float packages containing ≥1 first-round pick to the front
+  // so they have first access through the fairness filter and variety dedup.
+  if (requireFirstRound) {
+    const has1st     = c => c.receive.some(a => (a.Player || a['Player / Pick'] || '').includes('1st'))
+    const with1st    = rawCandidates.filter(c =>  has1st(c))
+    const without1st = rawCandidates.filter(c => !has1st(c))
+    rawCandidates.splice(0, rawCandidates.length, ...with1st, ...without1st)
   }
 
   // ±10% fairness filter on KTC + stud tax — matches display values exactly
