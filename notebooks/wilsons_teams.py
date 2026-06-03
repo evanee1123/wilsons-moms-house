@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[34]:
+# In[1]:
 
 
 # ============================================================
@@ -90,7 +90,7 @@ UNTOUCHABLE = [
 print("Config loaded ✅")
 
 
-# In[35]:
+# In[2]:
 
 
 # ============================================================
@@ -137,7 +137,7 @@ league_df = pd.DataFrame(all_players)
 print(f"Rosters loaded: {len(rosters)} teams, {len(league_df)} skill position players ✅")
 
 
-# In[36]:
+# In[3]:
 
 
 # ============================================================
@@ -320,7 +320,7 @@ print(f"   Pick range: {picks_ktc['KTC Value'].max():,} (highest) — {picks_ktc
 print(f"   Pick years present: {sorted(picks_ktc['Name'].str.extract(r'(\\d{4})')[0].dropna().unique().tolist())}")
 
 
-# In[37]:
+# In[4]:
 
 
 # ============================================================
@@ -438,7 +438,7 @@ multi_year_prod["multi_year_prod_score"] = (
 print(f"Multi-year production calculated: {len(multi_year_prod)} players ✅")
 
 
-# In[38]:
+# In[5]:
 
 
 # ============================================================
@@ -704,7 +704,7 @@ print(f"name_to_gsis built: {len(name_to_gsis)} players")
 print(f"Sample: {list(name_to_gsis.items())[:3]}")
 
 
-# In[39]:
+# In[6]:
 
 
 # ============================================================
@@ -758,7 +758,7 @@ print(f"   Players with production history: {rankings_df['avg_ppg'].gt(0).sum()}
 print(f"   Players without history (rookies): {rankings_df['avg_ppg'].eq(0).sum()}")
 
 
-# In[40]:
+# In[7]:
 
 
 # ============================================================
@@ -807,7 +807,7 @@ if not unmatched.empty:
     print(unmatched.to_string(index=False))
 
 
-# In[42]:
+# In[8]:
 
 
 # ============================================================
@@ -840,10 +840,14 @@ for slot_str, roster_id in slot_to_roster.items():
 n_teams = len(slot_to_roster)
 
 def pick_tier_current(slot, n_teams=10):
-    third = n_teams / 3
-    if slot <= third:       return "Early"
-    elif slot <= third * 2: return "Mid"
-    else:                   return "Late"
+    equivalent_slot = round(slot * 12 / n_teams)
+    if equivalent_slot <= 4:   return "Early"
+    elif equivalent_slot <= 8: return "Mid"
+    else:                      return "Late"
+
+def default_future_tier(round_num):
+    if round_num in [1, 2]: return "Mid"
+    else:                   return "Early"
 
 def pick_display_name(year, round_num, slot, tier, n_teams=10):
     round_str = {1:"1st", 2:"2nd", 3:"3rd", 4:"4th"}.get(round_num, f"{round_num}th")
@@ -854,6 +858,8 @@ def pick_display_name(year, round_num, slot, tier, n_teams=10):
         return f"{year} {tier} {round_str}"
 
 def pick_ktc_name(year, round_num, tier):
+    if round_num == 4:
+        return f"{year} Late 3rd"
     round_str = {1:"1st", 2:"2nd", 3:"3rd", 4:"4th"}.get(round_num, f"{round_num}th")
     return f"{year} {tier} {round_str}"
 
@@ -883,7 +889,7 @@ for year in future_years:
                 "year":           year,
                 "round":          rnd,
                 "slot":           None,
-                "tier":           "Mid",
+                "tier":           default_future_tier(rnd),
                 "original_owner": roster["roster_id"],
                 "current_owner":  roster["roster_id"],
             })
@@ -934,7 +940,7 @@ if second_future:
     ].to_string(index=False))
 
 
-# In[43]:
+# In[9]:
 
 
 # ============================================================
@@ -1125,7 +1131,7 @@ for name in check:
         print(f"    RZ carries:    {r['rz5_carries']:.0f}" if pd.notna(r['rz5_carries']) else "    RZ carries:    N/A")
 
 
-# In[44]:
+# In[10]:
 
 
 # ============================================================
@@ -1261,7 +1267,7 @@ print(f"\nRB tier distribution:")
 print(merged_df[rb_mask]["rb_tier_new"].value_counts())
 
 
-# In[45]:
+# In[11]:
 
 
 # ============================================================
@@ -1403,7 +1409,7 @@ print(f"\nWR tier distribution:")
 print(merged_df[wr_mask]["wr_tier_new"].value_counts())
 
 
-# In[46]:
+# In[12]:
 
 
 # ============================================================
@@ -1542,7 +1548,7 @@ print(f"\nTE tier distribution:")
 print(merged_df[te_mask]["te_tier_new"].value_counts())
 
 
-# In[47]:
+# In[13]:
 
 
 # ============================================================
@@ -1676,7 +1682,7 @@ print(f"\nQB tier distribution:")
 print(merged_df[qb_mask]["qb_tier_new"].value_counts())
 
 
-# In[48]:
+# In[14]:
 
 
 # ============================================================
@@ -1744,7 +1750,7 @@ print(f"\nFinal tier distribution:")
 print(merged_df["tier"].value_counts())
 
 
-# In[49]:
+# In[15]:
 
 
 # ============================================================
@@ -1981,7 +1987,7 @@ print(f"  WR: {len(wr_df)}")
 print(f"  TE: {len(te_df)}")
 
 
-# In[50]:
+# In[16]:
 
 
 # ============================================================
@@ -2106,7 +2112,7 @@ team_summary["production_rank"] = team_summary["production_share"].rank(ascendin
 print("All analysis built ✅")
 
 
-# In[51]:
+# In[17]:
 
 
 # ============================================================
@@ -2179,7 +2185,7 @@ print("Outlook classified ✅")
 print(outlook_df[["owner","outlook","CF_total","value_share","production_share","share_gap"]].to_string(index=False))
 
 
-# In[52]:
+# In[18]:
 
 
 # ============================================================
@@ -2266,7 +2272,7 @@ print(f"\nTop 10 buy targets:")
 print(top_buys[["name","position","age","KTC Value","tier","owner","buy_score"]].head(10).to_string(index=False))
 
 
-# In[53]:
+# In[19]:
 
 
 # ============================================================
@@ -2354,7 +2360,7 @@ def print_trade_packages(target_name, target_ktc, packages, max_show=5):
 print("Trade package builder ready ✅")
 
 
-# In[54]:
+# In[20]:
 
 
 # ============================================================
@@ -2466,7 +2472,7 @@ def evaluate_trade(giving, receiving):
 print("Trade evaluator ready ✅")
 
 
-# In[55]:
+# In[21]:
 
 
 # Build all league IDs dynamically
@@ -2485,7 +2491,7 @@ all_league_ids = get_all_league_ids(LEAGUE_ID)
 print(f"League history: {[(s, lid[:8]+'...') for s, lid in all_league_ids]}")
 
 
-# In[56]:
+# In[22]:
 
 
 # Pull all trades from all seasons
@@ -2512,7 +2518,7 @@ all_trades = get_all_trades(all_league_ids)
 print(f"Total trades: {len(all_trades)}")
 
 
-# In[57]:
+# In[23]:
 
 
 # ============================================================
@@ -2779,7 +2785,7 @@ print(f"Trade history built: {len(trade_history_df)} trades")
 print("Trade Grades ready ✅")
 
 
-# In[58]:
+# In[24]:
 
 
 # ============================================================
@@ -3072,7 +3078,7 @@ for pos in ['QB', 'RB', 'WR', 'TE']:
         print(f"  #{i+1} {g['name']} — {g['points']} pts ({g['label']}) [{g['owner']}] {g['started']}")
 
 
-# In[59]:
+# In[25]:
 
 
 # ============================================================
@@ -3411,7 +3417,7 @@ push_json('standings.json', standings_data)
 print(f"\n✅ All JSON files pushed to {OUTPUT_DIR}")
 
 
-# In[60]:
+# In[26]:
 
 
 # ============================================================
