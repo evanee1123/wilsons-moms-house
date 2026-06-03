@@ -301,6 +301,14 @@ function findTrades(giveAssets, myOwner, myOutlook, data, outlookByOwner, positi
   }
 
   // ── Template reordering: qualifying packages rise above non-qualifying ───────
+  console.log('[TF] pre-sort results:', results.map(c => ({
+    team: c.team,
+    receive: (c.receive || []).map(a => {
+      const name = a.Player || a['Player / Pick'] || ''
+      const p    = findPlayerByName(data.playerUniverse, name)
+      return { name, tier: p?.Tier || a.Tier || '—' }
+    }),
+  })))
   // Step 1 — classify give side by highest tier present
   console.log('[TF] giveAssets raw:', giveAssets.map(a => ({ name: a.Player || a['Player / Pick'], position: a.Position, tier: a.Tier, ktc: a['KTC Value'] })))
   let giveTier = null
