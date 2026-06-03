@@ -269,7 +269,7 @@ function findTrades(giveAssets, myOwner, myOutlook, data, outlookByOwner, positi
     const displayRecv = c.receiveKtc + (st.receiveAdj || 0)
     const ratio       = displayRecv / displayGive
 
-    if (ratio >= (1 - FAIR_THRESHOLD) && ratio <= (1 + FAIR_THRESHOLD)) {
+    if (ratio >= (requireFirstRound ? 0.75 : 1 - FAIR_THRESHOLD) && ratio <= (1 + FAIR_THRESHOLD)) {
       candidates.push({ ...c, give: giveAssets, giveValue: displayGive, receiveValue: displayRecv })
     } else if (ratio > (1 + FAIR_THRESHOLD) && ratio <= 1.50) {
       let bestAutoAdd = null, bestDelta = Infinity
