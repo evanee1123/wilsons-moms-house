@@ -304,9 +304,9 @@ function findTrades(giveAssets, myOwner, myOutlook, data, outlookByOwner, positi
   console.log('[TF] pre-sort results:', results.map(c => ({
     team: c.team,
     receive: (c.receive || []).map(a => {
-      const name = a.Player || a['Player / Pick'] || ''
-      const p    = findPlayerByName(data.playerUniverse, name)
-      return { name, tier: p?.Tier || a.Tier || '—' }
+      const name    = a.Player || a['Player / Pick'] || ''
+      const matched = findPlayerByName(data.playerUniverse, name)
+      return { name, universeMatch: matched ? matched.Player : null, universeTier: matched?.Tier ?? null, rawAsset: a }
     }),
   })))
   // Step 1 — classify give side by highest tier present
