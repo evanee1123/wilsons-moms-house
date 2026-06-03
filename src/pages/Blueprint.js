@@ -334,7 +334,15 @@ function findTrades(giveAssets, myOwner, myOutlook, data, outlookByOwner, positi
 
       if (giveTier === 'Cornerstone') {
         if (firstRounds.length >= 2) return true          // Template A: 2+ 1st round picks
-        if (hasTopTierPlayer)        return true          // Template B: Cornerstone/Foundational return
+        // Template B: Cornerstone player alone qualifies; Foundational only qualifies with a 1st
+        const hasCornerstoneReturn = recv.some(a => {
+          if ((a.Position || '') === 'Pick') return false
+          const name = a.Player || a['Player / Pick'] || ''
+          const p    = findPlayerByName(data.playerUniverse, name)
+          return (p?.Tier || a.Tier || '') === 'Cornerstone'
+        })
+        if (hasCornerstoneReturn) return true
+        if (hasTopTierPlayer && firstRounds.length >= 1) return true
         return false
       }
 
