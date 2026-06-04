@@ -1031,6 +1031,97 @@ function TopPrioritiesSection({ myOwner, data }) {
   )
 }
 
+// ── Section 3.0: Average Starter Age ─────────────────────────────────────────
+const AGE_THRESHOLDS = {
+  QB: { green: 29, yellow: 31 },
+  RB: { green: 26, yellow: 27 },
+  WR: { green: 27, yellow: 28 },
+  TE: { green: 27, yellow: 28 },
+}
+
+function ageColor(pos, age) {
+  const t = AGE_THRESHOLDS[pos]
+  if (!t || age == null) return 'var(--text-muted)'
+  if (age <= t.green)  return 'var(--green)'
+  if (age <= t.yellow) return '#d69e2e'
+  return 'var(--red)'
+}
+
+function AverageStarterAgeSection({ myOwner, data }) {
+  const starterAges = useMemo(() => {
+    const roster = (data?.playerUniverse || [])
+      .filter(p => p['Dynasty Owner'] === myOwner)
+      .map(p => ({ ...p, _score: parseFloat(p['Combined Score']) || 0, _age: parseFloat(p['Age']) || null }))
+
+    const byPos = pos => roster.filter(p => p.Position === pos).sort((a, b) => b._score - a._score)
+
+    const qbs  = byPos('QB')
+    const rbs  = byPos('RB')
+    const wrs  = byPos('WR')
+    const tes  = byPos('TE')
+
+    const startQB  = qbs.slice(0, 1)
+    const startRB  = rbs.slice(0, 2)
+    const startWR  = wrs.slice(0, 2)
+    const startTE  = tes.slice(0, 1)
+
+    // FLEX (WR/RB/TE): next best 2 from remaining pool
+    const usedRB  = new Set(startRB.map(p => p.Player))
+    const usedWR  = new Set(startWR.map(p => p.Player))
+    const usedTE  = new Set(startTE.map(p => p.Player))
+    const flexPool = [
+      ...rbs.filter(p => !usedRB.has(p.Player)),
+      ...wrs.filter(p => !usedWR.has(p.Player)),
+      ...tes.filter(p => !usedTE.has(p.Player)),
+    ].sort((a, b) => b._score - a._score)
+    const startFLEX = flexPool.slice(0, 2)
+
+    // SFLX (QB/WR/RB/TE): next best 1 from remaining pool
+    const usedQB   = new Set(startQB.map(p => p.Player))
+    const usedFLEX = new Set(startFLEX.map(p => p.Player))
+    const sflxPool = [
+      ...qbs.filter(p => !usedQB.has(p.Player)),
+      ...rbs.filter(p => !usedRB.has(p.Player) && !usedFLEX.has(p.Player)),
+      ...wrs.filter(p => !usedWR.has(p.Player) && !usedFLEX.has(p.Player)),
+      ...tes.filter(p => !usedTE.has(p.Player) && !usedFLEX.has(p.Player)),
+    ].sort((a, b) => b._score - a._score)
+    const startSFLX = sflxPool.slice(0, 1)
+
+    // Assign FLEX/SFLX starters back to their position groups for age calc
+    const allStarters = [...startQB, ...startRB, ...startWR, ...startTE, ...startFLEX, ...startSFLX]
+    const avgAge = pos => {
+      const ages = allStarters.filter(p => p.Position === pos && p._age != null).map(p => p._age)
+      if (!ages.length) return null
+      return ages.reduce((s, a) => s + a, 0) / ages.length
+    }
+
+    return { QB: avgAge('QB'), RB: avgAge('RB'), WR: avgAge('WR'), TE: avgAge('TE') }
+  }, [data, myOwner])
+
+  return (
+    <div className='card' style={{ marginBottom: '1.25rem' }}>
+      <div className='card-header'><h3>Average Starter Age</h3></div>
+      <div style={{ padding: '1rem', display: 'flex', gap: '10px' }}>
+        {['QB', 'RB', 'WR', 'TE'].map(pos => {
+          const age   = starterAges[pos]
+          const color = ageColor(pos, age)
+          return (
+            <div key={pos} style={{
+              flex: 1, padding: '10px 8px', borderRadius: '10px', textAlign: 'center',
+              background: 'var(--page-bg)', border: '1px solid var(--card-border)',
+            }}>
+              <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>{pos}</div>
+              <div style={{ fontSize: '22px', fontWeight: 700, color, lineHeight: 1 }}>
+                {age != null ? age.toFixed(1) : '—'}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 // ── Section 3: Trade Suggestions ──────────────────────────────────────────────
 function SuggestionRow({ player, type, isSaved, onDismiss, onSave, onUnsave }) {
   return (
@@ -1278,6 +1369,7 @@ export default function Blueprint({ data, setPage }) {
       <ValueProportionSection myOwner={myOwner} data={data} />
       <TradeStrategySection myOwner={myOwner} data={data} outlookByOwner={outlookByOwner} />
       <TopPrioritiesSection myOwner={myOwner} data={data} />
+      <AverageStarterAgeSection myOwner={myOwner} data={data} />
       <SuggestionsSection uid={uid} myOwner={myOwner} myOutlook={myOutlook} data={data} outlookByOwner={outlookByOwner} positionalRankings={positionalRankings} />
       <TradeFinderSection myOwner={myOwner} myOutlook={myOutlook} data={data} allAssets={allAssets} outlookByOwner={outlookByOwner} positionalRankings={positionalRankings} adjustYears={adjustYears} />
     </div>
