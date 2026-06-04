@@ -823,6 +823,128 @@ function RosterMakeupSection({ myOwner, data }) {
   )
 }
 
+// ── Section 2.8: Trade Strategy ───────────────────────────────────────────────
+function TradeStrategySection({ myOwner, data, outlookByOwner }) {
+  const overview  = useMemo(() => (data?.teamOverview || []).find(t => t.Owner === myOwner),  [data, myOwner])
+  const gradesRow = useMemo(() => (data?.rosterGrades  || []).find(r => r.Owner === myOwner), [data, myOwner])
+
+  const strategyData = useMemo(() => {
+    if (!overview) return null
+    const outlook        = overview.Outlook || ''
+    const valueRank      = overview['Value Rank']      || 5
+    const productionRank = overview['Production Rank'] || 5
+    const cfCount        = overview['C+F Total']       || 0
+    const myPlayers      = (data?.playerUniverse || []).filter(p => p['Dynasty Owner'] === myOwner)
+    const upsideCount    = myPlayers.filter(p => p.Tier === 'Upside Premier' || p.Tier === 'Upside Shot').length
+
+    const isContender = outlookIsContender(outlook) || outlook === 'Contender (needs production)'
+    const isRebuild   = outlookIsRebuild(outlook)
+
+    let label, desc, badgeColor
+    if (isContender) {
+      if      (valueRank <= 3)                                  { label = 'Elite — Spend Your Value';           desc = 'Your roster is elite — spend value to maximize your starting lineup production' }
+      else if (cfCount >= 4 && productionRank > valueRank)      { label = 'Contender — Target Proven Starters'; desc = 'Your value is ahead of your production — target proven starters over developmental upside' }
+      else if (upsideCount >= 5)                                { label = 'Contender — Package Bench Upside';   desc = 'Package bench upside assets together to acquire proven contributors for your starting lineup' }
+      else                                                      { label = 'Contender — Strengthen Your Core';  desc = 'Add to your Cornerstone and Foundational core to solidify your contention window' }
+      badgeColor = { bg: '#c6f6d5', text: '#276749' }
+    } else if (isRebuild) {
+      label      = 'Rebuild — Accumulate Upside'
+      desc       = 'Every move should increase your total value — target Upside Premier and Upside Shot assets, avoid Mainstays and Short Term assets'
+      badgeColor = { bg: '#fed7d7', text: '#9b2c2c' }
+    } else {
+      label      = 'Reload — Uptier Where Possible'
+      desc       = 'Target assets that improve your starting lineup — move aging or low-ceiling players before value drops'
+      badgeColor = { bg: '#faf089', text: '#744210' }
+    }
+
+    return { label, desc, badgeColor, isContender, isRebuild }
+  }, [overview, data, myOwner])
+
+  const targets = useMemo(() => {
+    if (!strategyData || !gradesRow) return []
+    const { isContender, isRebuild } = strategyData
+
+    const positions  = ['QB', 'RB', 'WR', 'TE']
+    const weakestPos = positions.reduce((worst, pos) =>
+      (gradesRow[`${pos} Grade`] || 0) < (gradesRow[`${worst} Grade`] || 0) ? pos : worst
+    , 'WR')
+
+    const targetTiers = isContender ? ['Cornerstone', 'Foundational']
+                      : isRebuild   ? ['Upside Premier', 'Upside Shot']
+                      :               ['Foundational']
+
+    return (data?.playerUniverse || [])
+      .filter(p => {
+        if (p['Dynasty Owner'] === myOwner) return false
+        if (!targetTiers.includes(p.Tier || '')) return false
+        if ((isContender || isRebuild) && p.Position !== weakestPos) return false
+        return true
+      })
+      .sort((a, b) => {
+        const aOut  = outlookByOwner[a['Dynasty Owner']] || ''
+        const bOut  = outlookByOwner[b['Dynasty Owner']] || ''
+        const aSell = (outlookIsRebuild(aOut) || aOut.includes('Reload')) ? 1 : 0
+        const bSell = (outlookIsRebuild(bOut) || bOut.includes('Reload')) ? 1 : 0
+        if (bSell !== aSell) return bSell - aSell
+        return parseInt(b['KTC Value'] || 0) - parseInt(a['KTC Value'] || 0)
+      })
+      .slice(0, 3)
+  }, [strategyData, gradesRow, data, myOwner, outlookByOwner])
+
+  if (!strategyData) return null
+  const { label, desc, badgeColor } = strategyData
+
+  const tierColor = (tier) => {
+    const g = TIER_GROUPS.find(tg => tg.key === tier)
+    return g ? { bg: g.bg, text: g.text } : { bg: 'var(--card-border)', text: 'var(--text-muted)' }
+  }
+
+  return (
+    <div className='card' style={{ marginBottom: '1.25rem' }}>
+      <div className='card-header'><h3>Trade Strategy</h3></div>
+      <div style={{ padding: '1rem' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', marginBottom: '1rem', flexWrap: 'wrap' }}>
+          <div style={{
+            background: badgeColor.bg, color: badgeColor.text,
+            borderRadius: '99px', padding: '4px 12px',
+            fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em',
+            whiteSpace: 'nowrap', flexShrink: 0,
+          }}>
+            {label}
+          </div>
+          <span style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.5 }}>{desc}</span>
+        </div>
+
+        {targets.length > 0 && <>
+          <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>
+            Target Acquisitions
+          </div>
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+            {targets.map(p => {
+              const tc = tierColor(p.Tier)
+              return (
+                <div key={p.Player} style={{
+                  padding: '8px 12px', borderRadius: '10px', flex: '1 1 130px', maxWidth: '200px',
+                  background: 'var(--page-bg)', border: '1px solid var(--card-border)',
+                  display: 'flex', flexDirection: 'column', gap: '4px',
+                }}>
+                  <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>{p.Player}</span>
+                  <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{p.Position} · {p['Dynasty Owner']}</span>
+                  <div style={{
+                    alignSelf: 'flex-start', borderRadius: '99px', padding: '2px 8px',
+                    background: tc.bg, color: tc.text,
+                    fontSize: '9px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.03em',
+                  }}>{p.Tier}</div>
+                </div>
+              )
+            })}
+          </div>
+        </>}
+      </div>
+    </div>
+  )
+}
+
 // ── Section 3: Trade Suggestions ──────────────────────────────────────────────
 function SuggestionRow({ player, type, isSaved, onDismiss, onSave, onUnsave }) {
   return (
@@ -1068,6 +1190,7 @@ export default function Blueprint({ data, setPage }) {
       <GoalsSection uid={uid} myOwner={personalOwner} myOutlook={personalOutlook} positionalRankings={positionalRankings} pickYears={pickYears} />
       <WatchlistSection uid={uid} data={data} allAssets={allAssets} outlookByOwner={outlookByOwner} />
       <ValueProportionSection myOwner={myOwner} data={data} />
+      <TradeStrategySection myOwner={myOwner} data={data} outlookByOwner={outlookByOwner} />
       <SuggestionsSection uid={uid} myOwner={myOwner} myOutlook={myOutlook} data={data} outlookByOwner={outlookByOwner} positionalRankings={positionalRankings} />
       <TradeFinderSection myOwner={myOwner} myOutlook={myOutlook} data={data} allAssets={allAssets} outlookByOwner={outlookByOwner} positionalRankings={positionalRankings} adjustYears={adjustYears} />
     </div>
