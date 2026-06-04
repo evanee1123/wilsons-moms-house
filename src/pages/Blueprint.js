@@ -945,6 +945,93 @@ function TradeStrategySection({ myOwner, data, outlookByOwner }) {
   )
 }
 
+// ── Section 2.9: Top Priorities ───────────────────────────────────────────────
+function TopPrioritiesSection({ myOwner, data }) {
+  const overview  = useMemo(() => (data?.teamOverview || []).find(t => t.Owner === myOwner),  [data, myOwner])
+  const gradesRow = useMemo(() => (data?.rosterGrades  || []).find(r => r.Owner === myOwner), [data, myOwner])
+
+  const priorities = useMemo(() => {
+    if (!overview || !gradesRow) return null
+
+    const outlook        = overview.Outlook || ''
+    const valueRank      = overview['Value Rank']      || 5
+    const cfCount        = overview['C+F Total']       || 0
+    const isContender    = outlookIsContender(outlook) || outlook === 'Contender (needs production)'
+    const isRebuild      = outlookIsRebuild(outlook)
+
+    const myPlayers       = (data?.playerUniverse || []).filter(p => p['Dynasty Owner'] === myOwner)
+    const upsideCount     = myPlayers.filter(p => p.Tier === 'Upside Premier' || p.Tier === 'Upside Shot').length
+    const mainstayCount   = myPlayers.filter(p => p.Tier === 'Mainstay').length
+    const jagCount        = myPlayers.filter(p => p.Tier === 'Serviceable' || p.Tier === 'Jag Developmental' || p.Tier === 'Jag Insurance').length
+    const cornerstoneCount = myPlayers.filter(p => p.Tier === 'Cornerstone').length
+
+    // Priority 1 — outlook + value rank + C+F
+    let p1
+    if (isContender && valueRank <= 3)   p1 = 'You are among the elite in this league — play like it and don\'t make moves that compromise your contention window'
+    else if (isContender && cfCount >= 4) p1 = 'Your Cornerstone/Foundational core is solid — ensure your production share keeps pace with your value'
+    else if (isContender)                 p1 = 'Your contention depends on upgrading your Cornerstone/Foundational core — prioritize top-50 KTC assets'
+    else if (outlook === 'Window Contender') p1 = 'You are on the edge of your contention window — every move should either extend it or accelerate your timeline'
+    else if (outlook === 'Reload' || outlook === 'Reload (sell vets for youth)') p1 = 'You have the foundation to reload quickly — target high-upside assets that can mature into your next contention window'
+    else if (outlook === 'Rebuild (future value)') p1 = 'Your value is building — stay patient and resist the urge to spend picks on proven vets'
+    else p1 = 'Value is your only currency right now — accumulate Upside Premier and Upside Shot assets aggressively'
+
+    // Priority 2 — roster makeup vs outlook
+    let p2
+    if (isContender && jagCount >= 8)           p2 = 'Package your Serviceable and Jag assets together to acquire a startable Foundational piece'
+    else if (isContender && upsideCount >= 6)   p2 = 'You have significant bench upside — package some of it to upgrade your starting lineup'
+    else if (isContender && mainstayCount >= 4) p2 = 'You have a lot of Mainstays — consider moving the lowest-ceiling ones for proven short-term contributors'
+    else if (!isContender && mainstayCount >= 3) p2 = 'Move your Mainstays now — they have realized value ceilings and will only hurt your rebuild'
+    else if (!isContender && cornerstoneCount >= 2) p2 = 'Consider selling a Cornerstone for a haul of Upside Premier and picks — Cornerstones do not gain value on a rebuild'
+    else p2 = 'Look for opportunities to uptier at your weakest position by packaging depth assets together'
+
+    // Priority 3 — weakest positional grade
+    const positions  = ['QB', 'RB', 'WR', 'TE']
+    const grades     = Object.fromEntries(positions.map(pos => [pos, gradesRow[`${pos} Grade`] || 0]))
+    const minGrade   = Math.min(...Object.values(grades))
+    const maxGrade   = Math.max(...Object.values(grades))
+    const weakest    = positions.find(pos => grades[pos] === minGrade)
+    const balanced   = maxGrade - minGrade <= 1
+
+    let p3
+    if (balanced)        p3 = 'Your roster is well-balanced positionally — focus on improving player category quality over positional needs'
+    else if (weakest === 'QB') p3 = 'Your quarterback situation is a weak point — consider upgrading before the season starts'
+    else if (weakest === 'RB') p3 = 'Your running back depth is your weakest area — look to add a proven starter'
+    else if (weakest === 'WR') p3 = 'Wide receiver is your thinnest position — prioritize adding a proven WR to your core'
+    else                       p3 = 'Tight end is a liability on your roster — upgrading here could improve your weekly floor'
+
+    return [
+      { icon: '🏆', bg: '#3d2f00', text: p1 },
+      { icon: '🔄', bg: '#1a3556', text: p2 },
+      { icon: '📋', bg: '#3d1f00', text: p3 },
+    ]
+  }, [overview, gradesRow, data, myOwner])
+
+  if (!priorities) return null
+
+  return (
+    <div className='card' style={{ marginBottom: '1.25rem' }}>
+      <div className='card-header'><h3>Top Priorities</h3></div>
+      <div style={{ padding: '1rem', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        {priorities.map((p, i) => (
+          <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+            <div style={{
+              width: '40px', height: '40px', flexShrink: 0,
+              background: p.bg, borderRadius: '10px',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: '20px',
+            }}>
+              {p.icon}
+            </div>
+            <div style={{ paddingTop: '2px', fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+              {p.text}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 // ── Section 3: Trade Suggestions ──────────────────────────────────────────────
 function SuggestionRow({ player, type, isSaved, onDismiss, onSave, onUnsave }) {
   return (
@@ -1191,6 +1278,7 @@ export default function Blueprint({ data, setPage }) {
       <WatchlistSection uid={uid} data={data} allAssets={allAssets} outlookByOwner={outlookByOwner} />
       <ValueProportionSection myOwner={myOwner} data={data} />
       <TradeStrategySection myOwner={myOwner} data={data} outlookByOwner={outlookByOwner} />
+      <TopPrioritiesSection myOwner={myOwner} data={data} />
       <SuggestionsSection uid={uid} myOwner={myOwner} myOutlook={myOutlook} data={data} outlookByOwner={outlookByOwner} positionalRankings={positionalRankings} />
       <TradeFinderSection myOwner={myOwner} myOutlook={myOutlook} data={data} allAssets={allAssets} outlookByOwner={outlookByOwner} positionalRankings={positionalRankings} adjustYears={adjustYears} />
     </div>
