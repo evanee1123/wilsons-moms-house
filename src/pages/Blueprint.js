@@ -802,7 +802,6 @@ function RosterMakeupSection({ myOwner, data }) {
           const pct   = Math.round((count / total) * 100)
           return (
             <div key={g.key} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              {/* Tier badge */}
               <div style={{
                 width: '160px', flexShrink: 0, textAlign: 'center',
                 background: g.bg, color: g.text,
@@ -812,14 +811,7 @@ function RosterMakeupSection({ myOwner, data }) {
               }}>
                 {g.key}
               </div>
-              {/* Fill bar */}
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ width: `${pct}%`, minWidth: '4px', height: '14px', borderRadius: '3px', background: g.bg }} />
-              </div>
-              {/* Percentage */}
-              <div style={{ width: '32px', textAlign: 'right', fontSize: '11px', fontWeight: 600, color: 'var(--text-primary)', flexShrink: 0 }}>
-                {pct}%
-              </div>
+              <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-primary)' }}>{pct}%</span>
             </div>
           )
         })}
