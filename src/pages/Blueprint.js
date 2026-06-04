@@ -733,16 +733,18 @@ function ValueProportionSection({ myOwner, data }) {
 }
 
 const TIER_GROUPS = [
-  { key: 'Cornerstone',           tiers: ['Cornerstone'],                                        bg: '#f6e05e', text: '#744210' },
-  { key: 'Foundational',          tiers: ['Foundational'],                                       bg: '#90cdf4', text: '#1a3f5c' },
-  { key: 'Upside Premier',        tiers: ['Upside Premier'],                                     bg: '#b794f4', text: '#322659' },
-  { key: 'Upside Shot',           tiers: ['Upside Shot'],                                        bg: '#c6f6d5', text: '#276749' },
-  { key: 'Mainstay',              tiers: ['Mainstay'],                                           bg: '#9ae6b4', text: '#1a5436' },
-  { key: 'Productive Vet',        tiers: ['Productive Vet'],                                     bg: '#76e4f7', text: '#065666' },
-  { key: 'Short-term Winner',     tiers: ['Short-term Winner'],                                  bg: '#f6ad55', text: '#652b19' },
-  { key: 'Short-term Production', tiers: ['Short-term Production'],                              bg: '#faf089', text: '#744210' },
-  { key: 'Serviceable',           tiers: ['Serviceable'],                                        bg: '#cbd5e0', text: '#2d3748' },
-  { key: 'Jag/Other',             tiers: ['Jag Developmental', 'Jag Insurance', 'Replaceable'],  bg: '#fc8181', text: '#63171b' },
+  { key: 'Cornerstone',           abbr: 'Corner.',   bg: '#f6e05e', text: '#744210' },
+  { key: 'Foundational',          abbr: 'Found.',    bg: '#90cdf4', text: '#1a3f5c' },
+  { key: 'Upside Premier',        abbr: 'U.Premier', bg: '#b794f4', text: '#322659' },
+  { key: 'Upside Shot',           abbr: 'U.Shot',    bg: '#c6f6d5', text: '#276749' },
+  { key: 'Mainstay',              abbr: 'Mainstay',  bg: '#9ae6b4', text: '#1a5436' },
+  { key: 'Productive Vet',        abbr: 'Prod.Vet',  bg: '#76e4f7', text: '#065666' },
+  { key: 'Short-term Winner',     abbr: 'ST Win.',   bg: '#f6ad55', text: '#652b19' },
+  { key: 'Short-term Production', abbr: 'ST Prod.',  bg: '#faf089', text: '#744210' },
+  { key: 'Serviceable',           abbr: 'Service.',  bg: '#cbd5e0', text: '#2d3748' },
+  { key: 'Jag Developmental',     abbr: 'Jag Dev.',  bg: '#fc8181', text: '#63171b' },
+  { key: 'Jag Insurance',         abbr: 'Jag Ins.',  bg: '#feb2b2', text: '#63171b' },
+  { key: 'Replaceable',           abbr: 'Replace.',  bg: '#e2e8f0', text: '#4a5568' },
 ]
 
 function RosterMakeupSection({ myOwner, data }) {
@@ -760,14 +762,15 @@ function RosterMakeupSection({ myOwner, data }) {
     TIER_GROUPS.forEach(g => { c[g.key] = 0 })
     roster.forEach(p => {
       const tier = p.Tier || ''
-      const group = TIER_GROUPS.find(g => g.tiers.includes(tier))
-      if (group) c[group.key] = (c[group.key] || 0) + 1
+      if (c[tier] !== undefined) c[tier]++
     })
     return c
   }, [roster])
 
-  const total = roster.length || 1
-  const present = TIER_GROUPS.filter(g => counts[g.key] > 0)
+  const total    = roster.length || 1
+  const present  = TIER_GROUPS.filter(g => counts[g.key] > 0)
+  const maxCount = Math.max(1, ...present.map(g => counts[g.key]))
+  const MAX_BAR  = 60
 
   // Outlook target assessment
   const cfCount = (counts['Cornerstone'] || 0) + (counts['Foundational'] || 0)
@@ -782,7 +785,6 @@ function RosterMakeupSection({ myOwner, data }) {
     else if (cfCount === 2) { targetColor = '#d69e2e';      targetMsg = `${cfCount} Cornerstone/Foundational — slightly below target` }
     else                    { targetColor = 'var(--red)';   targetMsg = `${cfCount} Cornerstone/Foundational — below target` }
   } else {
-    // Rebuild — flip to upside metric
     if      (uCount >= 3)  { targetColor = 'var(--green)'; targetMsg = `${uCount} Upside Premier/Shot — building well` }
     else if (uCount === 2)  { targetColor = '#d69e2e';      targetMsg = `${uCount} Upside Premier/Shot — accumulating` }
     else                    { targetColor = 'var(--red)';   targetMsg = `${uCount} Upside Premier/Shot — need more youth assets` }
@@ -794,24 +796,26 @@ function RosterMakeupSection({ myOwner, data }) {
         Roster Make-Up
       </div>
 
-      {/* Stacked bar */}
-      <div style={{ display: 'flex', height: '16px', borderRadius: '8px', overflow: 'hidden', marginBottom: '10px' }}>
-        {TIER_GROUPS.map(g => {
-          const count = counts[g.key] || 0
-          if (!count) return null
+      {/* Vertical bar chart — bars aligned to bottom */}
+      <div style={{ display: 'flex', gap: '3px', height: `${MAX_BAR + 18}px`, alignItems: 'stretch', marginBottom: '4px' }}>
+        {present.map(g => {
+          const count  = counts[g.key]
+          const barH   = Math.max(4, Math.round((count / maxCount) * MAX_BAR))
+          const pct    = Math.round((count / total) * 100)
           return (
-            <div key={g.key} style={{ flex: count / total, background: g.bg }} title={`${g.key}: ${count}`} />
+            <div key={g.key} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', minWidth: 0 }}>
+              <span style={{ fontSize: '9px', color: 'var(--text-secondary)', marginBottom: '2px', lineHeight: 1 }}>{pct}%</span>
+              <div style={{ width: '100%', height: `${barH}px`, background: g.bg, borderRadius: '2px 2px 0 0' }} title={`${g.key}: ${count}`} />
+            </div>
           )
         })}
       </div>
 
-      {/* Legend */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 14px', marginBottom: '12px' }}>
+      {/* Tier name labels */}
+      <div style={{ display: 'flex', gap: '3px', marginBottom: '12px' }}>
         {present.map(g => (
-          <div key={g.key} style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-            <div style={{ width: '8px', height: '8px', borderRadius: '2px', background: g.bg, flexShrink: 0 }} />
-            <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>{g.key}</span>
-            <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-primary)' }}>{counts[g.key]}</span>
+          <div key={g.key} style={{ flex: 1, minWidth: 0, textAlign: 'center', fontSize: '8px', color: 'var(--text-muted)', lineHeight: 1.2 }}>
+            {g.abbr}
           </div>
         ))}
       </div>
