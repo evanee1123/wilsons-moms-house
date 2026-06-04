@@ -727,6 +727,7 @@ function ValueProportionSection({ myOwner, data }) {
         </svg>
         </div>
         <RosterMakeupSection myOwner={myOwner} data={data} />
+        <AverageStarterAgeSection myOwner={myOwner} data={data} />
       </div>
     </div>
   )
@@ -1099,21 +1100,18 @@ function AverageStarterAgeSection({ myOwner, data }) {
   }, [data, myOwner])
 
   return (
-    <div className='card' style={{ marginBottom: '1.25rem' }}>
-      <div className='card-header'><h3>Average Starter Age</h3></div>
-      <div style={{ padding: '1rem', display: 'flex', gap: '10px' }}>
+    <div style={{ flex: 1, minWidth: 0 }}>
+      <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '10px' }}>
+        Average Starter Age
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
         {['QB', 'RB', 'WR', 'TE'].map(pos => {
           const age   = starterAges[pos]
           const color = ageColor(pos, age)
           return (
-            <div key={pos} style={{
-              flex: 1, padding: '10px 8px', borderRadius: '10px', textAlign: 'center',
-              background: 'var(--page-bg)', border: '1px solid var(--card-border)',
-            }}>
-              <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>{pos}</div>
-              <div style={{ fontSize: '22px', fontWeight: 700, color, lineHeight: 1 }}>
-                {age != null ? age.toFixed(1) : '—'}
-              </div>
+            <div key={pos} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 10px', borderRadius: '8px', background: 'var(--page-bg)', border: '1px solid var(--card-border)' }}>
+              <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{pos}</span>
+              <span style={{ fontSize: '16px', fontWeight: 700, color }}>{age != null ? age.toFixed(1) : '—'}</span>
             </div>
           )
         })}
@@ -1369,7 +1367,6 @@ export default function Blueprint({ data, setPage }) {
       <ValueProportionSection myOwner={myOwner} data={data} />
       <TradeStrategySection myOwner={myOwner} data={data} outlookByOwner={outlookByOwner} />
       <TopPrioritiesSection myOwner={myOwner} data={data} />
-      <AverageStarterAgeSection myOwner={myOwner} data={data} />
       <SuggestionsSection uid={uid} myOwner={myOwner} myOutlook={myOutlook} data={data} outlookByOwner={outlookByOwner} positionalRankings={positionalRankings} />
       <TradeFinderSection myOwner={myOwner} myOutlook={myOutlook} data={data} allAssets={allAssets} outlookByOwner={outlookByOwner} positionalRankings={positionalRankings} adjustYears={adjustYears} />
     </div>
