@@ -661,51 +661,69 @@ function WatchlistSection({ uid, data, allAssets, outlookByOwner }) {
 }
 
 // ── Section 2.5: Value Proportion ─────────────────────────────────────────────
-const POS_COLORS = { QB: '#fc8181', RB: '#68d391', WR: '#63b3ed', TE: '#f6e05e' }
+const POS_COLORS = { QB: '#fc8181', RB: '#68d391', WR: '#63b3ed', TE: '#f6e05e', Picks: '#b794f4' }
 
 function ValueProportionSection({ myOwner, data }) {
   const row = useMemo(
     () => (data?.positionalProportion || []).find(r => r.Owner === myOwner),
     [data, myOwner]
   )
+
+  const pickTotal = useMemo(() =>
+    (data?.pickPortfolio || [])
+      .filter(p => p['Current Owner'] === myOwner)
+      .reduce((s, p) => s + (parseFloat(p['KTC Value']) || 0), 0),
+    [data, myOwner]
+  )
+
   if (!row) return null
 
-  const cx = 100, cy = 100, r = 80
-  const toXY = (angle) => [cx + r * Math.cos(angle), cy + r * Math.sin(angle)]
+  const playerTotal = row['Total Player Value'] || 0
+  const grandTotal  = playerTotal + pickTotal || 1
 
-  let cumAngle = -Math.PI / 2  // start at 12 o'clock
-  const slices = ['QB', 'RB', 'WR', 'TE'].map(pos => {
-    const pct   = row[`${pos} %`] || 0
-    const sweep = (pct / 100) * 2 * Math.PI
-    const start = cumAngle
-    const end   = cumAngle + sweep
-    cumAngle    = end
-    const [x1, y1] = toXY(start)
-    const [x2, y2] = toXY(end)
-    const largeArc  = sweep > Math.PI ? 1 : 0
+  const segments = [
+    { pos: 'QB',    val: row['QB Value']  || 0 },
+    { pos: 'RB',    val: row['RB Value']  || 0 },
+    { pos: 'WR',    val: row['WR Value']  || 0 },
+    { pos: 'TE',    val: row['TE Value']  || 0 },
+    { pos: 'Picks', val: pickTotal },
+  ]
+
+  const cx = 100, cy = 100, r = 80, labelR = 58
+  const toXY = (angle, radius) => [cx + radius * Math.cos(angle), cy + radius * Math.sin(angle)]
+
+  let cumAngle = -Math.PI / 2
+  const slices = segments.map(seg => {
+    const pct    = (seg.val / grandTotal) * 100
+    const sweep  = (pct / 100) * 2 * Math.PI
+    const start  = cumAngle
+    const end    = cumAngle + sweep
+    const mid    = cumAngle + sweep / 2
+    cumAngle     = end
+    const [x1, y1] = toXY(start, r)
+    const [x2, y2] = toXY(end, r)
+    const [lx, ly] = toXY(mid, labelR)
+    const largeArc = sweep > Math.PI ? 1 : 0
     const d = `M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2} Z`
-    return { pos, pct, d }
+    return { ...seg, pct, d, lx, ly }
   })
 
   return (
     <div className='card' style={{ marginBottom: '1.25rem' }}>
       <div className='card-header'><h3>Value Proportion</h3></div>
-      <div style={{ padding: '1rem', display: 'flex', alignItems: 'center', gap: '2.5rem', flexWrap: 'wrap' }}>
-        <svg width="180" height="180" viewBox="0 0 200 200" style={{ flexShrink: 0 }}>
+      <div style={{ padding: '1rem' }}>
+        <svg width="100%" viewBox="0 0 200 200" style={{ maxWidth: '220px', display: 'block', margin: '0 auto' }}>
           {slices.map(s => (
             <path key={s.pos} d={s.d} fill={POS_COLORS[s.pos]} />
           ))}
-        </svg>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          {slices.map(s => (
-            <div key={s.pos} style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <div style={{ width: '10px', height: '10px', borderRadius: '2px', background: POS_COLORS[s.pos], flexShrink: 0 }} />
-              <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)', width: '30px' }}>{s.pos}</span>
-              <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>{s.pct.toFixed(1)}%</span>
-            </div>
+          {slices.filter(s => s.pct >= 8).map(s => (
+            <text key={s.pos} x={s.lx} y={s.ly} textAnchor="middle" dominantBaseline="central"
+              fill="#fff" fontSize="11" fontWeight="700" fontFamily="inherit" style={{ pointerEvents: 'none' }}>
+              <tspan x={s.lx} dy="-6">{s.pos}</tspan>
+              <tspan x={s.lx} dy="13">{s.pct.toFixed(1)}%</tspan>
+            </text>
           ))}
-        </div>
+        </svg>
       </div>
     </div>
   )
