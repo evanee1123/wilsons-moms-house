@@ -1104,12 +1104,12 @@ function AverageStarterAgeSection({ myOwner, data }) {
       <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '10px' }}>
         Average Starter Age
       </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '6px' }}>
         {['QB', 'RB', 'WR', 'TE'].map(pos => {
           const age   = starterAges[pos]
           const color = ageColor(pos, age)
           return (
-            <div key={pos} style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '4px 8px', borderRadius: '8px', background: 'var(--page-bg)', border: '1px solid var(--card-border)' }}>
+            <div key={pos} style={{ display: 'inline-flex', width: 'auto', alignItems: 'center', gap: '8px', padding: '4px 8px', borderRadius: '8px', background: 'var(--page-bg)', border: '1px solid var(--card-border)' }}>
               <span style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{pos}</span>
               <span style={{ fontSize: '18px', fontWeight: 700, color }}>{age != null ? age.toFixed(1) : '—'}</span>
             </div>
