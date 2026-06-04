@@ -957,7 +957,6 @@ function TopPrioritiesSection({ myOwner, data }) {
     const valueRank      = overview['Value Rank']      || 5
     const cfCount        = overview['C+F Total']       || 0
     const isContender    = outlookIsContender(outlook) || outlook === 'Contender (needs production)'
-    const isRebuild      = outlookIsRebuild(outlook)
 
     const myPlayers       = (data?.playerUniverse || []).filter(p => p['Dynasty Owner'] === myOwner)
     const upsideCount     = myPlayers.filter(p => p.Tier === 'Upside Premier' || p.Tier === 'Upside Shot').length
