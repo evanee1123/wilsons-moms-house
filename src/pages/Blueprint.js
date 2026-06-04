@@ -318,16 +318,7 @@ function findTrades(giveAssets, myOwner, myOutlook, data, outlookByOwner, positi
   }
 
   // ── Template reordering: qualifying packages rise above non-qualifying ───────
-  console.log('[TF] pre-sort results:', results.map(c => ({
-    team: c.team,
-    receive: (c.receive || []).map(a => {
-      const name    = a.Player || a['Player / Pick'] || ''
-      const matched = findPlayerByName(data.playerUniverse, name)
-      return { name, universeMatch: matched ? matched.Player : null, universeTier: matched?.Tier ?? null, rawAsset: a }
-    }),
-  })))
   // Step 1 — classify give side by highest tier present
-  console.log('[TF] giveAssets raw:', giveAssets.map(a => ({ name: a.Player || a['Player / Pick'], position: a.Position, tier: a.Tier, ktc: a['KTC Value'] })))
   let giveTier = null
   outer: for (const targetTier of ['Cornerstone', 'Foundational']) {
     for (const a of giveAssets) {
@@ -335,11 +326,9 @@ function findTrades(giveAssets, myOwner, myOutlook, data, outlookByOwner, positi
       const name = a.Player || a['Player / Pick'] || ''
       const p    = findPlayerByName(data.playerUniverse, name)
       const tier = p?.Tier || a.Tier || ''
-      console.log(`[TF] give-side lookup: "${name}" → universe match: ${p ? p.Player : 'null'}, tier from universe: ${p?.Tier}, tier on asset: ${a.Tier}, resolved tier: "${tier}"`)
       if (tier === targetTier) { giveTier = targetTier; break outer }
     }
   }
-  console.log('[TF] giveTier after Step 1:', giveTier)
 
   if (giveTier) {
     // Step 2 — determine whether a result meets a qualifying template
@@ -379,21 +368,6 @@ function findTrades(giveAssets, myOwner, myOutlook, data, outlookByOwner, positi
       }
       if (hasTopTierPlayer) return true                   // Template B: Foundational/Cornerstone return
       return false
-    }
-
-    if (results.length > 0) {
-      const first = results[0]
-      console.log('[TF] qualifies() for first result:', qualifies(first), {
-        receive: first.receive.map(a => ({ name: a.Player || a['Player / Pick'], position: a.Position, ktc: a['KTC Value'], tier: a.Tier })),
-        firstRounds: first.receive.filter(a => (a.Position || '') === 'Pick' && (a.Player || a['Player / Pick'] || '').includes('1st')).map(a => a.Player || a['Player / Pick']),
-        hasTopTierPlayer: first.receive.some(a => {
-          if ((a.Position || '') === 'Pick') return false
-          const name = a.Player || a['Player / Pick'] || ''
-          const p    = findPlayerByName(data.playerUniverse, name)
-          const tier = p?.Tier || a.Tier || ''
-          return tier === 'Cornerstone' || tier === 'Foundational'
-        }),
-      })
     }
 
     // Step 3 — stable partition: qualifying first, non-qualifying after
