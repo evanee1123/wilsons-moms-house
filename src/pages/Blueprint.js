@@ -726,8 +726,98 @@ function ValueProportionSection({ myOwner, data }) {
           ))}
         </svg>
         </div>
-        <div style={{ flex: 1 }} />
+        <RosterMakeupSection myOwner={myOwner} data={data} />
       </div>
+    </div>
+  )
+}
+
+const TIER_GROUPS = [
+  { key: 'Cornerstone',           tiers: ['Cornerstone'],                                        bg: '#f6e05e', text: '#744210' },
+  { key: 'Foundational',          tiers: ['Foundational'],                                       bg: '#90cdf4', text: '#1a3f5c' },
+  { key: 'Upside Premier',        tiers: ['Upside Premier'],                                     bg: '#b794f4', text: '#322659' },
+  { key: 'Upside Shot',           tiers: ['Upside Shot'],                                        bg: '#c6f6d5', text: '#276749' },
+  { key: 'Mainstay',              tiers: ['Mainstay'],                                           bg: '#9ae6b4', text: '#1a5436' },
+  { key: 'Productive Vet',        tiers: ['Productive Vet'],                                     bg: '#76e4f7', text: '#065666' },
+  { key: 'Short-term Winner',     tiers: ['Short-term Winner'],                                  bg: '#f6ad55', text: '#652b19' },
+  { key: 'Short-term Production', tiers: ['Short-term Production'],                              bg: '#faf089', text: '#744210' },
+  { key: 'Serviceable',           tiers: ['Serviceable'],                                        bg: '#cbd5e0', text: '#2d3748' },
+  { key: 'Jag/Other',             tiers: ['Jag Developmental', 'Jag Insurance', 'Replaceable'],  bg: '#fc8181', text: '#63171b' },
+]
+
+function RosterMakeupSection({ myOwner, data }) {
+  const roster = useMemo(
+    () => (data?.playerUniverse || []).filter(p => p['Dynasty Owner'] === myOwner),
+    [data, myOwner]
+  )
+  const outlook = useMemo(
+    () => (data?.teamOverview || []).find(t => t.Owner === myOwner)?.Outlook || '',
+    [data, myOwner]
+  )
+
+  const counts = useMemo(() => {
+    const c = {}
+    TIER_GROUPS.forEach(g => { c[g.key] = 0 })
+    roster.forEach(p => {
+      const tier = p.Tier || ''
+      const group = TIER_GROUPS.find(g => g.tiers.includes(tier))
+      if (group) c[group.key] = (c[group.key] || 0) + 1
+    })
+    return c
+  }, [roster])
+
+  const total = roster.length || 1
+  const present = TIER_GROUPS.filter(g => counts[g.key] > 0)
+
+  // Outlook target assessment
+  const cfCount = (counts['Cornerstone'] || 0) + (counts['Foundational'] || 0)
+  const uCount  = (counts['Upside Premier'] || 0) + (counts['Upside Shot'] || 0)
+  let targetMsg, targetColor
+  if (outlookIsContender(outlook) || outlook === 'Contender (needs production)') {
+    if      (cfCount >= 4) { targetColor = 'var(--green)'; targetMsg = `${cfCount} Cornerstone/Foundational — on target for Contender` }
+    else if (cfCount === 3) { targetColor = '#d69e2e';      targetMsg = `${cfCount} Cornerstone/Foundational — one short of Contender target` }
+    else                    { targetColor = 'var(--red)';   targetMsg = `${cfCount} Cornerstone/Foundational — below Contender target` }
+  } else if (outlook === 'Window Contender' || outlook === 'Reload' || outlook === 'Reload (sell vets for youth)') {
+    if      (cfCount >= 3) { targetColor = 'var(--green)'; targetMsg = `${cfCount} Cornerstone/Foundational — on target` }
+    else if (cfCount === 2) { targetColor = '#d69e2e';      targetMsg = `${cfCount} Cornerstone/Foundational — slightly below target` }
+    else                    { targetColor = 'var(--red)';   targetMsg = `${cfCount} Cornerstone/Foundational — below target` }
+  } else {
+    // Rebuild — flip to upside metric
+    if      (uCount >= 3)  { targetColor = 'var(--green)'; targetMsg = `${uCount} Upside Premier/Shot — building well` }
+    else if (uCount === 2)  { targetColor = '#d69e2e';      targetMsg = `${uCount} Upside Premier/Shot — accumulating` }
+    else                    { targetColor = 'var(--red)';   targetMsg = `${uCount} Upside Premier/Shot — need more youth assets` }
+  }
+
+  return (
+    <div style={{ flex: 1, minWidth: 0 }}>
+      <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '10px' }}>
+        Roster Make-Up
+      </div>
+
+      {/* Stacked bar */}
+      <div style={{ display: 'flex', height: '16px', borderRadius: '8px', overflow: 'hidden', marginBottom: '10px' }}>
+        {TIER_GROUPS.map(g => {
+          const count = counts[g.key] || 0
+          if (!count) return null
+          return (
+            <div key={g.key} style={{ flex: count / total, background: g.bg }} title={`${g.key}: ${count}`} />
+          )
+        })}
+      </div>
+
+      {/* Legend */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 14px', marginBottom: '12px' }}>
+        {present.map(g => (
+          <div key={g.key} style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+            <div style={{ width: '8px', height: '8px', borderRadius: '2px', background: g.bg, flexShrink: 0 }} />
+            <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>{g.key}</span>
+            <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-primary)' }}>{counts[g.key]}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* Outlook target */}
+      <div style={{ fontSize: '11px', color: targetColor, fontWeight: 600 }}>{targetMsg}</div>
     </div>
   )
 }
