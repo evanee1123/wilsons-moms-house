@@ -767,10 +767,9 @@ function RosterMakeupSection({ myOwner, data }) {
     return c
   }, [roster])
 
-  const total    = roster.length || 1
-  const present  = TIER_GROUPS.filter(g => counts[g.key] > 0)
-  const maxCount = Math.max(1, ...present.map(g => counts[g.key]))
-  const MAX_BAR  = 60
+  const total   = roster.length || 1
+  const present = [...TIER_GROUPS.filter(g => counts[g.key] > 0)]
+    .sort((a, b) => counts[b.key] - counts[a.key])
 
   // Outlook target assessment
   const cfCount = (counts['Cornerstone'] || 0) + (counts['Foundational'] || 0)
@@ -796,28 +795,34 @@ function RosterMakeupSection({ myOwner, data }) {
         Roster Make-Up
       </div>
 
-      {/* Vertical bar chart — bars aligned to bottom */}
-      <div style={{ display: 'flex', gap: '3px', height: `${MAX_BAR + 18}px`, alignItems: 'stretch', marginBottom: '4px' }}>
+      {/* Tier rows */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', marginBottom: '14px' }}>
         {present.map(g => {
-          const count  = counts[g.key]
-          const barH   = Math.max(4, Math.round((count / maxCount) * MAX_BAR))
-          const pct    = Math.round((count / total) * 100)
+          const count = counts[g.key]
+          const pct   = Math.round((count / total) * 100)
           return (
-            <div key={g.key} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', minWidth: 0 }}>
-              <span style={{ fontSize: '9px', color: 'var(--text-secondary)', marginBottom: '2px', lineHeight: 1 }}>{pct}%</span>
-              <div style={{ width: '100%', height: `${barH}px`, background: g.bg, borderRadius: '2px 2px 0 0' }} title={`${g.key}: ${count}`} />
+            <div key={g.key} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              {/* Tier badge */}
+              <div style={{
+                width: '160px', flexShrink: 0, textAlign: 'center',
+                background: g.bg, color: g.text,
+                borderRadius: '99px', padding: '3px 10px',
+                fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em',
+                whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+              }}>
+                {g.key}
+              </div>
+              {/* Fill bar */}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ width: `${pct}%`, minWidth: '4px', height: '14px', borderRadius: '3px', background: g.bg }} />
+              </div>
+              {/* Percentage */}
+              <div style={{ width: '32px', textAlign: 'right', fontSize: '11px', fontWeight: 600, color: 'var(--text-primary)', flexShrink: 0 }}>
+                {pct}%
+              </div>
             </div>
           )
         })}
-      </div>
-
-      {/* Tier name labels */}
-      <div style={{ display: 'flex', gap: '3px', marginBottom: '12px' }}>
-        {present.map(g => (
-          <div key={g.key} style={{ flex: 1, minWidth: 0, textAlign: 'center', fontSize: '8px', color: 'var(--text-muted)', lineHeight: 1.2 }}>
-            {g.abbr}
-          </div>
-        ))}
       </div>
 
       {/* Outlook target */}
