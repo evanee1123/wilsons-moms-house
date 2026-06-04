@@ -660,6 +660,74 @@ function WatchlistSection({ uid, data, allAssets, outlookByOwner }) {
   )
 }
 
+// ── Section 2.5: Value Proportion ─────────────────────────────────────────────
+const POS_COLORS = { QB: '#fc8181', RB: '#68d391', WR: '#63b3ed', TE: '#f6e05e' }
+
+function ValueProportionSection({ myOwner, data }) {
+  const row = useMemo(
+    () => (data?.positionalProportion || []).find(r => r.Owner === myOwner),
+    [data, myOwner]
+  )
+  if (!row) return null
+
+  const positions = ['QB', 'RB', 'WR', 'TE']
+  const cx = 100, cy = 100, r = 65, sw = 28
+  const circ = 2 * Math.PI * r
+
+  let cumFrac = 0
+  const slices = positions.map(pos => {
+    const pct  = row[`${pos} %`]  || 0
+    const val  = row[`${pos} Value`] || 0
+    const frac = pct / 100
+    const dashLen    = frac * circ
+    const dashOffset = circ * (1 - cumFrac)
+    cumFrac += frac
+    return { pos, pct, val, frac, dashLen, dashOffset }
+  })
+
+  const total = row['Total Player Value'] || 0
+
+  return (
+    <div className='card' style={{ marginBottom: '1.25rem' }}>
+      <div className='card-header'><h3>Value Proportion</h3></div>
+      <div style={{ padding: '1rem', display: 'flex', alignItems: 'center', gap: '2.5rem', flexWrap: 'wrap' }}>
+        <svg width="180" height="180" viewBox="0 0 200 200" style={{ flexShrink: 0 }}>
+          {/* background ring */}
+          <circle cx={cx} cy={cy} r={r} fill="none" stroke="var(--card-border)" strokeWidth={sw} />
+          {slices.map(s => (
+            <circle
+              key={s.pos}
+              cx={cx} cy={cy} r={r}
+              fill="none"
+              stroke={POS_COLORS[s.pos]}
+              strokeWidth={sw}
+              strokeDasharray={`${s.dashLen} ${circ - s.dashLen}`}
+              strokeDashoffset={s.dashOffset}
+              transform={`rotate(-90 ${cx} ${cy})`}
+            />
+          ))}
+          {/* center text */}
+          <text x={cx} y={cy - 7} textAnchor="middle" fill="var(--text-muted)" fontSize="11" fontFamily="inherit">Total</text>
+          <text x={cx} y={cy + 10} textAnchor="middle" fill="var(--text-primary)" fontSize="14" fontWeight="700" fontFamily="inherit">
+            {Math.round(total / 1000)}k
+          </text>
+        </svg>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          {slices.map(s => (
+            <div key={s.pos} style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{ width: '10px', height: '10px', borderRadius: '2px', background: POS_COLORS[s.pos], flexShrink: 0 }} />
+              <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)', width: '30px' }}>{s.pos}</span>
+              <span style={{ fontSize: '13px', color: 'var(--text-secondary)', width: '48px' }}>{s.pct.toFixed(1)}%</span>
+              <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{Math.round(s.val).toLocaleString()}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ── Section 3: Trade Suggestions ──────────────────────────────────────────────
 function SuggestionRow({ player, type, isSaved, onDismiss, onSave, onUnsave }) {
   return (
@@ -904,6 +972,7 @@ export default function Blueprint({ data, setPage }) {
 
       <GoalsSection uid={uid} myOwner={personalOwner} myOutlook={personalOutlook} positionalRankings={positionalRankings} pickYears={pickYears} />
       <WatchlistSection uid={uid} data={data} allAssets={allAssets} outlookByOwner={outlookByOwner} />
+      <ValueProportionSection myOwner={myOwner} data={data} />
       <SuggestionsSection uid={uid} myOwner={myOwner} myOutlook={myOutlook} data={data} outlookByOwner={outlookByOwner} positionalRankings={positionalRankings} />
       <TradeFinderSection myOwner={myOwner} myOutlook={myOutlook} data={data} allAssets={allAssets} outlookByOwner={outlookByOwner} positionalRankings={positionalRankings} adjustYears={adjustYears} />
     </div>
