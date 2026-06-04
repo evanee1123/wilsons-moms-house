@@ -30,69 +30,47 @@
 
 ### Blueprint Page (Complete)
 - Route: /blueprint, requires login
-- Four sections: Roster Composition Goals, Watchlist, Personalized Trade Suggestions, Trade Finder
 - All data (goals, watchlist, dismissals) saved to Firestore by uid — never by rosterOwnerName
 - Admin view-as does not affect watchlist or goals — always loads logged-in user's uid data
 
-### Trade Finder (Mostly Complete — needs more work)
-- findTrades uses KTC values for fairness filter, Combined Score for fit scoring
-- Fairness filter: ±10% of displayGive (KTC + stud tax)
-- Auto-add: if receive > give by up to 25%, adds one piece from myPool (KTC > 2500) to give side
-- Variety dedup: max 2 results with same player on receive side, max 2 results from same team
-- QB filter: max 1 QB per package, max 2 QB-heavy results out of 10
-- Quality filter: players below KTC 2000 excluded from return packages (picks exempt)
-- Package structures: 1-3 players + any number of picks
-- Rebuilder stud rule: Cornerstone/Foundational players only tradeable if give side has Cornerstone/Foundational player OR 1st round pick
-- Results show: team name, outlook badge, fit score, give value → receive value (KTC + stud tax), assets give, assets receive
-- Reason line removed entirely from UI
-- 10 results shown
-- Version indicator: TF v1 in header
+#### Blueprint Sections (in render order)
+1. **Roster Composition Goals** — auto-generated + custom goals, Firestore-backed
+2. **Watchlist** — player/pick monitor list, Firestore-backed
+3. **Value Proportion card** (single card with three columns):
+   - Left: `ValueProportionSection` — filled pie chart (QB/RB/WR/TE/Picks % of total value). Data from `positionalProportion.json` + `pickPortfolio.json`. Labels on slices ≥8%.
+   - Middle: `RosterMakeupSection` — tier breakdown with colored pill badges sorted by count descending. Outlook-specific target line (C+F count for Contender, Upside Premier+Shot count for Rebuild).
+   - Right: `AverageStarterAgeSection` — avg starter age by position using full lineup settings (QB×1, RB×2, WR×2, TE×1, FLEX WR/RB/TE×2, SFLX QB/WR/RB/TE×1). Color coded green/yellow/red by position thresholds (QB ≤29/30-31/≥32, RB ≤26/27/≥28, WR ≤27/28/≥29, TE ≤27/28/≥29).
+4. **TradeStrategySection** — dynamic strategy label (green/yellow/red badge) + description based on outlook/value rank/roster makeup. Shows 3 target acquisition player cards filtered by outlook and weakest positional grade, favoring Rebuild/Reload sellers. Data from `teamOverview.json`, `playerUniverse.json`, `rosterGrades.json`.
+5. **TopPrioritiesSection** — 3 priority items with emoji icons (🏆🔄📋). Priority 1: outlook + value rank + C+F Total. Priority 2: tier surplus vs outlook. Priority 3: weakest positional grade.
+6. **Personalized Trade Suggestions** — buy/sell suggestions, Firestore-backed dismissals
+7. **Trade Finder** — find fair trade packages from other rosters
 
-## Notebook Fixes This Session (wilsons_teams.ipynb)
+### Trade Finder Improvements (This Session)
+- **`src/utils/playerUtils.js`** (new file) — exports `normalizeName()` and `findPlayerByName()`. Strips periods, suffixes (III, II, IV, Jr, Sr), collapses whitespace. Used in `TradeHistory.js` and `Blueprint.js` for all player name lookups. Fixes `Kenneth Walker III` → `Kenneth Walker`, `D.J. Moore` → `DJ Moore`.
+- **Template reordering** — when give side contains a Cornerstone player, results are post-processed into a stable partition: qualifying results (Template A: 2+ 1st round picks; Template B: Cornerstone return, or Foundational + 1st round pick) float to top. Foundational give-side has a relaxed version of the same templates.
+- **Cornerstone fairness filter** — when `requireFirstRound === true` (give side has Cornerstone), fairness gate uses `ratio >= 1.00 && ratio <= 1.35` instead of the normal `±10%`. Forces realistic stud-for-stud or slight-overpay returns. Normal trades unchanged.
+- **Candidate pool bias** — when `requireFirstRound === true`, `rawCandidates` is stable-partitioned to float packages containing ≥1 first-round pick before non-pick packages, giving them priority through the fairness filter and variety dedup.
 
-### Cell 1
+### Notebook Fixes (Previous Session — carried forward)
 - YEARS extended to 4 years: `[current+1, current+2, current+3, current+4]`
-
-### Cell 3 (KTC Scraper)
 - Synthetic pick generation for furthest year (YEARS[-1])
-- Uses YEARS[-2] as baseline, ±10% random variance
-- Loops over all 3 tiers × 4 rounds = 12 synthetic picks
-- Auto-skips when KTC adds real values
-
-### Cell 8 (Draft Picks)
-- Removed redundant `all_picks` reassignment
-- Removed `+ [str(current_season + 4)]` fallback from future_years (caused duplicate 2029 picks)
-- Added filter to remove CURRENT_DRAFT_YEAR picks from all_picks when draft is complete
-- pick_tier_current now converts 10-team slots to 12-team equivalents: `round(slot × 12 / 10)`
-- default_future_tier: Mid for rounds 1/2, Early for rounds 3/4
-- pick_ktc_name: round 4 future picks look up 'Late 3rd' (matches KTC 12-team methodology)
-
-### Cell 16
-- pick_value_by_owner excludes YEARS[-1] picks from team value calculations (KTC values them at 0)
-
-### Cell 17
-- Already dynamic — no changes needed
-
-### Cell 23
-- teamOverview year columns built dynamically from YEARS (no hardcoded years)
-- KTC Rankings uses merged_df instead of rankings_df for player data
+- Pick tier defaults: Mid for rounds 1/2, Early for rounds 3/4
+- Round 4 KTC lookup uses 'Late 3rd'
+- pick_value_by_owner excludes YEARS[-1] picks from team value calculations
+- teamOverview year columns built dynamically from YEARS
 
 ## Known Issues / Remaining Work
 
 ### Trade Finder Quality
-- The trade finder is functional and filtering correctly
-- Results are mathematically fair but could be more strategically relevant
-- User wants to try one more improvement — ask Evan what it is before touching trade finder code
-- Do not touch trade finder without explicit instruction from Evan
+- Functional and filtering correctly with template reordering and Cornerstone bias
+- Results are mathematically fair with stud-appropriate returns
+- Ask Evan before touching trade finder logic further
 
 ### Value Rankings vs KTC
-- Top 3 and bottom 2 teams match KTC rankings exactly
-- Middle 4 teams (ranks 4-8) are within ~10k of each other and ordering differs slightly from KTC
-- This is acceptable — KTC uses proprietary scoring beyond raw value totals
-- Do not chase this further unless Evan explicitly asks
+- Middle 4 teams (ranks 4-8) differ slightly from KTC ordering — acceptable, do not chase
 
 ### CLTC Notebook
-- Has not been updated with any of this session's notebook fixes
+- Has not been updated with any session fixes
 - Do not touch until Evan says Wilson's is complete
 
 ### Admin Watchlist Bug

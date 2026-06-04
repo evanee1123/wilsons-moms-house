@@ -53,8 +53,12 @@ Two dynasty fantasy football analytics platforms built with:
       TradeCalculator.jsx
       TradeHistory.jsx
       History.jsx
+      Blueprint.js
     services/
       dataService.js
+    utils/
+      tradeLogic.js          ← stud tax, fit scoring, trade compatibility
+      playerUtils.js         ← normalizeName(), findPlayerByName() — strips periods/suffixes
     App.jsx
     index.js
 ```
@@ -178,10 +182,30 @@ stud_mult = 1.0 + max(0, (top_ktc - 5000) / 100) * 0.003
 | Trade Calculator | /trade | Value calculator with stud tax adjustment |
 | Trade History | /tradehistory | Retroactive trade grades using current KTC values |
 | League History | /history | Champions, all-time standings, playoff brackets, top 10s |
+| My Blueprint | /blueprint | Personalized roster analysis, trade strategy, priorities (login required) |
 
 ### Shared Components
 - `PlayerDetailModal` — career stats, advanced stats, overview. Used in PlayerRankings, TeamDeepDive, TradeCalculator
 - `Sidebar` — navigation with owner selector
+
+### Blueprint Page Sections (src/pages/Blueprint.js)
+Sections render in this order:
+1. **Roster Composition Goals** — auto-generated + custom goals, Firestore-backed per uid
+2. **Watchlist** — player/pick monitor list, Firestore-backed per uid
+3. **Value Proportion card** — single card with three side-by-side columns:
+   - Left: pie chart of QB/RB/WR/TE/Picks % of total value (`positionalProportion.json` + `pickPortfolio.json`)
+   - Middle: `RosterMakeupSection` — tier pill badges sorted by count, outlook target line
+   - Right: `AverageStarterAgeSection` — avg starter age by position, color-coded (QB ≤29 green, RB ≤26 green, WR/TE ≤27 green)
+4. **Trade Strategy** — outlook-derived strategy label + description + 3 target acquisition cards
+5. **Top Priorities** — 3 dynamic priority lines with emoji icons (🏆🔄📋)
+6. **Personalized Trade Suggestions** — buy/sell suggestions, Firestore dismissals
+7. **Trade Finder** — find fair return packages; TF v1 with Cornerstone-specific logic (see below)
+
+### Trade Finder Key Behaviors (Blueprint.js — findTrades())
+- **Normal fairness gate**: `ratio >= 0.90 && ratio <= 1.10`
+- **Cornerstone give-side** (`requireFirstRound === true`): gate is `ratio >= 1.00 && ratio <= 1.35`; candidate pool pre-sorted to float 1st-round-pick packages first
+- **Template reordering** (post-dedup): qualifying results (Template A: 2+ 1sts; Template B: Cornerstone return OR Foundational + 1st) floated above non-qualifying results; Foundational give-side has relaxed version
+- **Player name normalization**: all lookups use `findPlayerByName()` from `src/utils/playerUtils.js` — handles `D.J. Moore` vs `DJ Moore`, `Kenneth Walker III` vs `Kenneth Walker`, etc.
 
 ---
 
