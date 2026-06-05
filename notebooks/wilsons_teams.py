@@ -11,9 +11,6 @@
 import requests
 import pandas as pd
 import numpy as np
-import gspread
-from google.oauth2.service_account import Credentials
-from google.auth.exceptions import DefaultCredentialsError
 from difflib import get_close_matches
 from itertools import combinations
 from functools import reduce
@@ -28,12 +25,7 @@ import os
 
 LEAGUE_ID   = "1312130103358021632"
 MY_USERNAME = "ekleiner1123"
-OUTPUT_DIR  = "/Users/evankleiner/wilsons-moms-house/public/data"
-
-SCOPES = [
-    "https://www.googleapis.com/auth/spreadsheets",
-    "https://www.googleapis.com/auth/drive"
-]
+OUTPUT_DIR  = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'public', 'data')
 
 # League roster settings
 PURE_STARTERS = {"QB": 1, "RB": 2, "WR": 2, "TE": 1}
@@ -840,14 +832,10 @@ for slot_str, roster_id in slot_to_roster.items():
 n_teams = len(slot_to_roster)
 
 def pick_tier_current(slot, n_teams=10):
-    equivalent_slot = round(slot * 12 / n_teams)
-    if equivalent_slot <= 4:   return "Early"
-    elif equivalent_slot <= 8: return "Mid"
-    else:                      return "Late"
-
-def default_future_tier(round_num):
-    if round_num in [1, 2]: return "Mid"
-    else:                   return "Early"
+    third = n_teams / 3
+    if slot <= third:       return "Early"
+    elif slot <= third * 2: return "Mid"
+    else:                   return "Late"
 
 def pick_display_name(year, round_num, slot, tier, n_teams=10):
     round_str = {1:"1st", 2:"2nd", 3:"3rd", 4:"4th"}.get(round_num, f"{round_num}th")
@@ -858,8 +846,6 @@ def pick_display_name(year, round_num, slot, tier, n_teams=10):
         return f"{year} {tier} {round_str}"
 
 def pick_ktc_name(year, round_num, tier):
-    if round_num == 4:
-        return f"{year} Late 3rd"
     round_str = {1:"1st", 2:"2nd", 3:"3rd", 4:"4th"}.get(round_num, f"{round_num}th")
     return f"{year} {tier} {round_str}"
 
@@ -881,7 +867,7 @@ if upcoming_draft['status'] not in ['complete']:
 else:
     print(f"  Skipping {CURRENT_DRAFT_YEAR} picks — draft already complete")
 
-future_years = YEARS[1:] if upcoming_draft['status'] not in ['complete'] else YEARS[1:]
+future_years = YEARS[1:] if upcoming_draft['status'] not in ['complete'] else YEARS[1:] + [str(current_season + 4)]
 for year in future_years:
     for roster in rosters:
         for rnd in ROUNDS:
@@ -889,7 +875,7 @@ for year in future_years:
                 "year":           year,
                 "round":          rnd,
                 "slot":           None,
-                "tier":           default_future_tier(rnd),
+                "tier":           "Mid",
                 "original_owner": roster["roster_id"],
                 "current_owner":  roster["roster_id"],
             })
