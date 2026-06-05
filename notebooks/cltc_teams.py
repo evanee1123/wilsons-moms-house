@@ -369,7 +369,7 @@ def best_3_of_4(player_seasons):
     })
 
 multi_year_prod = season_stats.groupby("player_id").apply(
-    best_3_of_4, include_groups=False
+    best_3_of_4
 ).reset_index()
 
 # Map player IDs to names
