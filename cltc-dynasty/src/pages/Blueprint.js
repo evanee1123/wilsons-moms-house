@@ -515,7 +515,7 @@ function GoalsSection({ uid, myOwner, myOutlook, positionalRankings, pickYears }
   const [saving,  setSaving]  = useState(false)
 
   useEffect(() => {
-    if (!uid || !myOwner || !myOutlook) return
+    if (!uid || !myOwner) return
     console.log('[GoalsSection] loading goals for uid:', uid, '| owner:', myOwner, '| outlook:', myOutlook)
     setLoading(true)
     loadGoals(uid).then(async existing => {
@@ -528,7 +528,7 @@ function GoalsSection({ uid, myOwner, myOutlook, positionalRankings, pickYears }
         setGoals(existing)
       }
       setLoading(false)
-    })
+    }).catch(err => { console.error('[GoalsSection]', err); setLoading(false) })
   }, [uid, myOwner, myOutlook]) // eslint-disable-line
 
   async function handleStatus(id, status) {
@@ -626,7 +626,7 @@ function WatchlistSection({ uid, data, allAssets, outlookByOwner }) {
   useEffect(() => {
     if (!uid) return
     console.log('[WatchlistSection] loading watchlist for uid:', uid)
-    loadWatchlist(uid).then(items => { setWatchlist(items); setLoading(false) })
+    loadWatchlist(uid).then(items => { setWatchlist(items); setLoading(false) }).catch(err => { console.error('[WatchlistSection]', err); setLoading(false) })
   }, [uid])
 
   async function handleAdd(asset) {
@@ -1152,7 +1152,7 @@ function SuggestionsSection({ uid, myOwner, myOutlook, data, outlookByOwner, pos
     if (!uid) return
     Promise.all([loadDismissed(uid), loadSaved(uid)]).then(([d, s]) => {
       setDismissed(d); setSaved(s); setLoading(false)
-    })
+    }).catch(err => { console.error('[SuggestionsSection]', err); setLoading(false) })
   }, [uid])
 
   const dismissedSet = useMemo(() => new Set(dismissed.map(d => `${d.playerName}:${d.type}`)), [dismissed])
