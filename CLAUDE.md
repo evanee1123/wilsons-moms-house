@@ -8,9 +8,9 @@ This file is the source of truth for Claude Code. Read it fully before making an
 
 Two dynasty fantasy football analytics platforms built with:
 - **Python notebooks** → JSON files → **React websites** deployed on **Vercel**
-- Both leagues share the same codebase pattern
+- Both leagues are fully built and maintained in parallel
 
-### League 1: Wilson's Moms House (PRIMARY — build here first)
+### League 1: Wilson's Moms House
 - Sleeper League ID: `1312130103358021632`
 - Username: `ekleiner1123`
 - Notebook: `~/wilsons-moms-house/notebooks/wilsons_teams.ipynb`
@@ -19,12 +19,18 @@ Two dynasty fantasy football analytics platforms built with:
 - GitHub: `https://github.com/evanee1123/wilsons-moms-house`
 - Site: `https://wilsons-moms-house.vercel.app`
 - Data output: `~/wilsons-moms-house/public/data/`
-- Cron job: Runs every Sunday and Thursday at 8am
+- Firebase project: `wilsons-moms-house`
+- GitHub Actions workflow: `.github/workflows/update_data.yml`
 
-### League 2: CLTC Dynasty (do not touch until Wilson's is complete)
+### League 2: CLTC 8 2017
 - Sleeper League ID: `1312132151843491840`
-- Site: `https://cltc-dynasty.vercel.app`
+- Site: `https://cltcdynasty.vercel.app`
 - Notebook: `~/wilsons-moms-house/notebooks/cltc_teams.ipynb`
+- Script: `~/wilsons-moms-house/notebooks/cltc_teams.py`
+- Data output: `~/wilsons-moms-house/cltc-dynasty/public/data/`
+- Firebase project: `cltc-dynasty`
+- Admin username: `ekleiner1123` (same as Wilson's)
+- GitHub Actions workflow: `.github/workflows/update_cltc_data.yml`
 
 ---
 
@@ -33,15 +39,21 @@ Two dynasty fantasy football analytics platforms built with:
 ```
 ~/wilsons-moms-house/
   CLAUDE.md                  ← this file
+  HANDOFF.md                 ← session handoff notes
+  .github/
+    workflows/
+      update_data.yml        ← Wilson's auto-update (Sun/Thu 8am CST)
+      update_cltc_data.yml   ← CLTC auto-update (Sun/Thu 8am CST)
   notebooks/
     wilsons_teams.ipynb
     wilsons_teams.py
     cltc_teams.ipynb
+    cltc_teams.py
     run_wilsons.sh
     run_log.txt
   public/
-    data/                    ← JSON files written by notebook, read by React
-  src/
+    data/                    ← Wilson's JSON files (written by notebook, read by React)
+  src/                       ← Wilson's React app
     components/
       PlayerDetailModal.jsx
       Sidebar.jsx
@@ -61,6 +73,38 @@ Two dynasty fantasy football analytics platforms built with:
       playerUtils.js         ← normalizeName(), findPlayerByName() — strips periods/suffixes
     App.jsx
     index.js
+  cltc-dynasty/              ← CLTC React app (separate Vercel project)
+    package.json
+    .env                     ← gitignored — Firebase keys only
+    public/
+      data/                  ← CLTC JSON files (written by cltc_teams.py)
+    src/
+      components/
+        PlayerDetailModal.jsx
+        Sidebar.js
+      pages/
+        Home.jsx
+        TeamDeepDive.jsx
+        PlayerRankings.jsx
+        PickPortfolio.jsx
+        TradeCalculator.jsx
+        TradeHistory.jsx
+        LeagueHistory.jsx
+        Blueprint.js
+        Login.jsx
+        Signup.jsx
+      services/
+        blueprintService.js
+        dataService.js
+      utils/
+        tradeLogic.js
+        playerUtils.js
+      contexts/
+        AuthContext.js
+      hooks/
+        useData.js
+      firebase.js
+      App.js
 ```
 
 ---
@@ -89,14 +133,33 @@ FLEX_SPOTS = [
 | 9 | GreyWaedekin27 |
 | 10 | gavinw20 |
 
+## League Settings — CLTC 8 2017
+
+```python
+PURE_STARTERS = {"QB": 1, "RB": 2, "WR": 3, "TE": 1}
+FLEX_SPOTS = [
+    {"name": "FLEX", "eligible": ["WR", "RB", "TE"], "count": 2},
+    {"name": "SFLX", "eligible": ["QB", "WR", "RB", "TE"], "count": 1},
+]
+```
+
 ---
 
 ## Data Pipeline
 
-1. Python notebook runs analysis
-2. Pushes JSON files to `public/data/`
+1. Python notebook/script runs analysis
+2. Writes JSON files to `public/data/` (Wilson's) or `cltc-dynasty/public/data/` (CLTC)
 3. React app fetches JSON files via `fetchJSON()` in `dataService.js`
 4. No Google Sheets dependency — fully JSON-based
+
+### Auto-Update Schedule
+- Runs via **GitHub Actions** every **Sunday and Thursday at 14:00 UTC** (8am CST)
+- Wilson's workflow: `.github/workflows/update_data.yml`
+- CLTC workflow: `.github/workflows/update_cltc_data.yml`
+- After each run, JSON files are automatically committed and pushed to the repo
+- Vercel auto-deploys on each push (both leagues have their own Vercel project)
+- `OUTPUT_DIR` in both scripts uses a relative path via `os.path.dirname(os.path.abspath(__file__))`
+  so the script works whether run locally or via GitHub Actions
 
 ### JSON Files
 ```
@@ -190,16 +253,16 @@ stud_mult = 1.0 + max(0, (top_ktc - 5000) / 100) * 0.003
 
 ### Blueprint Page Sections (src/pages/Blueprint.js)
 Sections render in this order:
-1. **Roster Composition Goals** — auto-generated + custom goals, Firestore-backed per uid
-2. **Watchlist** — player/pick monitor list, Firestore-backed per uid
+1. **Roster Composition Goals** — auto-generated goals based on outlook + custom goals. Firestore-backed per uid (`users/{uid}/goals`). Goals re-generate when outlook changes.
+2. **Watchlist** — player/pick monitor list. Firestore-backed per uid (`users/{uid}/watchlist`). Shows KTC, tier, owner, "Might sell" badge if owner is Rebuild/Reload.
 3. **Value Proportion card** — single card with three side-by-side columns:
-   - Left: pie chart of QB/RB/WR/TE/Picks % of total value (`positionalProportion.json` + `pickPortfolio.json`)
-   - Middle: `RosterMakeupSection` — tier pill badges sorted by count, outlook target line
-   - Right: `AverageStarterAgeSection` — avg starter age by position, color-coded (QB ≤29 green, RB ≤26 green, WR/TE ≤27 green)
-4. **Trade Strategy** — outlook-derived strategy label + description + 3 target acquisition cards
-5. **Top Priorities** — 3 dynamic priority lines with emoji icons (🏆🔄📋)
-6. **Personalized Trade Suggestions** — buy/sell suggestions, Firestore dismissals
-7. **Trade Finder** — find fair return packages; TF v1 with Cornerstone-specific logic (see below)
+   - Left: `ValueProportionSection` — filled pie chart of QB/RB/WR/TE/Picks % of total value. Data from `positionalProportion.json` + `pickPortfolio.json`. Labels on slices ≥8%.
+   - Middle: `RosterMakeupSection` — tier breakdown with colored pill badges sorted by count descending. Outlook-specific target line (C+F count for Contender, Upside Premier+Shot count for Rebuild).
+   - Right: `AverageStarterAgeSection` — avg starter age by position using full lineup settings. Color coded green/yellow/red by position thresholds (QB ≤29/30-31/≥32, RB ≤26/27/≥28, WR ≤27/28/≥29, TE ≤27/28/≥29).
+4. **Trade Strategy** — dynamic strategy label (green/yellow/red badge) + description based on outlook/value rank/roster makeup. Shows 3 target acquisition player cards filtered by outlook and weakest positional grade, favoring Rebuild/Reload sellers. Data from `teamOverview.json`, `playerUniverse.json`, `rosterGrades.json`.
+5. **Top Priorities** — 3 priority items with emoji icons (🏆🔄📋). Priority 1: outlook + value rank + C+F Total. Priority 2: tier surplus vs outlook. Priority 3: weakest positional grade.
+6. **Personalized Trade Suggestions** — buy/sell suggestions. Firestore-backed dismissals (`users/{uid}/dismissedSuggestions`) and saves (`users/{uid}/savedSuggestions`).
+7. **Trade Finder** — find fair trade packages from other rosters. TF v1 with Cornerstone-specific logic (see below).
 
 ### Trade Finder Key Behaviors (Blueprint.js — findTrades())
 - **Normal fairness gate**: `ratio >= 0.90 && ratio <= 1.10`
@@ -209,116 +272,49 @@ Sections render in this order:
 
 ---
 
-## What We Are Building Next
+## Authentication & Firebase
 
-This is a large feature set. Build in this order, completing each section before moving to the next.
+Both leagues use Firebase Authentication (email/password) and Firestore.
 
-### Phase 1 — Firebase Setup
-Set up Firebase project with:
-- Firebase Authentication (email/password)
-- Firestore database
-- Install Firebase SDK in the React app (`npm install firebase`)
-- Create `src/firebase.js` config file (use environment variables for all keys — never hardcode)
+**Signup flow:**
+1. User enters email, password, Sleeper username
+2. Verify Sleeper username exists via `https://api.sleeper.app/v1/user/{username}`
+3. Verify user is in the league via `https://api.sleeper.app/v1/league/{LEAGUE_ID}/users`
+4. Create Firebase Auth account
+5. Write Firestore profile: `{ uid, email, sleeperUsername, rosterOwnerName, createdAt }`
+6. `rosterOwnerName` = `member.display_name || sleeperUsername` (matches `Owner` field in JSON data)
 
-Required Vercel environment variables to add:
-```
-REACT_APP_FIREBASE_API_KEY
-REACT_APP_FIREBASE_AUTH_DOMAIN
-REACT_APP_FIREBASE_PROJECT_ID
-REACT_APP_FIREBASE_STORAGE_BUCKET
-REACT_APP_FIREBASE_MESSAGING_SENDER_ID
-REACT_APP_FIREBASE_APP_ID
-```
+**Login:** accepts email or Sleeper username. Username lookup queries Firestore for matching `sleeperUsername`.
 
-### Phase 2 — Authentication Flow
+**Admin mode (`ekleiner1123`):**
+- "View As" dropdown appears in sidebar when logged in as admin
+- Selecting a manager overrides `rosterOwnerName` for the session only
+- Yellow "Admin view" indicator shown when active
+- Watchlist and goals always load for the real logged-in uid — never swapped by view-as
 
-**Signup:**
-1. User enters: email, password, Sleeper username
-2. On submit, verify Sleeper username exists in the league:
-   - Hit `https://api.sleeper.app/v1/user/{username}` to confirm user exists
-   - Hit `https://api.sleeper.app/v1/league/1312130103358021632/users` to confirm they are in this league
-   - If not in league, reject with clear error message
-3. Create Firebase Auth account
-4. Save to Firestore `users` collection: `{ uid, email, sleeperUsername, rosterOwnerName, createdAt }`
-5. `rosterOwnerName` is the display name matched from the roster ID map
+**Auth rules:**
+- `/blueprint` requires login. All other pages are public.
+- Sidebar shows Login/Signup when logged out, username + Logout when logged in.
 
-**Login:**
-1. Email + password via Firebase Auth
-2. On success, load their Firestore user doc to get `sleeperUsername` and `rosterOwnerName`
-3. All personalized pages use `rosterOwnerName` to filter data
+---
 
-**Admin (ekleiner1123):**
-- If logged-in user's `sleeperUsername === 'ekleiner1123'`, show "View As" dropdown in sidebar
-- Dropdown lists all 10 managers
-- Selecting one overrides `rosterOwnerName` for that session only
-- Visual indicator showing "Viewing as [name]" when in admin mode
+## Security
 
-**Auth Rules:**
-- Blueprint page: requires login, shows only logged-in user's data (or admin override)
-- All other existing pages: remain public, no login required
-- Sidebar shows Login/Signup buttons when logged out, username + logout when logged in
-
-### Phase 3 — Updated Trade Calculator
-
-The trade calculator stays at `/trade` but gets smarter. Build on top of the existing Combined Score (60% KTC + 40% production).
-
-**Dynamic Value Adjustments:**
-
-1. **Roster context adjustment** — when a team is trading away a young high-upside player, that player is worth more to a Rebuilder receiving them than KTC suggests. Adjust receiving value based on outlook fit.
-
-2. **Need-based multiplier** — if the logged-in manager is receiving a player at a position where their roster grade is weak (bottom 3 in league), add a need bonus to that player's value. Show final adjusted number only, not the breakdown.
-
-3. **Pick value adjustment by team outlook** — for picks in the next 1-2 years only (currently 2027 and 2028, derived dynamically as `YEARS[1]` and `YEARS[2]`):
-   - A pick from a Rebuild/Rebuild (future value) team is worth MORE (they're likely to be bad = higher pick)
-   - A pick from a Contender is worth LESS (they're likely to pick late)
-   - Do NOT apply this adjustment to `YEARS[0]` (current draft year) or `YEARS[3]` (furthest synthetic year)
-
-4. **Team fit indicator** — when assets are added to the calculator, show which specific league teams might want what you're offering based on their positional needs and outlook.
-
-**Do not show adjustment breakdowns** — only show the final adjusted value.
-
-### Phase 4 — My Blueprint Page
-
-New route: `/blueprint` — requires login.
-
-**Sections:**
-
-**1. Roster Composition Goals**
-- Auto-generated goals based on outlook classification. Examples:
-  - Contender: "Target a WR in the top 20 KTC", "Maintain 3+ Cornerstone/Foundational players"
-  - Rebuild: "Accumulate 2027/2028 first round picks", "Trade 30+ year old players for youth"
-- Manager can add their own custom goals (text input, saved to Firestore)
-- Each goal has a dismiss/done button (saved to Firestore)
-- Goals re-generate if outlook classification changes
-
-**2. Watchlist**
-- Manager adds players or picks they want to monitor
-- Saved to Firestore under their UID
-- Shows current KTC value, tier, owner, and whether owner's outlook suggests they might sell
-- Dismiss button per player
-
-**3. Personalized Trade Suggestions**
-- Buy suggestions: players on other rosters that fit this manager's needs, weighted by:
-  - Positional need (their weakest position grades)
-  - Age fit (Rebuilders want young, Contenders want proven)
-  - Whether the current owner might sell (Rebuilders more likely to sell veterans)
-- Sell suggestions: players on their roster that don't fit their window or are redundant
-- Each suggestion has dismiss/save button, saved to Firestore
-
-**4. Trade Finder**
-- Manager inputs 2-3 assets they're willing to give
-- System searches all other rosters for fair return packages
-- Returns 5 suggested packages
-- Each result shows:
-  - Assets you give
-  - Assets you receive
-  - Fit score (how well the return fits your team needs)
-  - Trade calculator score (using the dynamic calculator from Phase 3)
-  - One-line reason (e.g. "Fills your WR need, fair value")
-- Trade logic respects outlook compatibility:
-  - Rebuilders are unlikely to trade young players or near-term picks to Contenders
-  - Contenders trading with Contenders = window-focused assets
-  - Rebuilders trading with Rebuilders = value/youth swaps
+- `.env` files are gitignored and must **never** be committed
+- All Firebase keys are stored as **Vercel environment variables** per project
+- Required env vars for both apps:
+  ```
+  REACT_APP_FIREBASE_API_KEY
+  REACT_APP_FIREBASE_AUTH_DOMAIN
+  REACT_APP_FIREBASE_PROJECT_ID
+  REACT_APP_FIREBASE_STORAGE_BUCKET
+  REACT_APP_FIREBASE_MESSAGING_SENDER_ID
+  REACT_APP_FIREBASE_APP_ID
+  REACT_APP_LEAGUE_ID
+  ```
+- Wilson's Firebase project: `wilsons-moms-house`
+- CLTC Firebase project: `cltc-dynasty`
+- Firestore rules must allow subcollection reads: `match /users/{userId}/{subcollection}/{document}`
 
 ---
 
@@ -330,12 +326,50 @@ New route: `/blueprint` — requires login.
 - **Existing pages stay public** — only `/blueprint` requires login
 - **Admin mode** — `ekleiner1123` can view as any manager, with visual indicator
 - **Cross-device sync** — all personalized data (watchlist, goals, dismissals) syncs via Firestore when logged in
-- **CLTC notebook** — do not touch until Wilson's is fully complete
+- **Both leagues are now fully built and maintained in parallel** — changes to shared logic (tradeLogic.js, playerUtils.js, Blueprint sections) should be applied to both `src/` and `cltc-dynasty/src/`
+- **`rosterOwnerName` must match `Owner` field in teamOverview.json** — this is set at signup from `member.display_name`. If it doesn't match, Blueprint sections that filter by owner will silently show empty data.
+
+---
+
+## Known Python Compatibility Notes
+
+These issues arise when running on **Python 3.11** (used by GitHub Actions):
+
+- **`include_groups=False` in `.groupby().apply()`** — not supported in Python 3.11. Remove this argument if it appears; the behavior is the same without it.
+- **Backslashes inside f-string `{}` expressions** — not allowed in Python 3.11. Extract to a variable first:
+  ```python
+  # Bad (Python 3.12+ only):
+  f"{'\n'.join(items)}"
+  # Good:
+  joined = '\n'.join(items)
+  f"{joined}"
+  ```
+
+---
+
+## Trade Calculator Details
+
+The trade calculator (both leagues) uses **Combined Score = 60% KTC + 40% Production** as its base, with these dynamic adjustments applied on top:
+
+- **Stud tax**: applied when give side and receive side have unequal top assets. Uses raw KTC only — Combined Score is for display totals only.
+  - Formula: `adj = round(topKtc × baseRate(topKtc) × studMult × dilution)`
+  - `baseRate` is quadratic clamped to [0.30, 0.65]: `1.2803 - 0.00028679×topKtc + 0.000000021420×topKtc²`
+  - `studMult = 1.0 + max(0, (topKtc - 5000) / 100) * 0.001`
+  - `dilution = topKtc / studSideTotal`
+  - Applied to the side with the higher top asset (not always the give side)
+- **Need-based multiplier**: +5% max, only for players with KTC > 4500 at a position where the user ranks bottom 3
+- **QB need uses top 2 QBs** (superflex league) — both must rank bottom 3 to trigger
+- **Roster context adjustment**: Rebuild receives young players +8%, Contender receives young players -5%
+  - `isYoungUpside` tiers: Cornerstone, Upside Premier, Upside Shot only
+- **Pick outlook adjustment** (YEARS[1] and YEARS[2] only):
+  - Rebuild original owner: +12%, Contender original owner: -10%
+- **Team fit indicator** shows which teams might want your assets based on positional need and outlook
 
 ---
 
 ## League History
 
+### Wilson's Moms House
 - 2024: Startup season, Herschey6153 won
 - 2025: GreyWaedekin27 won
 - 2026: Current season (0-0)
@@ -359,12 +393,17 @@ tail -50 ~/wilsons-moms-house/notebooks/run_log.txt
 # Reconvert notebook after changes
 cd ~/wilsons-moms-house/notebooks
 jupyter nbconvert --to script wilsons_teams.ipynb --output wilsons_teams
+jupyter nbconvert --to script cltc_teams.ipynb --output cltc_teams
 
-# Deploy
+# Deploy (both leagues auto-deploy on push via Vercel)
 cd ~/wilsons-moms-house
 git add . && git commit -m "message" && git push
 
-# Install Firebase
-cd ~/wilsons-moms-house
-npm install firebase
+# Trigger manual GitHub Actions run
+# Go to: https://github.com/evanee1123/wilsons-moms-house/actions
+# Select "Update Data" (Wilson's) or "Update CLTC Data" (CLTC) → Run workflow
+
+# Install dependencies (run from the relevant app directory)
+cd ~/wilsons-moms-house && npm install
+cd ~/wilsons-moms-house/cltc-dynasty && npm install
 ```
