@@ -6,7 +6,21 @@ export default function PickPortfolio({ data }) {
   const [sortBy,      setSortBy]      = useState('KTC Value')
   const [sortDir,     setSortDir]     = useState('desc')
 
-  const picks = useMemo(() => data?.pickPortfolio || [], [data])
+  const picks = useMemo(() => {
+    const raw   = data?.pickPortfolio || []
+    const years = [...new Set(raw.map(p => p.Year))].sort()
+    const syntheticYear = years[years.length - 1]
+    const seen  = new Set()
+    return raw.filter(p => {
+      // Synthetic year picks are generated per-slot not per-trade, so dedup by name+owner only
+      const key = p.Year === syntheticYear
+        ? `${p['Pick Name']}|${p['Current Owner']}`
+        : `${p['Pick Name']}|${p['Original Owner']}|${p['Current Owner']}`
+      if (seen.has(key)) return false
+      seen.add(key)
+      return true
+    })
+  }, [data])
 
   const years = useMemo(() => (
     ['ALL', ...new Set(picks.map(p => p.Year).filter(Boolean))]

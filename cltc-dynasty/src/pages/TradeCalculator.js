@@ -1,21 +1,97 @@
 import { useState, useMemo, useEffect } from 'react'
+import { useAuth } from '../contexts/AuthContext'
 import PlayerDetailModal from '../components/PlayerDetailModal'
+import { calcAdjusted, computeQbNeed, computeStudTax, UPSIDE_TIERS, SKILL_POS } from '../utils/tradeLogic'
 
 const HISTORY_KEY = 'dynasty_trade_history'
 
-function ktcValueAdjustment(targetKtc, nPieces, starSideTotal = null) {
-  if (nPieces <= 1) return 0
-  const baseRates = { 2: 0.46, 3: 0.55, 4: 0.63, 5: 0.70 }
-  const baseRate  = baseRates[nPieces] || 0.75
-  const studMult  = 1.0 + Math.max(0, (targetKtc - 5000) / 100) * 0.003
-  let adj         = Math.round(targetKtc * baseRate * studMult)
-  if (starSideTotal && starSideTotal > targetKtc) {
-    const ratio = Math.pow(targetKtc / starSideTotal, 0.9)
-    adj         = Math.round(adj * ratio)
-  }
-  return adj
+
+// ── Team Fit Indicator ────────────────────────────────────────────────────────
+function TeamFitIndicator({ giveAssets, data, outlookByOwner, positionalRankings, adjustYears }) {
+  if (!giveAssets.length) return null
+
+  const fits = giveAssets.map(asset => {
+    const name     = asset.Player || asset['Player / Pick'] || ''
+    const pos      = asset.Position || ''
+    let suggestions = []
+
+    if (pos === 'Pick') {
+      // Derive year from enriched pick field or pick name string
+      const pickYear = asset.pickYear || (name.match(/^.*?(\d{4})/) || [])[1]
+      const isNearTerm = pickYear && adjustYears.has(pickYear)
+
+      // Near-term picks (YEARS[1]/YEARS[2]): contenders want near-term production
+      // Far picks: rebuilders accumulate future capital
+      suggestions = (data?.teamOverview || [])
+        .filter(t => isNearTerm
+          ? t.Outlook === 'Contender' || t.Outlook === 'Window Contender'
+          : t.Outlook === 'Rebuild'   || t.Outlook === 'Rebuild (future value)'
+        )
+        .slice(0, 3)
+        .map(t => ({ owner: t.Owner, reason: isNearTerm ? 'Near-term pick' : 'Future pick' }))
+
+    } else if (SKILL_POS.has(pos)) {
+      const isYoung = parseInt(asset.Age || 30) <= 25 || UPSIDE_TIERS.has(asset.Tier || '')
+
+      // Teams with positional need (bottom 4 = ranks 7–10) sorted worst-first
+      const needTeams = (data?.rosterGrades || [])
+        .map(t => ({
+          owner:   t.Owner,
+          rank:    positionalRankings[t.Owner]?.[pos] || 10,
+          outlook: outlookByOwner[t.Owner] || '',
+        }))
+        .filter(t => t.rank >= 7)
+        .sort((a, b) => b.rank - a.rank)
+
+      // Prefer outlook-compatible teams; fall back to pure need
+      const compatible = needTeams.filter(t =>
+        isYoung
+          ? t.outlook === 'Rebuild' || t.outlook === 'Rebuild (future value)' || t.outlook === 'Reload'
+          : t.outlook === 'Contender' || t.outlook === 'Window Contender'
+      )
+
+      suggestions = (compatible.length ? compatible : needTeams)
+        .slice(0, 3)
+        .map(t => ({ owner: t.owner, reason: `${pos} Need` }))
+    }
+
+    return { name, suggestions }
+  }).filter(f => f.suggestions.length > 0)
+
+  if (!fits.length) return null
+
+  return (
+    <div className='card' style={{ padding: '1rem', marginBottom: '1.25rem' }}>
+      <div style={{
+        fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)',
+        textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '10px'
+      }}>
+        Team Fit — Who Wants What You're Giving
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        {fits.map((f, i) => (
+          <div key={i}>
+            <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '5px' }}>
+              {f.name}
+            </div>
+            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+              {f.suggestions.map((s, j) => (
+                <span key={j} style={{
+                  fontSize: '11px', padding: '3px 8px', borderRadius: '99px',
+                  background: 'var(--blue-bg)', color: 'var(--blue)', fontWeight: 500,
+                }}>
+                  {s.owner} · {s.reason}
+                </span>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
 }
 
+// ── SearchBox (unchanged) ─────────────────────────────────────────────────────
 function SearchBox({ label, assets, onAdd, allPlayers }) {
   const [query, setQuery] = useState('')
   const [open,  setOpen]  = useState(false)
@@ -91,11 +167,13 @@ function SearchBox({ label, assets, onAdd, allPlayers }) {
   )
 }
 
-function AssetList({ assets, onRemove, onViewDetail }) {
+// ── AssetList (shows final adjusted value, no breakdown) ──────────────────────
+function AssetList({ assets, adjustedValues, onRemove, onViewDetail }) {
   if (assets.length === 0) return (
-    <div style={{ padding: '1rem', textAlign: 'center', fontSize: '13px',
-                  color: 'var(--text-muted)', border: '1px dashed var(--card-border)',
-                  borderRadius: '8px' }}>
+    <div style={{
+      padding: '1rem', textAlign: 'center', fontSize: '13px',
+      color: 'var(--text-muted)', border: '1px dashed var(--card-border)', borderRadius: '8px'
+    }}>
       No assets added yet
     </div>
   )
@@ -103,23 +181,20 @@ function AssetList({ assets, onRemove, onViewDetail }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
       {assets.map((p, i) => {
-        const name     = p.Player || p['Player / Pick'] || ''
-        const ktc      = parseInt(p['KTC Value'] || 0)
-        const combined = parseInt(p['Combined Score'] || p['KTC Value'] || 0)
-        const pos      = p.Position || ''
+        const name = p.Player || p['Player / Pick'] || ''
+        const ktc  = parseInt(p['KTC Value'] || 0)
+        const adj  = adjustedValues?.[i] ?? parseInt(p['Combined Score'] || p['KTC Value'] || 0)
+        const pos  = p.Position || ''
         return (
           <div key={i} style={{
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
             padding: '8px 10px', background: 'var(--page-bg)', borderRadius: '8px',
             border: '1px solid var(--card-border)'
           }}>
-            <div
-              onClick={() => onViewDetail && onViewDetail(p)}
-              style={{ flex: 1, cursor: 'pointer' }}
-            >
+            <div onClick={() => onViewDetail && onViewDetail(p)} style={{ flex: 1, cursor: 'pointer' }}>
               <div style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-primary)' }}>{name}</div>
               <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '1px' }}>
-                {pos && `${pos} · `}KTC: {ktc.toLocaleString()} · Combined: {combined.toLocaleString()}
+                {pos && `${pos} · `}KTC: {ktc.toLocaleString()} · Value: {adj.toLocaleString()}
               </div>
             </div>
             <button
@@ -137,22 +212,12 @@ function AssetList({ assets, onRemove, onViewDetail }) {
   )
 }
 
-function ValueBar({ giveCombined, receiveCombined, nGive, nReceive }) {
-  let giveNeeded, receiveNeeded, adj
-
-  if (nGive > nReceive) {
-    adj           = ktcValueAdjustment(receiveCombined, nGive, receiveCombined)
-    giveNeeded    = giveCombined
-    receiveNeeded = receiveCombined + adj
-  } else if (nReceive > nGive) {
-    adj           = ktcValueAdjustment(giveCombined, nReceive, giveCombined)
-    giveNeeded    = giveCombined + adj
-    receiveNeeded = receiveCombined
-  } else {
-    adj           = 0
-    giveNeeded    = giveCombined
-    receiveNeeded = receiveCombined
-  }
+// ── ValueBar ──────────────────────────────────────────────────────────────────
+function ValueBar({ giveCombined, receiveCombined, giveAdj, receiveAdj }) {
+  const ga = giveAdj    || 0
+  const ra = receiveAdj || 0
+  const giveNeeded    = giveCombined    + ga
+  const receiveNeeded = receiveCombined + ra
 
   const surplus   = receiveNeeded - giveNeeded
   const maxVal    = Math.max(giveNeeded, receiveNeeded, 1000)
@@ -166,8 +231,6 @@ function ValueBar({ giveCombined, receiveCombined, nGive, nReceive }) {
     return '#e53e3e'
   }
 
-  const markerColor = getMarkerColor(markerPct)
-
   return (
     <div style={{ padding: '1.5rem 1rem 1rem' }}>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.25rem' }}>
@@ -175,23 +238,23 @@ function ValueBar({ giveCombined, receiveCombined, nGive, nReceive }) {
           <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px' }}>You Give</div>
           <div style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-primary)' }}>{giveNeeded.toLocaleString()}</div>
           <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '2px' }}>
-            Face: {giveCombined.toLocaleString()}
-            {nReceive > nGive && adj > 0 && ` + ${adj.toLocaleString()} value adjustment`}
+            Total: {giveCombined.toLocaleString()}
+            {ga > 0 && ` + ${ga.toLocaleString()} stud bonus`}
           </div>
         </div>
         <div style={{ background: 'var(--page-bg)', borderRadius: '8px', padding: '10px 12px' }}>
           <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px' }}>You Receive</div>
           <div style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-primary)' }}>{receiveNeeded.toLocaleString()}</div>
           <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '2px' }}>
-            Face: {receiveCombined.toLocaleString()}
-            {nGive > nReceive && adj > 0 && ` + ${adj.toLocaleString()} value adjustment`}
+            Total: {receiveCombined.toLocaleString()}
+            {ra > 0 && ` + ${ra.toLocaleString()} stud bonus`}
           </div>
         </div>
       </div>
 
       <div style={{ marginBottom: '8px' }}>
         <div style={{ position: 'relative', height: '12px', borderRadius: '99px', background: 'linear-gradient(to right, #38a169, #68d391, #d69e2e, #dd6b20, #e53e3e)', overflow: 'visible' }}>
-          <div style={{ position: 'absolute', top: '50%', transform: 'translate(-50%, -50%)', left: `${markerPct}%`, width: '20px', height: '20px', borderRadius: '50%', background: markerColor, border: '3px solid var(--card-bg)', transition: 'left 0.3s ease', boxShadow: '0 2px 8px rgba(0,0,0,0.3)', zIndex: 1 }} />
+          <div style={{ position: 'absolute', top: '50%', transform: 'translate(-50%, -50%)', left: `${markerPct}%`, width: '20px', height: '20px', borderRadius: '50%', background: getMarkerColor(markerPct), border: '3px solid var(--card-bg)', transition: 'left 0.3s ease', boxShadow: '0 2px 8px rgba(0,0,0,0.3)', zIndex: 1 }} />
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--text-muted)', marginTop: '6px' }}>
           <span>Winning</span>
@@ -209,7 +272,11 @@ function ValueBar({ giveCombined, receiveCombined, nGive, nReceive }) {
   )
 }
 
+// ── Main component ────────────────────────────────────────────────────────────
 export default function TradeCalculator({ data }) {
+  const { userProfile } = useAuth()
+  const userOwner = userProfile?.rosterOwnerName || null
+
   const [giveAssets,     setGiveAssets]     = useState([])
   const [receiveAssets,  setReceiveAssets]  = useState([])
   const [selectedPlayer, setSelectedPlayer] = useState(null)
@@ -222,18 +289,70 @@ export default function TradeCalculator({ data }) {
     localStorage.setItem(HISTORY_KEY, JSON.stringify(history))
   }, [history])
 
+  // ── Lookup maps ─────────────────────────────────────────────────────────────
+  const outlookByOwner = useMemo(() => {
+    const map = {}
+    data?.teamOverview?.forEach(t => { map[t.Owner] = t.Outlook })
+    return map
+  }, [data])
+
+  const positionalRankings = useMemo(() => {
+    // result[owner][pos] = 1-based rank (1 = best, 10 = worst)
+    const result = {}
+    ;['QB', 'RB', 'WR', 'TE'].forEach(pos => {
+      const sorted = [...(data?.rosterGrades || [])].sort((a, b) => b[`${pos} Grade`] - a[`${pos} Grade`])
+      sorted.forEach((t, idx) => {
+        if (!result[t.Owner]) result[t.Owner] = {}
+        result[t.Owner][pos] = idx + 1
+      })
+    })
+    return result
+  }, [data])
+
+  // YEARS[1] and YEARS[2] derived from pickPortfolio — never hardcoded
+  const adjustYears = useMemo(() => {
+    const years = [...new Set((data?.pickPortfolio || []).map(p => p.Year))].sort()
+    return new Set([years[1], years[2]].filter(Boolean))
+  }, [data])
+
+  const qbNeed = computeQbNeed(userOwner, data?.playerUniverse)
+  const adjCtx = { userOwner, outlookByOwner, positionalRankings, adjustYears, qbNeed }
+
+  // ── Search pool: players + picks ─────────────────────────────────────────────
   const allPlayers = useMemo(() => {
     const players = data?.playerUniverse || []
-    const picks = (data?.pickValues || []).map(p => ({
-      Player:           p['Pick Name'],
+
+    // Generic picks from pickValues (covers 2026–2028)
+    const genericPicks = (data?.pickValues || []).map(p => ({
       'Player / Pick':  p['Pick Name'],
       Position:         'Pick',
       'KTC Value':      p['KTC Value'],
       'Combined Score': p['KTC Value'],
     }))
-    return [...players, ...picks]
+
+    // Add picks for years not in pickValues (e.g. synthetic 2029), deduped by name
+    const coveredYears = new Set(genericPicks.map(p => (p['Player / Pick'] || '').match(/^\d{4}/)?.[0]))
+    const seen         = new Set(genericPicks.map(p => p['Player / Pick']))
+    const extraPicks   = (data?.pickPortfolio || [])
+      .filter(p => !coveredYears.has(p.Year))
+      .filter(p => { if (seen.has(p['Pick Name'])) return false; seen.add(p['Pick Name']); return true })
+      .map(p => ({
+        'Player / Pick':  p['Pick Name'],
+        Position:         'Pick',
+        'KTC Value':      p['KTC Value'],
+        'Combined Score': p['KTC Value'],
+      }))
+
+    return [...players, ...genericPicks, ...extraPicks]
   }, [data])
 
+  // ── Adjusted values (final — no breakdown exposed) ──────────────────────────
+  const giveAdjusted    = giveAssets.map(p    => calcAdjusted(p, 'give',    adjCtx))
+  const receiveAdjusted = receiveAssets.map(p => calcAdjusted(p, 'receive', adjCtx))
+  const giveTotal       = giveAssets.reduce((s, p) => s + parseInt(p['KTC Value'] || 0), 0)
+  const receiveTotal    = receiveAssets.reduce((s, p) => s + parseInt(p['KTC Value'] || 0), 0)
+
+  // ── Handlers ─────────────────────────────────────────────────────────────────
   function handleViewDetail(p) {
     const name = p.Player || p['Player / Pick'] || ''
     const full = data?.playerUniverse?.find(u => u.Player === name)
@@ -246,7 +365,7 @@ export default function TradeCalculator({ data }) {
   function removeFromReceive(i) { setReceiveAssets(prev => prev.filter((_, idx) => idx !== i)) }
 
   function saveToHistory() {
-    if (giveAssets.length === 0 || receiveAssets.length === 0) return
+    if (!giveAssets.length || !receiveAssets.length) return
     const entry = {
       id:      Date.now(),
       date:    new Date().toLocaleDateString(),
@@ -264,15 +383,18 @@ export default function TradeCalculator({ data }) {
     setReceiveAssets([])
   }
 
-  const giveTotal    = giveAssets.reduce((s, p) => s + parseInt(p['Combined Score'] || p['KTC Value'] || 0), 0)
-  const receiveTotal = receiveAssets.reduce((s, p) => s + parseInt(p['Combined Score'] || p['KTC Value'] || 0), 0)
-  const hasAssets    = giveAssets.length > 0 || receiveAssets.length > 0
+  const hasAssets = giveAssets.length > 0 || receiveAssets.length > 0
 
   return (
     <div className='page'>
       <div className='page-title'>Trade Calculator</div>
       <div className='page-subtitle'>
-        Uses combined score (60% KTC + 40% production) · Includes value adjustment
+        Combined score (60% KTC + 40% production) · Context-adjusted values · Team fit
+        {!userOwner && (
+          <span style={{ color: 'var(--blue)', marginLeft: '8px' }}>
+            · Sign in for personalized adjustments
+          </span>
+        )}
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem', marginBottom: '1.25rem' }}>
@@ -281,7 +403,7 @@ export default function TradeCalculator({ data }) {
             You Give ({giveAssets.length}/5)
           </div>
           <SearchBox label='give' assets={giveAssets} onAdd={addToGive} allPlayers={allPlayers} />
-          <AssetList assets={giveAssets} onRemove={removeFromGive} onViewDetail={handleViewDetail} />
+          <AssetList assets={giveAssets} adjustedValues={giveAdjusted} onRemove={removeFromGive} onViewDetail={handleViewDetail} />
         </div>
 
         <div className='card' style={{ padding: '1rem' }}>
@@ -289,20 +411,33 @@ export default function TradeCalculator({ data }) {
             You Receive ({receiveAssets.length}/5)
           </div>
           <SearchBox label='receive' assets={receiveAssets} onAdd={addToReceive} allPlayers={allPlayers} />
-          <AssetList assets={receiveAssets} onRemove={removeFromReceive} onViewDetail={handleViewDetail} />
+          <AssetList assets={receiveAssets} adjustedValues={receiveAdjusted} onRemove={removeFromReceive} onViewDetail={handleViewDetail} />
         </div>
       </div>
 
-      {hasAssets && (
-        <div className='card'>
-          <ValueBar
-            giveCombined={giveTotal}
-            receiveCombined={receiveTotal}
-            nGive={giveAssets.length}
-            nReceive={receiveAssets.length}
-          />
-        </div>
+      {giveAssets.length > 0 && (
+        <TeamFitIndicator
+          giveAssets={giveAssets}
+          data={data}
+          outlookByOwner={outlookByOwner}
+          positionalRankings={positionalRankings}
+          adjustYears={adjustYears}
+        />
       )}
+
+      {hasAssets && (() => {
+        const st = computeStudTax(giveAssets, receiveAssets)
+        return (
+          <div className='card' style={{ marginBottom: '1.25rem' }}>
+            <ValueBar
+              giveCombined={giveTotal}
+              receiveCombined={receiveTotal}
+              giveAdj={st.giveAdj}
+              receiveAdj={st.receiveAdj}
+            />
+          </div>
+        )
+      })()}
 
       <div style={{ display: 'flex', gap: '10px', marginBottom: '1.25rem' }}>
         {hasAssets && (

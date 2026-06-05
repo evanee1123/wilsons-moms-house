@@ -1,15 +1,37 @@
+import { useAuth } from '../contexts/AuthContext';
+
+const ALL_OWNERS = [
+  'ekleiner1123', 'Herschey6153', 'jsinykin', 'SvenMoney34', 'Akracoon',
+  'GiantHawkTua', 'nchernandez19', 'sethfriedman12', 'GreyWaedekin27', 'gavinw20',
+];
+
 export default function Sidebar({ page, setPage, owner, setOwner,
                                    lastUpdated, refresh, owners,
                                    sidebarOpen, setSidebarOpen }) {
+  const { currentUser, userProfile, viewAsOwner, setViewAsOwner, logout } = useAuth();
+  const isAdmin = userProfile?.sleeperUsername === 'ekleiner1123';
+
   const navItems = [
     { id: 'home',    label: 'Home',             icon: '⊞' },
     { id: 'team',    label: 'Team Deep Dive',   icon: '◉' },
     { id: 'players', label: 'Player Rankings',  icon: '☰' },
     { id: 'picks',   label: 'Pick Portfolio',   icon: '◈' },
     { id: 'trade',   label: 'Trade Calculator', icon: '⇄' },
-    { id: 'tradehistory', label: 'Trade History',    icon: '📋' },
-    { id: 'history', label: 'League History', icon: '🏆' },
-  ]
+    { id: 'tradehistory', label: 'Trade History',  icon: '📋' },
+    { id: 'history', label: 'League History',   icon: '🏆' },
+    { id: 'blueprint', label: 'My Blueprint',   icon: '◎' },
+  ];
+
+  async function handleLogout() {
+    await logout();
+    setPage('home');
+  }
+
+  function handleViewAs(e) {
+    const name = e.target.value;
+    setViewAsOwner(name || null);
+    if (name) setOwner(name);
+  }
 
   return (
     <aside
@@ -21,11 +43,12 @@ export default function Sidebar({ page, setPage, owner, setOwner,
         position: 'relative'
       }}
     >
+      {/* Header */}
       <div style={{ padding: '1.25rem 1rem', borderBottom: '1px solid rgba(255,255,255,0.06)',
                     display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div>
           <div style={{ fontSize: '13px', fontWeight: 700, color: '#fff', lineHeight: 1.3 }}>
-            CLTC Dynasty
+            CLTC 8 2017
           </div>
           <div style={{ fontSize: '11px', color: '#718096', marginTop: '2px' }}>
             Dynasty League
@@ -42,6 +65,7 @@ export default function Sidebar({ page, setPage, owner, setOwner,
         >×</button>
       </div>
 
+      {/* Nav */}
       <nav style={{ flex: 1, padding: '0.5rem 0' }}>
         {navItems.map(item => (
           <button
@@ -64,19 +88,77 @@ export default function Sidebar({ page, setPage, owner, setOwner,
         ))}
       </nav>
 
+      {/* Bottom section */}
       <div style={{ padding: '1rem', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+
+        {/* Auth state */}
+        {currentUser ? (
+          <div style={{ marginBottom: '12px' }}>
+            <div style={{ fontSize: '11px', color: '#718096', marginBottom: '4px' }}>
+              Signed in as
+            </div>
+            <div style={{ fontSize: '12px', color: '#fff', fontWeight: 600,
+                          marginBottom: '8px', wordBreak: 'break-all' }}>
+              {userProfile?.sleeperUsername || currentUser.email}
+            </div>
+
+            {/* Admin "View As" */}
+            {isAdmin && (
+              <div style={{ marginBottom: '10px' }}>
+                <div style={{ fontSize: '11px', color: '#718096', marginBottom: '4px' }}>
+                  Admin — View as
+                </div>
+                <select
+                  value={viewAsOwner || ''}
+                  onChange={handleViewAs}
+                  style={selectStyle}
+                >
+                  <option value=''>Myself (ekleiner1123)</option>
+                  {ALL_OWNERS.filter(o => o !== 'ekleiner1123').map(o => (
+                    <option key={o} value={o}>{o}</option>
+                  ))}
+                </select>
+                {viewAsOwner && (
+                  <div style={{
+                    marginTop: '6px', fontSize: '11px', color: '#f6e05e',
+                    background: 'rgba(246,224,94,0.1)', borderRadius: '6px',
+                    padding: '4px 8px',
+                  }}>
+                    Viewing as {viewAsOwner}
+                  </div>
+                )}
+              </div>
+            )}
+
+            <button onClick={handleLogout} style={ghostBtnStyle}>
+              Log out
+            </button>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', gap: '6px', marginBottom: '12px' }}>
+            <button
+              onClick={() => { setPage('login'); setSidebarOpen(false) }}
+              style={{ ...ghostBtnStyle, flex: 1 }}
+            >
+              Log in
+            </button>
+            <button
+              onClick={() => { setPage('signup'); setSidebarOpen(false) }}
+              style={{ ...primaryBtnStyle, flex: 1 }}
+            >
+              Sign up
+            </button>
+          </div>
+        )}
+
+        {/* Public team selector */}
         <div style={{ fontSize: '11px', color: '#718096', marginBottom: '4px' }}>
           Viewing as
         </div>
         <select
           value={owner}
           onChange={e => setOwner(e.target.value)}
-          style={{
-            width: '100%', background: 'rgba(255,255,255,0.06)',
-            border: '1px solid rgba(255,255,255,0.1)',
-            color: '#fff', borderRadius: '6px', padding: '6px 8px',
-            fontSize: '12px', cursor: 'pointer'
-          }}
+          style={selectStyle}
         >
           <option value=''>Select team...</option>
           {owners.map(o => <option key={o} value={o}>{o}</option>)}
@@ -88,18 +170,31 @@ export default function Sidebar({ page, setPage, owner, setOwner,
           </div>
         )}
 
-        <button
-          onClick={refresh}
-          style={{
-            width: '100%', marginTop: '8px', padding: '6px',
-            background: 'rgba(255,255,255,0.06)',
-            border: '1px solid rgba(255,255,255,0.1)',
-            color: '#a0aec0', borderRadius: '6px', fontSize: '12px', cursor: 'pointer'
-          }}
-        >
+        <button onClick={refresh} style={{ ...ghostBtnStyle, marginTop: '8px' }}>
           Refresh data
         </button>
       </div>
     </aside>
   )
 }
+
+const selectStyle = {
+  width: '100%', background: 'rgba(255,255,255,0.06)',
+  border: '1px solid rgba(255,255,255,0.1)',
+  color: '#fff', borderRadius: '6px', padding: '6px 8px',
+  fontSize: '12px', cursor: 'pointer',
+};
+
+const ghostBtnStyle = {
+  width: '100%', padding: '6px',
+  background: 'rgba(255,255,255,0.06)',
+  border: '1px solid rgba(255,255,255,0.1)',
+  color: '#a0aec0', borderRadius: '6px', fontSize: '12px', cursor: 'pointer',
+};
+
+const primaryBtnStyle = {
+  padding: '6px',
+  background: '#3182ce', border: 'none',
+  color: '#fff', borderRadius: '6px', fontSize: '12px',
+  cursor: 'pointer', fontWeight: 600,
+};

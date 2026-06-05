@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useData } from './hooks/useData'
+import { AuthProvider, useAuth } from './contexts/AuthContext'
 import Sidebar from './components/Sidebar'
 import Home from './pages/Home'
 import TeamDeepDive from './pages/TeamDeepDive'
@@ -8,20 +9,32 @@ import PickPortfolio from './pages/PickPortfolio'
 import TradeCalculator from './pages/TradeCalculator'
 import TradeHistory from './pages/TradeHistory'
 import LeagueHistory from './pages/LeagueHistory'
+import Login from './pages/Login'
+import Signup from './pages/Signup'
+import ProtectedRoute from './components/ProtectedRoute'
+import Blueprint from './pages/Blueprint'
 import './App.css'
 
-export default function App() {
+function AppInner() {
   const [page,        setPage]        = useState('home')
   const [owner,       setOwner]       = useState('')
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const { data, loading, error, refresh } = useData()
+  const { userProfile } = useAuth()
+
+  // Auto-select logged-in user's team in the public team selector
+  useEffect(() => {
+    if (userProfile?.rosterOwnerName) {
+      setOwner(userProfile.rosterOwnerName)
+    }
+  }, [userProfile])
 
   if (loading) return (
     <div style={{
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       height: '100vh', flexDirection: 'column', gap: '1rem'
     }}>
-      <div style={{ fontSize: '24px', fontWeight: 500 }}>CLTC Dynasty</div>
+      <div style={{ fontSize: '24px', fontWeight: 500 }}>CLTC 8 2017</div>
       <div style={{ color: '#888' }}>Loading league data...</div>
     </div>
   )
@@ -39,22 +52,27 @@ export default function App() {
     </div>
   )
 
+  if (page === 'login')  return <Login  setPage={setPage} />
+  if (page === 'signup') return <Signup setPage={setPage} />
+
   const pages = {
-    home:         Home,
-    team:         TeamDeepDive,
-    players:      PlayerRankings,
-    picks:        PickPortfolio,
-    trade:        TradeCalculator,
+    home:    Home,
+    team:    TeamDeepDive,
+    players: PlayerRankings,
+    picks:   PickPortfolio,
+    trade:   TradeCalculator,
     tradehistory: TradeHistory,
     history:      LeagueHistory,
   }
-
   const PageComponent = pages[page] || Home
 
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
       {sidebarOpen && (
-        <div onClick={() => setSidebarOpen(false)} className='mobile-overlay' />
+        <div
+          onClick={() => setSidebarOpen(false)}
+          className='mobile-overlay'
+        />
       )}
       <Sidebar
         page={page}
@@ -78,13 +96,24 @@ export default function App() {
               lineHeight: 1
             }}
           >☰</button>
-          <span style={{ fontWeight: 600, fontSize: '15px' }}>CLTC Dynasty</span>
+          <span style={{ fontWeight: 600, fontSize: '15px' }}>CLTC 8 2017</span>
           <div style={{ width: '52px' }} />
         </div>
         <div style={{ flex: 1 }}>
-          <PageComponent data={data} owner={owner} setPage={setPage} />
+          {page === 'blueprint'
+            ? <ProtectedRoute setPage={setPage}><Blueprint data={data} setPage={setPage} /></ProtectedRoute>
+            : <PageComponent data={data} owner={owner} setPage={setPage} />
+          }
         </div>
       </main>
     </div>
+  )
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <AppInner />
+    </AuthProvider>
   )
 }
