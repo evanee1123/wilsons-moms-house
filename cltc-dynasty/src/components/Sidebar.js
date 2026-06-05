@@ -1,10 +1,5 @@
 import { useAuth } from '../contexts/AuthContext';
 
-const ALL_OWNERS = [
-  'ekleiner1123', 'Herschey6153', 'jsinykin', 'SvenMoney34', 'Akracoon',
-  'GiantHawkTua', 'nchernandez19', 'sethfriedman12', 'GreyWaedekin27', 'gavinw20',
-];
-
 export default function Sidebar({ page, setPage, owner, setOwner,
                                    lastUpdated, refresh, owners,
                                    sidebarOpen, setSidebarOpen }) {
@@ -113,8 +108,8 @@ export default function Sidebar({ page, setPage, owner, setOwner,
                   onChange={handleViewAs}
                   style={selectStyle}
                 >
-                  <option value=''>Myself (ekleiner1123)</option>
-                  {ALL_OWNERS.filter(o => o !== 'ekleiner1123').map(o => (
+                  <option value=''>Myself ({userProfile?.rosterOwnerName || userProfile?.sleeperUsername})</option>
+                  {owners.filter(o => o !== userProfile?.rosterOwnerName).map(o => (
                     <option key={o} value={o}>{o}</option>
                   ))}
                 </select>
