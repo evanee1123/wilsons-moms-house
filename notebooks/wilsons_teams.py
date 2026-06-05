@@ -309,7 +309,8 @@ print(f"\n✅ KTC scrape complete — {len(rankings_df)} players, {len(picks_ktc
 print(f"   Top player: {rankings_df.iloc[0]['Player']} ({rankings_df.iloc[0]['KTC Value']:,})")
 print(f"   Last player: {rankings_df.iloc[-1]['Player']} ({rankings_df.iloc[-1]['KTC Value']:,})")
 print(f"   Pick range: {picks_ktc['KTC Value'].max():,} (highest) — {picks_ktc['KTC Value'].min():,} (lowest)")
-print(f"   Pick years present: {sorted(picks_ktc['Name'].str.extract(r'(\\d{4})')[0].dropna().unique().tolist())}")
+_pick_years_ktc = sorted(picks_ktc['Name'].str.extract(r'(\d{4})')[0].dropna().unique().tolist())
+print(f"   Pick years present: {_pick_years_ktc}")
 
 
 # In[4]:
@@ -909,7 +910,8 @@ picks_master_df["ktc_value"] = picks_master_df["ktc_lookup_name"].apply(
 )
 
 print(f"✅ Pick portfolio built: {len(picks_master_df)} picks")
-print(f"   Pick years in all_picks: {sorted(all_picks['Name'].str.extract(r'(\\d{4})')[0].dropna().unique().tolist())}")
+_pick_years_all = sorted(all_picks['Name'].str.extract(r'(\d{4})')[0].dropna().unique().tolist())
+print(f"   Pick years in all_picks: {_pick_years_all}")
 
 # Sample output
 first_future = future_years[0]
