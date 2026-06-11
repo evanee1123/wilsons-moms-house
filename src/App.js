@@ -13,6 +13,7 @@ import Login from './pages/Login'
 import Signup from './pages/Signup'
 import ProtectedRoute from './components/ProtectedRoute'
 import Blueprint from './pages/Blueprint'
+import PowerRankings from './pages/PowerRankings'
 import './App.css'
 
 function AppInner() {
@@ -61,8 +62,9 @@ function AppInner() {
     players: PlayerRankings,
     picks:   PickPortfolio,
     trade:   TradeCalculator,
-    tradehistory: TradeHistory,
-    history:      LeagueHistory,
+    tradehistory:   TradeHistory,
+    history:        LeagueHistory,
+    powerrankings:  PowerRankings,
   }
   const PageComponent = pages[page] || Home
 

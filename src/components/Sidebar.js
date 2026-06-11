@@ -17,9 +17,10 @@ export default function Sidebar({ page, setPage, owner, setOwner,
     { id: 'players', label: 'Player Rankings',  icon: '☰' },
     { id: 'picks',   label: 'Pick Portfolio',   icon: '◈' },
     { id: 'trade',   label: 'Trade Calculator', icon: '⇄' },
-    { id: 'tradehistory', label: 'Trade History',  icon: '📋' },
-    { id: 'history', label: 'League History',   icon: '🏆' },
-    { id: 'blueprint', label: 'My Blueprint',   icon: '◎' },
+    { id: 'tradehistory',   label: 'Trade History',    icon: '📋' },
+    { id: 'history',       label: 'League History',   icon: '🏆' },
+    { id: 'powerrankings', label: 'Power Rankings',   icon: '⚡' },
+    { id: 'blueprint',     label: 'My Blueprint',     icon: '◎' },
   ];
 
   async function handleLogout() {
