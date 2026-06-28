@@ -65,9 +65,7 @@ Both leagues are **fully built and deployed**. The auto-update data pipeline is 
 ### Wilson's — Competitive Window Projection Model (Complete)
 - Rewrote the "17b. Competitive Window" notebook cell — replaced the flat per-bucket growth/decay
   model with position-specific age curves (Rising/Prime/Late/Decline, separate from the Age Runway
-  display buckets), outlook-aware multipliers on youth growth / pick conversion / aging discount, and
-  pick-value contributions to future-year projections (1st picks count 60% of KTC value, 2nd 30%,
-  3rd/4th 10%, scaled by outlook)
+  display buckets) and outlook-aware multipliers on youth growth / pick conversion / aging discount
 - Added `"Years to Peak"` field to `teamOverview.json` and a 4th stat card in
   `CompetitiveWindow` (`src/pages/TeamDeepDive.js`), hidden when 0
 - Fixed the Value Curve chart's Y-axis to auto-scale (`domain={['auto','auto']}`) instead of starting at 0
@@ -79,9 +77,29 @@ Both leagues are **fully built and deployed**. The auto-update data pipeline is 
     stated expectation that young cores should peak 2-3 years out.
   - Widened the Peak Window membership rule from "within 5% of peak" to "within 10%" — at 5%, no team
     in the league reached a 4+ year window; at 10%, ekleiner1123 (and several others) do.
-- Verified: ekleiner1123 → Core Age 23.9, Peak Year 2029, Peak Window 2026–2030, Peak Gain +9.8%.
-  League-wide, Rebuild teams show the largest gains (Akracoon +28.8%, nchernandez19 +22.1%), while
-  the 4 oldest-core teams correctly show "At peak now" (0%) — confirms outlook-awareness works.
+
+#### Follow-up: Pick Conversion Model Fix (Complete)
+- The original pick conversion (1st picks 60% of KTC value, 2nd 30%, 3rd/4th 10%, injected once in
+  the draft year with no further growth) was wrong — picks become young Rising players and should
+  keep gaining value after the draft. Replaced with:
+  - **Draft year**: picks convert at 100% of KTC value (regardless of round) — round only affects
+    post-draft growth now
+  - **Post-draft growth**: each pick compounds annually at a round-scaled share of the 13%
+    league-average Rising rate — 1st 13%/yr, 2nd 9.75%/yr, 3rd 6.5%/yr, 4th 3.25%/yr — through 2030
+  - Verified against worked examples to the dollar (2028 1st @ 5,619 → 6,350 → 7,175;
+    2027 2nd @ 3,462 → 3,800 → 4,170 → 4,577) and against Akracoon's 5x 2028 1sts: curve now spikes
+    at 2028 (138,633) and keeps climbing through 2030 (157,221 → 162,899) with no post-spike drop
+  - **Judgment call, flagged and approved by the user**: pure 100% conversion made ekleiner1123's
+    Peak Gain jump to ~32% — far above their own ~9-10% estimate, since 100% is inherently much bigger
+    than the old 10-60% rates for any non-trivial pick stash, even without a marquee 1st. Re-applied
+    the existing outlook-aware pick multiplier (Rebuild 1.3x, Reload 1.1x, Contender 0.9x) to the
+    draft-year conversion value as a partial offset — this only softens the gap (ekleiner1123 lands at
+    +29.0%, not ~9-10%), which the user accepted as an inherent consequence of 100% draft-year
+    conversion rather than a bug.
+- Current verified values: ekleiner1123 → Core Age 23.9, Peak Year 2029, Peak Window 2028–2030,
+  Peak Gain +29.0%. Akracoon → Peak Year 2030, Peak Window 2029–2030, Peak Gain +119.7%. Most teams
+  now show double-digit-to-triple-digit gains since picks contribute much more broadly than before;
+  only the 2 oldest-core teams (GreyWaedekin27, Herschey6153) still show "At peak now" (0%).
 
 ---
 
