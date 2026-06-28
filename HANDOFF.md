@@ -62,6 +62,27 @@ Both leagues are **fully built and deployed**. The auto-update data pipeline is 
 - Cornerstone fairness filter — gate widens to `ratio >= 1.00 && ratio <= 1.35` when giving a Cornerstone
 - Candidate pool bias — 1st-round-pick packages floated when `requireFirstRound === true`
 
+### Wilson's — Competitive Window Projection Model (Complete)
+- Rewrote the "17b. Competitive Window" notebook cell — replaced the flat per-bucket growth/decay
+  model with position-specific age curves (Rising/Prime/Late/Decline, separate from the Age Runway
+  display buckets), outlook-aware multipliers on youth growth / pick conversion / aging discount, and
+  pick-value contributions to future-year projections (1st picks count 60% of KTC value, 2nd 30%,
+  3rd/4th 10%, scaled by outlook)
+- Added `"Years to Peak"` field to `teamOverview.json` and a 4th stat card in
+  `CompetitiveWindow` (`src/pages/TeamDeepDive.js`), hidden when 0
+- Fixed the Value Curve chart's Y-axis to auto-scale (`domain={['auto','auto']}`) instead of starting at 0
+- **Two judgment calls made during verification against ekleiner1123's real roster** (flagged to and
+  approved by the user, not unilateral):
+  - Widened the "Rising" age cutoffs — RB/WR/TE Rising now extends to ≤24 (was ≤22/23), QB to ≤25
+    (was ≤24), with Prime/Late/Decline bounds shifted up accordingly. The original cutoffs put common
+    24-25yo "ascending star" assets (e.g. a 24-year-old RB1) already in Prime, which contradicted the
+    stated expectation that young cores should peak 2-3 years out.
+  - Widened the Peak Window membership rule from "within 5% of peak" to "within 10%" — at 5%, no team
+    in the league reached a 4+ year window; at 10%, ekleiner1123 (and several others) do.
+- Verified: ekleiner1123 → Core Age 23.9, Peak Year 2029, Peak Window 2026–2030, Peak Gain +9.8%.
+  League-wide, Rebuild teams show the largest gains (Akracoon +28.8%, nchernandez19 +22.1%), while
+  the 4 oldest-core teams correctly show "At peak now" (0%) — confirms outlook-awareness works.
+
 ---
 
 ## Known Issues
@@ -73,7 +94,7 @@ None currently. Both leagues are stable and auto-updating.
 ## Improvement Roadmap
 
 ### Phase 1 — New Features
-1. **Competitive Window / Age Runway** — ✅ Done on Team Deep Dive (Core Age, Peak Window, Peak Gain %, Age Runway bar, projected Value Curve chart added to `teamOverview.json` via the notebook and rendered in `src/pages/TeamDeepDive.js` using Recharts). ⬜ Still needs to be added to the Blueprint page.
+1. **Competitive Window / Age Runway** — ✅ Done on Team Deep Dive, projection model reworked and verified (see "Wilson's — Competitive Window Projection Model" above for the age-curve/outlook/pick-conversion logic and the two threshold judgment calls made). ⬜ Still needs to be added to the Blueprint page.
 2. **Dynasty Matrix** — grid of Rising/Prime/Aging player counts by position. Add to Team Deep Dive.
 3. **Prime Windows Chart** — horizontal per-player timeline showing Rising → Prime → Declining phases sorted by value. Add to Team Deep Dive.
 4. **Position Distribution with Age Buckets** — Under 23 / 23-26 / 27-30 / 31+ player counts with value. Add to Team Deep Dive.
