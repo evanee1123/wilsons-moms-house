@@ -123,7 +123,7 @@ None currently. Both leagues are stable and auto-updating.
 
 ### Phase 1 — New Features
 1. **Competitive Window / Age Runway** — ✅ Done on Team Deep Dive, projection model reworked and verified (see "Wilson's — Competitive Window Projection Model" above for the age-curve/outlook/pick-conversion logic and the two threshold judgment calls made). ⬜ Still needs to be added to the Blueprint page.
-2. **Dynasty Matrix** — grid of Rising/Prime/Aging player counts by position. Add to Team Deep Dive.
+2. **Dynasty Matrix** — ✅ Done. `DynastyMatrix` in `src/pages/TeamDeepDive.js`, placed between Competitive Window and Positional Grades vs League. Client-side only (no notebook changes) — buckets `data.leagueRosters` by position (QB/RB/WR/TE) × career phase (Rising/Prime/Aging) using per-position age cutoffs (QB ≤25/26–30/31+, RB ≤24/25–26/27+, WR & TE ≤24/25–28/29+). Cells are clickable and expand a player list below the grid with age + KTC. Wilson's only — not added to CLTC.
 3. **Prime Windows Chart** — horizontal per-player timeline showing Rising → Prime → Declining phases sorted by value. Add to Team Deep Dive.
 4. **Position Distribution with Age Buckets** — Under 23 / 23-26 / 27-30 / 31+ player counts with value. Add to Team Deep Dive.
 5. **Trade Value Trajectory** — line chart of roster KTC value over time. Requires snapshot storage strategy. Add to Home or Blueprint.

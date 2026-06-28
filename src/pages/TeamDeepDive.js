@@ -466,6 +466,142 @@ function CompetitiveWindow({ teamData }) {
   )
 }
 
+const PHASE_COLUMNS = ['Rising', 'Prime', 'Aging']
+const PHASE_COLORS = {
+  'Rising': '#4ade80',
+  'Prime':  '#60a5fa',
+  'Aging':  '#f87171',
+}
+
+const PHASE_AGE_CUTOFFS = {
+  QB: { rising: 25, prime: 30 },
+  RB: { rising: 24, prime: 26 },
+  WR: { rising: 24, prime: 28 },
+  TE: { rising: 24, prime: 28 },
+}
+
+function getCareerPhase(position, age) {
+  const cutoffs = PHASE_AGE_CUTOFFS[position]
+  if (!cutoffs || age == null) return null
+  if (age <= cutoffs.rising) return 'Rising'
+  if (age <= cutoffs.prime) return 'Prime'
+  return 'Aging'
+}
+
+function DynastyMatrix({ players }) {
+  const positions = ['QB', 'RB', 'WR', 'TE']
+  const [activeCell, setActiveCell] = useState(null)
+
+  const buckets = {}
+  positions.forEach(pos => {
+    buckets[pos] = { Rising: [], Prime: [], Aging: [] }
+  })
+
+  players.forEach(p => {
+    const phase = getCareerPhase(p.Position, parseFloat(p.Age))
+    if (phase && buckets[p.Position]) {
+      buckets[p.Position][phase].push(p)
+    }
+  })
+
+  const hasAnyData = positions.some(pos =>
+    PHASE_COLUMNS.some(col => buckets[pos][col].length > 0)
+  )
+  if (!hasAnyData) return null
+
+  const activePlayers = activeCell ? buckets[activeCell.pos][activeCell.col] : null
+
+  return (
+    <div className='card'>
+      <div className='card-header'>
+        <h3>▦ Dynasty Matrix</h3>
+        <span>Players by career phase</span>
+      </div>
+      <div style={{ padding: '1rem' }}>
+        <div className='table-scroll'>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+            <thead>
+              <tr>
+                <th style={{ textAlign: 'left', padding: '6px 10px', fontSize: '11px',
+                             color: 'var(--text-muted)', borderBottom: '1px solid var(--card-border)' }}>
+                  Position
+                </th>
+                {PHASE_COLUMNS.map(col => (
+                  <th key={col} style={{ textAlign: 'center', padding: '6px 10px', fontSize: '11px',
+                               color: 'var(--text-muted)', borderBottom: '1px solid var(--card-border)' }}>
+                    {col}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {positions.map(pos => (
+                <tr key={pos}>
+                  <td style={{ padding: '7px 10px', fontWeight: 700,
+                               color: 'var(--text-primary)', borderBottom: '1px solid var(--card-border)' }}>
+                    {pos}
+                  </td>
+                  {PHASE_COLUMNS.map(col => {
+                    const count = buckets[pos][col].length
+                    const isActive = activeCell?.pos === pos && activeCell?.col === col
+                    return (
+                      <td
+                        key={col}
+                        onClick={() => setActiveCell(isActive ? null : (count > 0 ? { pos, col } : null))}
+                        style={{
+                          padding: '7px 10px', textAlign: 'center',
+                          borderBottom: '1px solid var(--card-border)',
+                          cursor: count > 0 ? 'pointer' : 'default',
+                          background: isActive ? 'var(--page-bg)' : 'transparent',
+                        }}
+                      >
+                        {count > 0 ? (
+                          <span style={{ fontWeight: 700, color: PHASE_COLORS[col] }}>
+                            {count}
+                          </span>
+                        ) : (
+                          <span style={{ color: 'var(--text-muted)' }}>—</span>
+                        )}
+                      </td>
+                    )
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {activeCell && activePlayers && activePlayers.length > 0 && (
+          <div style={{ marginTop: '1rem' }}>
+            <div style={{
+              fontSize: '11px', fontWeight: 700, color: 'var(--text-secondary)',
+              textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '8px'
+            }}>
+              {activeCell.pos} · {activeCell.col}
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+              {[...activePlayers]
+                .sort((a, b) => parseFloat(b['KTC Value']) - parseFloat(a['KTC Value']))
+                .map(p => (
+                  <div key={p.Player} style={{
+                    background: 'var(--page-bg)', borderRadius: '8px',
+                    padding: '8px 12px', fontSize: '12px',
+                    border: `1px solid ${PHASE_COLORS[activeCell.col]}33`
+                  }}>
+                    <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{p.Player}</div>
+                    <div style={{ color: 'var(--text-secondary)', marginTop: '2px' }}>
+                      Age {parseFloat(p.Age)} · {parseInt(p['KTC Value']).toLocaleString()} KTC
+                    </div>
+                  </div>
+                ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 function PositionalGrades({ rosterGrades, teamOwner }) {
   const teamGrades = rosterGrades?.find(t => t.Owner === teamOwner)
   const allGrades  = rosterGrades || []
@@ -726,6 +862,7 @@ export default function TeamDeepDive({ data, owner }) {
       <PickPortfolioSection picks={data?.pickPortfolio || []} teamOwner={teamOwner} />
       <DynastyHealth teamData={teamOverview} />
       <CompetitiveWindow teamData={teamOverview} />
+      <DynastyMatrix players={teamPlayers} />
       <PositionalGrades rosterGrades={data?.rosterGrades} teamOwner={teamOwner} />
       <TradeTargets
         tradeTargets={data?.tradeTargets}
