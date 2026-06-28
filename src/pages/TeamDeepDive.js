@@ -602,6 +602,149 @@ function DynastyMatrix({ players }) {
   )
 }
 
+const PRIME_CUTOFF_AGE = { QB: 36, RB: 30, WR: 33, TE: 33 }
+const PRIME_PHASE_COLORS = {
+  Rising:    '#f97316',
+  Prime:     '#4ade80',
+  Declining: '#f87171',
+}
+const POSITION_BADGE_COLORS = {
+  QB: { bg: '#fbbf24', color: '#78350f' },
+  RB: { bg: '#34d399', color: '#064e3b' },
+  WR: { bg: '#60a5fa', color: '#1e3a5f' },
+  TE: { bg: '#c084fc', color: '#4c1d95' },
+}
+
+const PRIME_AGE_MIN = 21
+const PRIME_AGE_MAX = 36
+const PRIME_AGE_SPAN = PRIME_AGE_MAX - PRIME_AGE_MIN
+
+function agePct(age) {
+  const clamped = Math.min(Math.max(age, PRIME_AGE_MIN), PRIME_AGE_MAX)
+  return ((clamped - PRIME_AGE_MIN) / PRIME_AGE_SPAN) * 100
+}
+
+function PrimeWindowsChart({ players }) {
+  const topPlayers = [...players]
+    .filter(p => PHASE_AGE_CUTOFFS[p.Position] && p.Age != null)
+    .sort((a, b) => parseFloat(b['KTC Value']) - parseFloat(a['KTC Value']))
+    .slice(0, 12)
+
+  if (topPlayers.length === 0) return null
+
+  const ageTicks = []
+  for (let a = PRIME_AGE_MIN; a <= PRIME_AGE_MAX; a++) ageTicks.push(a)
+
+  return (
+    <div className='card'>
+      <div className='card-header'>
+        <h3>⏳ Prime Windows</h3>
+        <span>Career phase by age</span>
+      </div>
+      <div style={{ padding: '1rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', marginBottom: '8px' }}>
+          <div style={{ width: '210px', flexShrink: 0 }} />
+          <div style={{ flex: 1, position: 'relative', height: '14px' }}>
+            {ageTicks.map(age => (
+              <span key={age} style={{
+                position: 'absolute', left: `${agePct(age)}%`, transform: 'translateX(-50%)',
+                fontSize: '10px', color: 'var(--text-muted)'
+              }}>
+                {age}
+              </span>
+            ))}
+          </div>
+          <div style={{ width: '64px', flexShrink: 0 }} />
+        </div>
+
+        {topPlayers.map(p => {
+          const position  = p.Position
+          const age       = parseFloat(p.Age)
+          const cutoffs   = PHASE_AGE_CUTOFFS[position]
+          const cutoffAge = PRIME_CUTOFF_AGE[position]
+          const riseEndPct    = agePct(cutoffs.rising)
+          const primeEndPct   = agePct(cutoffs.prime)
+          const declineEndPct = agePct(cutoffAge)
+          const ageMarkerPct  = agePct(age)
+          const badgeColors   = POSITION_BADGE_COLORS[position] || { bg: '#e2e8f0', color: '#4a5568' }
+
+          return (
+            <div key={p.Player} style={{
+              display: 'flex', alignItems: 'center', marginBottom: '8px', height: '24px'
+            }}>
+              <div style={{
+                width: '210px', flexShrink: 0, display: 'flex', alignItems: 'center',
+                gap: '8px', paddingRight: '10px', overflow: 'hidden'
+              }}>
+                <span style={{
+                  background: badgeColors.bg, color: badgeColors.color,
+                  fontSize: '10px', fontWeight: 700, padding: '2px 6px',
+                  borderRadius: '5px', flexShrink: 0
+                }}>{position}</span>
+                <span style={{
+                  fontSize: '12px', fontWeight: 500, color: 'var(--text-primary)',
+                  whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'
+                }}>{p.Player}</span>
+                <span style={{ fontSize: '11px', color: 'var(--text-muted)', flexShrink: 0 }}>
+                  {age}
+                </span>
+              </div>
+
+              <div style={{
+                flex: 1, position: 'relative', height: '14px', borderRadius: '4px',
+                background: 'var(--card-border)', overflow: 'hidden'
+              }}>
+                {ageTicks.map(a => (
+                  <div key={a} style={{
+                    position: 'absolute', left: `${agePct(a)}%`, top: 0, bottom: 0,
+                    width: '1px', background: 'rgba(255,255,255,0.08)'
+                  }} />
+                ))}
+                <div style={{
+                  position: 'absolute', left: 0, top: 0, bottom: 0,
+                  width: `${riseEndPct}%`, background: PRIME_PHASE_COLORS.Rising
+                }} />
+                <div style={{
+                  position: 'absolute', left: `${riseEndPct}%`, top: 0, bottom: 0,
+                  width: `${primeEndPct - riseEndPct}%`, background: PRIME_PHASE_COLORS.Prime
+                }} />
+                <div style={{
+                  position: 'absolute', left: `${primeEndPct}%`, top: 0, bottom: 0,
+                  width: `${declineEndPct - primeEndPct}%`, background: PRIME_PHASE_COLORS.Declining
+                }} />
+                <div style={{
+                  position: 'absolute', left: `${ageMarkerPct}%`, top: '-2px', bottom: '-2px',
+                  width: '2px', background: '#fff', transform: 'translateX(-1px)',
+                  boxShadow: '0 0 2px rgba(0,0,0,0.6)'
+                }} />
+              </div>
+
+              <div style={{
+                width: '64px', flexShrink: 0, textAlign: 'right', fontSize: '12px',
+                fontWeight: 500, color: 'var(--text-secondary)', paddingLeft: '10px'
+              }}>
+                {parseInt(p['KTC Value']).toLocaleString()}
+              </div>
+            </div>
+          )
+        })}
+
+        <div style={{ display: 'flex', gap: '14px', marginTop: '12px' }}>
+          {Object.entries(PRIME_PHASE_COLORS).map(([label, color]) => (
+            <div key={label} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span style={{
+                width: '9px', height: '9px', borderRadius: '2px',
+                background: color, display: 'inline-block'
+              }} />
+              <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{label}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function PositionalGrades({ rosterGrades, teamOwner }) {
   const teamGrades = rosterGrades?.find(t => t.Owner === teamOwner)
   const allGrades  = rosterGrades || []
@@ -863,6 +1006,7 @@ export default function TeamDeepDive({ data, owner }) {
       <DynastyHealth teamData={teamOverview} />
       <CompetitiveWindow teamData={teamOverview} />
       <DynastyMatrix players={teamPlayers} />
+      <PrimeWindowsChart players={teamPlayers} />
       <PositionalGrades rosterGrades={data?.rosterGrades} teamOwner={teamOwner} />
       <TradeTargets
         tradeTargets={data?.tradeTargets}
