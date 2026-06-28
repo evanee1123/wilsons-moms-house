@@ -73,7 +73,7 @@ None currently. Both leagues are stable and auto-updating.
 ## Improvement Roadmap
 
 ### Phase 1 — New Features
-1. **Competitive Window / Age Runway** — core age, peak window years, projected value curve by year, age runway bar (Young/Prime/Late Prime/Aging). Add to Team Deep Dive and Blueprint pages.
+1. **Competitive Window / Age Runway** — ✅ Done on Team Deep Dive (Core Age, Peak Window, Peak Gain %, Age Runway bar, projected Value Curve chart added to `teamOverview.json` via the notebook and rendered in `src/pages/TeamDeepDive.js` using Recharts). ⬜ Still needs to be added to the Blueprint page.
 2. **Dynasty Matrix** — grid of Rising/Prime/Aging player counts by position. Add to Team Deep Dive.
 3. **Prime Windows Chart** — horizontal per-player timeline showing Rising → Prime → Declining phases sorted by value. Add to Team Deep Dive.
 4. **Position Distribution with Age Buckets** — Under 23 / 23-26 / 27-30 / 31+ player counts with value. Add to Team Deep Dive.
