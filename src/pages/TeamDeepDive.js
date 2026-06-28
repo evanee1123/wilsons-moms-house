@@ -1,4 +1,8 @@
 import { useState } from 'react'
+import {
+  LineChart, Line, XAxis, YAxis, CartesianGrid,
+  Tooltip as RechartsTooltip, ResponsiveContainer,
+} from 'recharts'
 
 import PlayerDetailModal from '../components/PlayerDetailModal'
 
@@ -25,6 +29,14 @@ const OUTLOOK_BADGE = {
   'Reload (sell vets for youth)': 'badge-blue',
   'Rebuild':                      'badge-red',
   'Rebuild (future value)':       'badge-red',
+}
+
+const RUNWAY_BUCKETS = ['Young', 'Prime', 'Late Prime', 'Aging']
+const RUNWAY_COLORS = {
+  'Young':      '#4ade80',
+  'Prime':      '#60a5fa',
+  'Late Prime': '#facc15',
+  'Aging':      '#f87171',
 }
 
 function Tooltip({ text }) {
@@ -255,6 +267,185 @@ function DynastyHealth({ teamData }) {
             </div>
           </div>
         ))}
+      </div>
+    </div>
+  )
+}
+
+function ValueCurveTooltip({ active, payload, label }) {
+  if (!active || !payload || !payload.length) return null
+  return (
+    <div style={{
+      background: 'var(--card-bg)', border: '1px solid var(--card-border)',
+      borderRadius: '8px', padding: '8px 10px', fontSize: '12px'
+    }}>
+      <div style={{ color: 'var(--text-secondary)', marginBottom: '2px' }}>{label}</div>
+      <div style={{ color: 'var(--text-primary)', fontWeight: 600 }}>
+        {Math.round(payload[0].value).toLocaleString()}
+      </div>
+    </div>
+  )
+}
+
+function CompetitiveWindow({ teamData }) {
+  if (!teamData) return null
+
+  const coreAge      = teamData['Core Age']
+  const peakYear      = teamData['Peak Year']
+  const peakWindow    = teamData['Peak Window']
+  const peakGainPct   = teamData['Peak Gain %']
+  const ageRunway     = teamData['Age Runway']
+  const valueCurve    = teamData['Value Curve']
+
+  const hasStats  = coreAge != null || peakWindow != null || peakGainPct != null
+  const runwayBuckets = ageRunway
+    ? RUNWAY_BUCKETS.map(b => ({ name: b, pct: parseFloat(ageRunway[b]) || 0 })).filter(b => b.pct > 0)
+    : []
+  const hasRunway = runwayBuckets.length > 0
+
+  const curveEntries = valueCurve
+    ? Object.entries(valueCurve)
+        .map(([year, val]) => ({ year, value: Math.round(parseFloat(val) || 0) }))
+        .sort((a, b) => Number(a.year) - Number(b.year))
+    : []
+  const hasCurve = curveEntries.length > 1
+  const peakYearStr = peakYear != null ? String(peakYear) : null
+
+  if (!hasStats && !hasRunway && !hasCurve) return null
+
+  const peakGainLabel = peakGainPct == null ? null :
+    peakGainPct < 1 ? 'At peak now' : `+${parseFloat(peakGainPct).toFixed(1)}%`
+
+  return (
+    <div className='card'>
+      <div className='card-header'>
+        <h3>📈 Competitive Window</h3>
+        {teamData.Outlook && (
+          <span className={`badge ${OUTLOOK_BADGE[teamData.Outlook] || 'badge-blue'}`}>
+            {teamData.Outlook}
+          </span>
+        )}
+      </div>
+      <div style={{ padding: '1rem' }}>
+        {hasStats && (
+          <div style={{
+            display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
+            gap: '12px', marginBottom: (hasRunway || hasCurve) ? '1.5rem' : 0
+          }}>
+            {coreAge != null && (
+              <div style={{ background: 'var(--page-bg)', borderRadius: '8px', padding: '10px 12px' }}>
+                <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px' }}>
+                  Core Age
+                </div>
+                <div style={{ fontSize: '20px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                  {parseFloat(coreAge).toFixed(1)}
+                </div>
+                <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                  Weighted avg roster age
+                </div>
+              </div>
+            )}
+            {peakWindow != null && (
+              <div style={{ background: 'var(--page-bg)', borderRadius: '8px', padding: '10px 12px' }}>
+                <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px' }}>
+                  Peak Window
+                </div>
+                <div style={{ fontSize: '20px', fontWeight: 600, color: 'var(--green)' }}>
+                  {peakWindow}
+                </div>
+                <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                  Projected value peak
+                </div>
+              </div>
+            )}
+            {peakGainPct != null && (
+              <div style={{ background: 'var(--page-bg)', borderRadius: '8px', padding: '10px 12px' }}>
+                <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px' }}>
+                  Peak Gain
+                </div>
+                <div style={{ fontSize: '20px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                  {peakGainLabel}
+                </div>
+                <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                  vs current value
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {hasRunway && (
+          <div style={{ marginBottom: hasCurve ? '1.5rem' : 0 }}>
+            <div style={{
+              fontSize: '11px', fontWeight: 700, color: 'var(--text-secondary)',
+              textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '8px'
+            }}>
+              Age Runway
+            </div>
+            <div style={{
+              display: 'flex', height: '12px', borderRadius: '99px',
+              overflow: 'hidden', background: 'var(--card-border)'
+            }}>
+              {runwayBuckets.map(b => (
+                <div key={b.name} style={{ width: `${b.pct}%`, background: RUNWAY_COLORS[b.name] }} />
+              ))}
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '14px', marginTop: '10px' }}>
+              {runwayBuckets.map(b => (
+                <div key={b.name} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{
+                    width: '9px', height: '9px', borderRadius: '99px',
+                    background: RUNWAY_COLORS[b.name], display: 'inline-block'
+                  }} />
+                  <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                    {b.name} <strong style={{ color: 'var(--text-primary)' }}>{b.pct.toFixed(1)}%</strong>
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {hasCurve && (
+          <div>
+            <div style={{
+              fontSize: '11px', fontWeight: 700, color: 'var(--text-secondary)',
+              textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '8px'
+            }}>
+              Projected Value Curve
+            </div>
+            <ResponsiveContainer width='100%' height={200}>
+              <LineChart data={curveEntries} margin={{ top: 8, right: 12, bottom: 0, left: 0 }}>
+                <CartesianGrid stroke='var(--card-border)' vertical={false} />
+                <XAxis
+                  dataKey='year' tick={{ fontSize: 12, fill: 'var(--text-secondary)' }}
+                  axisLine={{ stroke: 'var(--card-border)' }} tickLine={false}
+                />
+                <YAxis
+                  tick={{ fontSize: 12, fill: 'var(--text-secondary)' }}
+                  axisLine={false} tickLine={false}
+                  tickFormatter={v => `${Math.round(v / 1000)}K`}
+                  width={42}
+                />
+                <RechartsTooltip content={<ValueCurveTooltip />} />
+                <Line
+                  type='monotone' dataKey='value' stroke='#4ade80' strokeWidth={2}
+                  dot={({ key, cx, cy, payload }) => {
+                    const isPeak = payload.year === peakYearStr
+                    return (
+                      <circle
+                        key={key} cx={cx} cy={cy} r={isPeak ? 6 : 3}
+                        fill='#4ade80' stroke={isPeak ? '#fff' : 'none'}
+                        strokeWidth={isPeak ? 2 : 0}
+                      />
+                    )
+                  }}
+                  activeDot={{ r: 5, fill: '#4ade80' }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        )}
       </div>
     </div>
   )
@@ -519,6 +710,7 @@ export default function TeamDeepDive({ data, owner }) {
 
       <PickPortfolioSection picks={data?.pickPortfolio || []} teamOwner={teamOwner} />
       <DynastyHealth teamData={teamOverview} />
+      <CompetitiveWindow teamData={teamOverview} />
       <PositionalGrades rosterGrades={data?.rosterGrades} teamOwner={teamOwner} />
       <TradeTargets
         tradeTargets={data?.tradeTargets}
