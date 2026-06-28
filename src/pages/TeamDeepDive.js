@@ -293,6 +293,7 @@ function CompetitiveWindow({ teamData }) {
   const coreAge      = teamData['Core Age']
   const peakYear      = teamData['Peak Year']
   const peakWindow    = teamData['Peak Window']
+  const yearsToPeak   = teamData['Years to Peak']
   const peakGainPct   = teamData['Peak Gain %']
   const ageRunway     = teamData['Age Runway']
   const valueCurve    = teamData['Value Curve']
@@ -371,6 +372,19 @@ function CompetitiveWindow({ teamData }) {
                 </div>
               </div>
             )}
+            {yearsToPeak != null && yearsToPeak !== 0 && (
+              <div style={{ background: 'var(--page-bg)', borderRadius: '8px', padding: '10px 12px' }}>
+                <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px' }}>
+                  Years to Peak
+                </div>
+                <div style={{ fontSize: '20px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                  {yearsToPeak}y
+                </div>
+                <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                  Years to peak
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -422,6 +436,7 @@ function CompetitiveWindow({ teamData }) {
                   axisLine={{ stroke: 'var(--card-border)' }} tickLine={false}
                 />
                 <YAxis
+                  domain={['auto', 'auto']}
                   tick={{ fontSize: 12, fill: 'var(--text-secondary)' }}
                   axisLine={false} tickLine={false}
                   tickFormatter={v => `${Math.round(v / 1000)}K`}

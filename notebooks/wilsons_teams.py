@@ -2192,13 +2192,13 @@ print(outlook_df[["owner","outlook","CF_total","value_share","production_share",
 # 17b. Competitive Window — Core Age, Peak Window, Age Runway, Value Curve
 # ============================================================
 
+# ---- Age Runway display buckets (unchanged — used only for the runway bar) ----
 AGE_BUCKETS = {
     "QB": [("Young", 0, 25), ("Prime", 26, 30), ("Late Prime", 31, 33), ("Aging", 34, 999)],
     "RB": [("Young", 0, 23), ("Prime", 24, 26), ("Late Prime", 27, 28), ("Aging", 29, 999)],
     "WR": [("Young", 0, 23), ("Prime", 24, 27), ("Late Prime", 28, 30), ("Aging", 31, 999)],
     "TE": [("Young", 0, 23), ("Prime", 24, 27), ("Late Prime", 28, 30), ("Aging", 31, 999)],
 }
-BUCKET_RATE = {"Young": 0.05, "Prime": -0.03, "Late Prime": -0.10, "Aging": -0.20}
 
 def get_age_bucket(position, age):
     for name, lo, hi in AGE_BUCKETS.get(position, AGE_BUCKETS["WR"]):
@@ -2206,37 +2206,115 @@ def get_age_bucket(position, age):
             return name
     return "Aging"
 
+# ---- Growth curve buckets (drive the value PROJECTION, separate from the runway display) ----
+# (bucket_name, lo_age, hi_age, annual_rate)
+GROWTH_CURVES = {
+    "QB": [
+        ("Rising",   0, 25,  0.12),
+        ("Prime",   26, 30,  0.03),
+        ("Peak",    31, 33, -0.02),
+        ("Decline", 34, 999, -0.15),
+    ],
+    "RB": [
+        ("Rising",   0, 24,  0.15),
+        ("Prime",   25, 26,  0.02),
+        ("Late",    27, 28, -0.12),
+        ("Decline", 29, 999, -0.25),
+    ],
+    "WR": [
+        ("Rising",   0, 24,  0.12),
+        ("Prime",   25, 28,  0.03),
+        ("Late",    29, 30, -0.08),
+        ("Decline", 31, 999, -0.18),
+    ],
+    "TE": [
+        ("Rising",   0, 24,  0.10),
+        ("Prime",   25, 28,  0.02),
+        ("Late",    29, 30, -0.08),
+        ("Decline", 31, 999, -0.18),
+    ],
+}
+GROWTH_ZERO_AGE = {"QB": 36, "RB": 30, "WR": 33, "TE": 33}
+VALUE_FLOOR, VALUE_CEILING = 500, 9999
+
+def get_growth_bucket(position, age):
+    curves = GROWTH_CURVES.get(position, GROWTH_CURVES["WR"])
+    for name, lo, hi, rate in curves:
+        if lo <= age <= hi:
+            return name, rate
+    return curves[-1][0], curves[-1][3]
+
+# ---- Outlook-aware multipliers (Step 3) ----
+OUTLOOK_MULT = {
+    "Rebuild":                      {"young": 1.4, "pick": 1.3, "aging": 0.7},
+    "Rebuild (future value)":       {"young": 1.4, "pick": 1.3, "aging": 0.7},
+    "Reload":                       {"young": 1.2, "pick": 1.1, "aging": 0.9},
+    "Reload (sell vets for youth)": {"young": 1.2, "pick": 1.1, "aging": 0.9},
+    "Contender":                    {"young": 1.0, "pick": 0.9, "aging": 1.0},
+    "Window Contender":             {"young": 1.0, "pick": 0.9, "aging": 1.0},
+    "Contender (needs production)": {"young": 1.0, "pick": 0.9, "aging": 1.0},
+}
+DEFAULT_MULT = {"young": 1.0, "pick": 1.0, "aging": 1.0}
+
 # Project the current year plus one year beyond the furthest pick year (YEARS[-1])
 NUM_PROJECTION_YEARS = len(YEARS) + 1
 VALUE_CURVE_YEARS = [int(CURRENT_DRAFT_YEAR) + i for i in range(NUM_PROJECTION_YEARS)]
 
-def project_player_value(position, age, ktc_value):
-    """Ages a player 1 year at a time, applying the decay/growth rate for
-    whatever age bucket they land in that year. Returns one value per
+def project_player_value(position, age, ktc_value, young_mult, aging_mult):
+    """Ages a player 1 year at a time using the position's growth curve.
+    Rising-bucket rates are scaled by young_mult; Decline-bucket dollar
+    values are scaled by aging_mult. Returns one value per
     VALUE_CURVE_YEARS entry (index 0 = current value, unprojected)."""
-    age_limit = AGE_LIMITS.get(position, 30)
-    values = [ktc_value]
-    running_value = ktc_value
+    zero_age = GROWTH_ZERO_AGE.get(position, 33)
+    values = [min(ktc_value, VALUE_CEILING)]
+    running_value = values[0]
     for i in range(1, len(VALUE_CURVE_YEARS)):
         projected_age = age + i
-        if projected_age >= age_limit + 2:
+        if running_value <= 0 or projected_age >= zero_age:
             running_value = 0
         else:
-            rate = BUCKET_RATE[get_age_bucket(position, projected_age)]
-            running_value = max(running_value * (1 + rate), 500)
+            bucket, rate = get_growth_bucket(position, projected_age)
+            if bucket == "Rising":
+                rate = rate * young_mult
+            running_value = running_value * (1 + rate)
+            if bucket == "Decline":
+                running_value = running_value * aging_mult
+            running_value = min(max(running_value, VALUE_FLOOR), VALUE_CEILING)
         values.append(running_value)
     return values
 
+# ---- Pick conversion value (Step 2) ----
+PICK_CONVERSION_RATE = {1: 0.60, 2: 0.30, 3: 0.10, 4: 0.10}
+VALUE_CURVE_YEAR_STRS = [str(y) for y in VALUE_CURVE_YEARS]
+
+def pick_value_by_year(owner_name, pick_mult):
+    """Returns {year_str: dollar contribution} for an owner's future picks."""
+    contributions = {}
+    owner_picks = picks_master_df[picks_master_df["current_owner_name"] == owner_name]
+    for _, pick in owner_picks.iterrows():
+        year = pick["year"]
+        if year == CURRENT_DRAFT_YEAR or year not in VALUE_CURVE_YEAR_STRS:
+            continue
+        rate = PICK_CONVERSION_RATE.get(int(pick["round"]), 0.10) * pick_mult
+        contributions[year] = contributions.get(year, 0) + pick["ktc_value"] * rate
+    return contributions
+
 competitive_window_rows = []
 for owner_name in merged_df["owner"].unique():
-    team_players = merged_df[(merged_df["owner"] == owner_name) & (merged_df["KTC Value"] > 0)]
-    total_value  = team_players["KTC Value"].sum()
+    outlook = owner_outlook.get(owner_name, "Reload")
+    mult    = OUTLOOK_MULT.get(outlook, DEFAULT_MULT)
+
+    team_players = merged_df[
+        (merged_df["owner"] == owner_name) & (merged_df["KTC Value"] > 0) &
+        (~merged_df["name"].str.contains("Pick", case=False, na=False))
+    ]
+    total_value = team_players["KTC Value"].sum()
 
     # ---- Core Age: KTC-value-weighted average age ----
     core_age = round((team_players["age"] * team_players["KTC Value"]).sum() / total_value, 1) \
         if total_value > 0 else 0
 
-    # ---- Age Runway: % of total KTC value per age bucket ----
+    # ---- Age Runway: % of total KTC value per display bucket ----
     bucket_values = {"Young": 0.0, "Prime": 0.0, "Late Prime": 0.0, "Aging": 0.0}
     for _, p in team_players.iterrows():
         bucket_values[get_age_bucket(p["position"], p["age"])] += p["KTC Value"]
@@ -2245,29 +2323,48 @@ for owner_name in merged_df["owner"].unique():
         for b, v in bucket_values.items()
     }
 
-    # ---- Value Curve: projected total roster value per year ----
+    # ---- Value Curve: outlook-aware player projections + pick conversion (Steps 1-3) ----
     curve_totals = [0.0] * len(VALUE_CURVE_YEARS)
     for _, p in team_players.iterrows():
-        projected   = project_player_value(p["position"], p["age"], p["KTC Value"])
+        projected = project_player_value(
+            p["position"], p["age"], p["KTC Value"], mult["young"], mult["aging"]
+        )
         curve_totals = [a + b for a, b in zip(curve_totals, projected)]
+
+    pick_contrib = pick_value_by_year(owner_name, mult["pick"])
+    for idx, year in enumerate(VALUE_CURVE_YEARS):
+        curve_totals[idx] += pick_contrib.get(str(year), 0)
+
     value_curve = {year: round(val, 0) for year, val in zip(VALUE_CURVE_YEARS, curve_totals)}
 
-    # ---- Peak Year / Peak Window / Peak Gain % ----
+    # ---- Peak Year / Peak Window / Years to Peak / Peak Gain % (Step 4) ----
     current_value = curve_totals[0]
     peak_idx      = max(range(len(curve_totals)), key=lambda i: curve_totals[i])
     peak_year     = VALUE_CURVE_YEARS[peak_idx]
     peak_value    = curve_totals[peak_idx]
-    window_lo     = VALUE_CURVE_YEARS[max(peak_idx - 1, 0)]
-    window_hi     = VALUE_CURVE_YEARS[min(peak_idx + 1, len(VALUE_CURVE_YEARS) - 1)]
-    peak_window   = f"{window_lo}–{window_hi}"
+
+    threshold     = peak_value * 0.90
+    in_window     = {i for i in range(len(curve_totals)) if curve_totals[i] >= threshold}
+    lo = hi = peak_idx
+    while (lo - 1) in in_window: lo -= 1
+    while (hi + 1) in in_window: hi += 1
+    if lo == hi:
+        lo = max(lo - 1, 0)
+        hi = min(hi + 1, len(VALUE_CURVE_YEARS) - 1)
+    peak_window   = f"{VALUE_CURVE_YEARS[lo]}–{VALUE_CURVE_YEARS[hi]}"
+    years_to_peak = peak_year - int(CURRENT_DRAFT_YEAR)
+
     peak_gain_pct = round((peak_value - current_value) / current_value * 100, 1) \
         if current_value > 0 else 0.0
+    if peak_gain_pct < 0.5:
+        peak_gain_pct = 0.0
 
     competitive_window_rows.append({
         "owner":         owner_name,
         "core_age":      core_age,
         "peak_year":     peak_year,
         "peak_window":   peak_window,
+        "years_to_peak": years_to_peak,
         "peak_gain_pct": peak_gain_pct,
         "age_runway":    age_runway,
         "value_curve":   value_curve,
@@ -2277,7 +2374,7 @@ competitive_window_df = pd.DataFrame(competitive_window_rows)
 outlook_df = outlook_df.merge(competitive_window_df, on="owner", how="left")
 
 print("Competitive Window calculated ✅")
-print(outlook_df[["owner","core_age","peak_year","peak_window","peak_gain_pct"]].to_string(index=False))
+print(outlook_df[["owner","outlook","core_age","peak_year","peak_window","years_to_peak","peak_gain_pct"]].to_string(index=False))
 
 
 # In[18]:
@@ -3250,14 +3347,14 @@ to = outlook_df[[
     "value_rank","production_rank","CF_total",
     *year_cols,
     "total_firsts","player_ktc_value","pick_ktc_value","total_ktc_value",
-    "core_age","peak_year","peak_window","peak_gain_pct","age_runway","value_curve"
+    "core_age","peak_year","peak_window","years_to_peak","peak_gain_pct","age_runway","value_curve"
 ]].copy()
 to.columns = [
     "Owner","Outlook","Value Share %","Production Share %","Gap",
     "Value Rank","Production Rank","C+F Total",
     *year_col_names,
     "Total 1sts","Player Value","Pick Value","Total Value",
-    "Core Age","Peak Year","Peak Window","Peak Gain %","Age Runway","Value Curve"
+    "Core Age","Peak Year","Peak Window","Years to Peak","Peak Gain %","Age Runway","Value Curve"
 ]
 push_json('teamOverview.json', df_to_records(to))
 
