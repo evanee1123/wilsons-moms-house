@@ -2284,19 +2284,37 @@ def project_player_value(position, age, ktc_value, young_mult, aging_mult):
     return values
 
 # ---- Pick conversion value (Step 2) ----
-PICK_CONVERSION_RATE = {1: 0.60, 2: 0.30, 3: 0.10, 4: 0.10}
+# Picks convert at 100% of KTC value in their draft year, then grow each
+# subsequent year as Rising players at a round-scaled share of the
+# league-average Rising rate (13% = avg of QB .12, RB .15, WR .12, TE .10).
+RISING_AVG_RATE = 0.13
+POST_DRAFT_GROWTH_RATE = {
+    1: RISING_AVG_RATE * 1.00,
+    2: RISING_AVG_RATE * 0.75,
+    3: RISING_AVG_RATE * 0.50,
+    4: RISING_AVG_RATE * 0.25,
+}
 VALUE_CURVE_YEAR_STRS = [str(y) for y in VALUE_CURVE_YEARS]
 
 def pick_value_by_year(owner_name, pick_mult):
-    """Returns {year_str: dollar contribution} for an owner's future picks."""
+    """Returns {year_str: dollar contribution} for an owner's future picks.
+    Each pick contributes 100% of its KTC value (scaled by the outlook-aware
+    pick_mult) starting in its draft year, then compounds at its round's
+    post-draft growth rate every year after."""
     contributions = {}
     owner_picks = picks_master_df[picks_master_df["current_owner_name"] == owner_name]
     for _, pick in owner_picks.iterrows():
-        year = pick["year"]
-        if year == CURRENT_DRAFT_YEAR or year not in VALUE_CURVE_YEAR_STRS:
+        draft_year = pick["year"]
+        if draft_year == CURRENT_DRAFT_YEAR or draft_year not in VALUE_CURVE_YEAR_STRS:
             continue
-        rate = PICK_CONVERSION_RATE.get(int(pick["round"]), 0.10) * pick_mult
-        contributions[year] = contributions.get(year, 0) + pick["ktc_value"] * rate
+        growth_rate = POST_DRAFT_GROWTH_RATE.get(int(pick["round"]), POST_DRAFT_GROWTH_RATE[4])
+        value = pick["ktc_value"] * pick_mult
+        for year_str in VALUE_CURVE_YEAR_STRS:
+            if int(year_str) < int(draft_year):
+                continue
+            if int(year_str) > int(draft_year):
+                value = value * (1 + growth_rate)
+            contributions[year_str] = contributions.get(year_str, 0) + value
     return contributions
 
 competitive_window_rows = []
