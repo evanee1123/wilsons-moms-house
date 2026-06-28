@@ -44,11 +44,13 @@ Two dynasty fantasy football analytics platforms built with:
     workflows/
       update_data.yml        ← Wilson's auto-update (Sun/Thu 8am CST)
       update_cltc_data.yml   ← CLTC auto-update (Sun/Thu 8am CST)
+      power_rankings.yml     ← Wilson's Power Rankings (every Tuesday 15:00 UTC / 9am CT)
   notebooks/
     wilsons_teams.ipynb
     wilsons_teams.py
     cltc_teams.ipynb
     cltc_teams.py
+    power_rankings.ipynb     ← Power Rankings notebook (Wilson's only)
     run_wilsons.sh
     run_log.txt
   public/
@@ -65,6 +67,7 @@ Two dynasty fantasy football analytics platforms built with:
       TradeCalculator.jsx
       TradeHistory.jsx
       History.jsx
+      PowerRankings.js
       Blueprint.js
     services/
       dataService.js
@@ -184,6 +187,8 @@ historyChampions.json
 historyTopWeeks.json
 historyPlayerGames.json
 historyBrackets.json
+power_rankings.json       — AI-generated weekly power rankings (Wilson's only)
+                            schema: { generated_at, rankings: [{ rank, team_name, owner, outlook, blurb }] }
 ```
 
 ---
@@ -245,6 +250,7 @@ stud_mult = 1.0 + max(0, (top_ktc - 5000) / 100) * 0.003
 | Trade Calculator | /trade | Value calculator with stud tax adjustment |
 | Trade History | /tradehistory | Retroactive trade grades using current KTC values |
 | League History | /history | Champions, all-time standings, playoff brackets, top 10s |
+| Power Rankings | /powerrankings | AI-generated weekly dynasty power rankings with smack-talk blurbs |
 | My Blueprint | /blueprint | Personalized roster analysis, trade strategy, priorities (login required) |
 
 ### Shared Components
@@ -269,6 +275,46 @@ Sections render in this order:
 - **Cornerstone give-side** (`requireFirstRound === true`): gate is `ratio >= 1.00 && ratio <= 1.35`; candidate pool pre-sorted to float 1st-round-pick packages first
 - **Template reordering** (post-dedup): qualifying results (Template A: 2+ 1sts; Template B: Cornerstone return OR Foundational + 1st) floated above non-qualifying results; Foundational give-side has relaxed version
 - **Player name normalization**: all lookups use `findPlayerByName()` from `src/utils/playerUtils.js` — handles `D.J. Moore` vs `DJ Moore`, `Kenneth Walker III` vs `Kenneth Walker`, etc.
+
+---
+
+## Power Rankings Notebook (Wilson's Only)
+
+**Notebook:** `notebooks/power_rankings.ipynb`
+**Workflow:** `.github/workflows/power_rankings.yml` — every **Tuesday at 15:00 UTC** (9am CT)
+**Output:** `public/data/power_rankings.json`
+
+### How it works
+1. Pulls Sleeper users + rosters for owner display names and custom team names (`metadata.team_name`)
+2. Reads existing JSON files from `public/data/` — does **not** re-derive anything already calculated:
+   - `teamOverview.json` — outlook, value rank, C+F total, draft capital
+   - `playerUniverse.json` — KTC values, tiers, positional depth per team
+   - `rosterGrades.json` — positional grades (QB/RB/WR/TE)
+   - `tradeHistory.json` — recent trades with WIN/LOSS/FAIR surplus grades
+   - `positionalProportion.json` — value split by position
+3. Formats all 10 teams into a single structured prompt
+4. One Anthropic API call (`claude-sonnet-4-6`) with a savage beat-writer system prompt — model determines the ranking order from the data, writes 3–5 sentence blurbs per team
+5. Parses JSON response, adds `generated_at` UTC timestamp, writes output
+
+### Output schema
+```json
+{
+  "generated_at": "2026-06-10T15:00:00Z",
+  "rankings": [
+    { "rank": 1, "team_name": "...", "owner": "...", "outlook": "Contender", "blurb": "..." }
+  ]
+}
+```
+
+### API key setup
+- **Locally:** add `ANTHROPIC_API_KEY=your-key` to `.env` in the repo root. The notebook loads it via `find_dotenv(usecwd=True)`, which searches upward from `notebooks/` and finds the root-level `.env`.
+- **GitHub Actions:** add `ANTHROPIC_API_KEY` as a repository secret — Settings → Secrets and variables → Actions → New repository secret.
+- **Required Python packages:** `anthropic`, `python-dotenv` — installed inline in the workflow, not in a requirements file.
+
+### React integration
+- `src/pages/PowerRankings.js` — rank number color-coded (gold #1, green top 3, orange 7–8, red 9–10), outlook badges use existing `badge-green/orange/blue/red` classes, AI disclaimer footer with last-updated date from `generated_at`
+- Added to `dataService.js` (`fetchJSON('power_rankings.json')` in `Promise.all`), `App.js` (`powerrankings` route), and `Sidebar.js` (nav item between League History and My Blueprint)
+- **CLTC does not have this feature** — do not add it there
 
 ---
 
@@ -315,6 +361,7 @@ Both leagues use Firebase Authentication (email/password) and Firestore.
 - Wilson's Firebase project: `wilsons-moms-house`
 - CLTC Firebase project: `cltc-dynasty`
 - Firestore rules must allow subcollection reads: `match /users/{userId}/{subcollection}/{document}`
+- `ANTHROPIC_API_KEY` — required for Power Rankings notebook. Local: `.env` in repo root (gitignored). CI: GitHub Actions secret.
 
 ---
 
@@ -381,6 +428,26 @@ Previous League IDs:
 
 ---
 
+## Improvement Roadmap
+
+### Phase 1 — New Features
+1. **Competitive Window / Age Runway** — core age, peak window years, projected value curve by year, age runway bar (Young/Prime/Late Prime/Aging). Add to Team Deep Dive and Blueprint pages.
+2. **Dynasty Matrix** — grid of Rising/Prime/Aging player counts by position. Add to Team Deep Dive.
+3. **Prime Windows Chart** — horizontal per-player timeline showing Rising → Prime → Declining phases sorted by value. Add to Team Deep Dive.
+4. **Position Distribution with Age Buckets** — Under 23 / 23-26 / 27-30 / 31+ player counts with value. Add to Team Deep Dive.
+5. **Trade Value Trajectory** — line chart of roster KTC value over time. Requires snapshot storage strategy. Add to Home or Blueprint.
+
+### Phase 2 — Existing Feature Upgrades
+6. **BUY/SELL/HOLD Signal + Hype %** column on Team Deep Dive roster table.
+7. **Pick Portfolio visual card upgrade** — year-grouped cards with Sent badges like Dynatyze.
+8. **Power Rankings bar chart** alongside AI narratives.
+9. **Blueprint trade targets visual upgrade**.
+
+### Phase 3 — Future
+10. **Multi-league / Sleeper username input** — full architectural rework to support any user entering their Sleeper league ID and pulling their own league data dynamically.
+
+---
+
 ## Useful Commands
 
 ```bash
@@ -402,6 +469,20 @@ git add . && git commit -m "message" && git push
 # Trigger manual GitHub Actions run
 # Go to: https://github.com/evanee1123/wilsons-moms-house/actions
 # Select "Update Data" (Wilson's) or "Update CLTC Data" (CLTC) → Run workflow
+
+# Run Power Rankings notebook manually (from repo root)
+cd ~/wilsons-moms-house/notebooks
+jupyter nbconvert --to notebook --execute power_rankings.ipynb --output power_rankings.ipynb
+
+# Trigger manual Power Rankings workflow
+# Go to: https://github.com/evanee1123/wilsons-moms-house/actions
+# Select "Power Rankings" → Run workflow
+
+# ⚠️ Git tip — avoid stash conflicts with auto-generated files
+# GitHub Actions pushes new data to public/data/ on Sun/Thu. Before committing local
+# code changes, discard auto-generated files so they don't conflict:
+git restore public/data/ notebooks/tableau_exports/ notebooks/wilsons_teams.ipynb
+# Then: git add <your actual changed files> && git commit && git push
 
 # Install dependencies (run from the relevant app directory)
 cd ~/wilsons-moms-house && npm install

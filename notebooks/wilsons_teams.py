@@ -11,6 +11,9 @@
 import requests
 import pandas as pd
 import numpy as np
+import gspread
+from google.oauth2.service_account import Credentials
+from google.auth.exceptions import DefaultCredentialsError
 from difflib import get_close_matches
 from itertools import combinations
 from functools import reduce
@@ -25,7 +28,12 @@ import os
 
 LEAGUE_ID   = "1312130103358021632"
 MY_USERNAME = "ekleiner1123"
-OUTPUT_DIR  = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'public', 'data')
+OUTPUT_DIR  = "/Users/evankleiner/wilsons-moms-house/public/data"
+
+SCOPES = [
+    "https://www.googleapis.com/auth/spreadsheets",
+    "https://www.googleapis.com/auth/drive"
+]
 
 # League roster settings
 PURE_STARTERS = {"QB": 1, "RB": 2, "WR": 2, "TE": 1}
@@ -309,8 +317,7 @@ print(f"\n✅ KTC scrape complete — {len(rankings_df)} players, {len(picks_ktc
 print(f"   Top player: {rankings_df.iloc[0]['Player']} ({rankings_df.iloc[0]['KTC Value']:,})")
 print(f"   Last player: {rankings_df.iloc[-1]['Player']} ({rankings_df.iloc[-1]['KTC Value']:,})")
 print(f"   Pick range: {picks_ktc['KTC Value'].max():,} (highest) — {picks_ktc['KTC Value'].min():,} (lowest)")
-_pick_years_ktc = sorted(picks_ktc['Name'].str.extract(r'(\d{4})')[0].dropna().unique().tolist())
-print(f"   Pick years present: {_pick_years_ktc}")
+print(f"   Pick years present: {sorted(picks_ktc['Name'].str.extract(r'(\\d{4})')[0].dropna().unique().tolist())}")
 
 
 # In[4]:
@@ -408,7 +415,7 @@ def best_3_of_4(player_seasons):
     })
 
 multi_year_prod = season_stats.groupby("player_id").apply(
-    best_3_of_4
+    best_3_of_4, include_groups=False
 ).reset_index()
 
 # Map player IDs to names
@@ -833,10 +840,14 @@ for slot_str, roster_id in slot_to_roster.items():
 n_teams = len(slot_to_roster)
 
 def pick_tier_current(slot, n_teams=10):
-    third = n_teams / 3
-    if slot <= third:       return "Early"
-    elif slot <= third * 2: return "Mid"
-    else:                   return "Late"
+    equivalent_slot = round(slot * 12 / n_teams)
+    if equivalent_slot <= 4:   return "Early"
+    elif equivalent_slot <= 8: return "Mid"
+    else:                      return "Late"
+
+def default_future_tier(round_num):
+    if round_num in [1, 2]: return "Mid"
+    else:                   return "Early"
 
 def pick_display_name(year, round_num, slot, tier, n_teams=10):
     round_str = {1:"1st", 2:"2nd", 3:"3rd", 4:"4th"}.get(round_num, f"{round_num}th")
@@ -847,6 +858,8 @@ def pick_display_name(year, round_num, slot, tier, n_teams=10):
         return f"{year} {tier} {round_str}"
 
 def pick_ktc_name(year, round_num, tier):
+    if round_num == 4:
+        return f"{year} Late 3rd"
     round_str = {1:"1st", 2:"2nd", 3:"3rd", 4:"4th"}.get(round_num, f"{round_num}th")
     return f"{year} {tier} {round_str}"
 
@@ -868,7 +881,7 @@ if upcoming_draft['status'] not in ['complete']:
 else:
     print(f"  Skipping {CURRENT_DRAFT_YEAR} picks — draft already complete")
 
-future_years = YEARS[1:] if upcoming_draft['status'] not in ['complete'] else YEARS[1:] + [str(current_season + 4)]
+future_years = YEARS[1:] if upcoming_draft['status'] not in ['complete'] else YEARS[1:]
 for year in future_years:
     for roster in rosters:
         for rnd in ROUNDS:
@@ -876,7 +889,7 @@ for year in future_years:
                 "year":           year,
                 "round":          rnd,
                 "slot":           None,
-                "tier":           "Mid",
+                "tier":           default_future_tier(rnd),
                 "original_owner": roster["roster_id"],
                 "current_owner":  roster["roster_id"],
             })
@@ -910,8 +923,7 @@ picks_master_df["ktc_value"] = picks_master_df["ktc_lookup_name"].apply(
 )
 
 print(f"✅ Pick portfolio built: {len(picks_master_df)} picks")
-_pick_years_all = sorted(all_picks['Name'].str.extract(r'(\d{4})')[0].dropna().unique().tolist())
-print(f"   Pick years in all_picks: {_pick_years_all}")
+print(f"   Pick years in all_picks: {sorted(all_picks['Name'].str.extract(r'(\\d{4})')[0].dropna().unique().tolist())}")
 
 # Sample output
 first_future = future_years[0]
@@ -2173,6 +2185,101 @@ print("Outlook classified ✅")
 print(outlook_df[["owner","outlook","CF_total","value_share","production_share","share_gap"]].to_string(index=False))
 
 
+# In[ ]:
+
+
+# ============================================================
+# 17b. Competitive Window — Core Age, Peak Window, Age Runway, Value Curve
+# ============================================================
+
+AGE_BUCKETS = {
+    "QB": [("Young", 0, 25), ("Prime", 26, 30), ("Late Prime", 31, 33), ("Aging", 34, 999)],
+    "RB": [("Young", 0, 23), ("Prime", 24, 26), ("Late Prime", 27, 28), ("Aging", 29, 999)],
+    "WR": [("Young", 0, 23), ("Prime", 24, 27), ("Late Prime", 28, 30), ("Aging", 31, 999)],
+    "TE": [("Young", 0, 23), ("Prime", 24, 27), ("Late Prime", 28, 30), ("Aging", 31, 999)],
+}
+BUCKET_RATE = {"Young": 0.05, "Prime": -0.03, "Late Prime": -0.10, "Aging": -0.20}
+
+def get_age_bucket(position, age):
+    for name, lo, hi in AGE_BUCKETS.get(position, AGE_BUCKETS["WR"]):
+        if lo <= age <= hi:
+            return name
+    return "Aging"
+
+# Project the current year plus one year beyond the furthest pick year (YEARS[-1])
+NUM_PROJECTION_YEARS = len(YEARS) + 1
+VALUE_CURVE_YEARS = [int(CURRENT_DRAFT_YEAR) + i for i in range(NUM_PROJECTION_YEARS)]
+
+def project_player_value(position, age, ktc_value):
+    """Ages a player 1 year at a time, applying the decay/growth rate for
+    whatever age bucket they land in that year. Returns one value per
+    VALUE_CURVE_YEARS entry (index 0 = current value, unprojected)."""
+    age_limit = AGE_LIMITS.get(position, 30)
+    values = [ktc_value]
+    running_value = ktc_value
+    for i in range(1, len(VALUE_CURVE_YEARS)):
+        projected_age = age + i
+        if projected_age >= age_limit + 2:
+            running_value = 0
+        else:
+            rate = BUCKET_RATE[get_age_bucket(position, projected_age)]
+            running_value = max(running_value * (1 + rate), 500)
+        values.append(running_value)
+    return values
+
+competitive_window_rows = []
+for owner_name in merged_df["owner"].unique():
+    team_players = merged_df[(merged_df["owner"] == owner_name) & (merged_df["KTC Value"] > 0)]
+    total_value  = team_players["KTC Value"].sum()
+
+    # ---- Core Age: KTC-value-weighted average age ----
+    core_age = round((team_players["age"] * team_players["KTC Value"]).sum() / total_value, 1) \
+        if total_value > 0 else 0
+
+    # ---- Age Runway: % of total KTC value per age bucket ----
+    bucket_values = {"Young": 0.0, "Prime": 0.0, "Late Prime": 0.0, "Aging": 0.0}
+    for _, p in team_players.iterrows():
+        bucket_values[get_age_bucket(p["position"], p["age"])] += p["KTC Value"]
+    age_runway = {
+        b: round(v / total_value * 100, 1) if total_value > 0 else 0.0
+        for b, v in bucket_values.items()
+    }
+
+    # ---- Value Curve: projected total roster value per year ----
+    curve_totals = [0.0] * len(VALUE_CURVE_YEARS)
+    for _, p in team_players.iterrows():
+        projected   = project_player_value(p["position"], p["age"], p["KTC Value"])
+        curve_totals = [a + b for a, b in zip(curve_totals, projected)]
+    value_curve = {year: round(val, 0) for year, val in zip(VALUE_CURVE_YEARS, curve_totals)}
+
+    # ---- Peak Year / Peak Window / Peak Gain % ----
+    current_value = curve_totals[0]
+    peak_idx      = max(range(len(curve_totals)), key=lambda i: curve_totals[i])
+    peak_year     = VALUE_CURVE_YEARS[peak_idx]
+    peak_value    = curve_totals[peak_idx]
+    window_lo     = VALUE_CURVE_YEARS[max(peak_idx - 1, 0)]
+    window_hi     = VALUE_CURVE_YEARS[min(peak_idx + 1, len(VALUE_CURVE_YEARS) - 1)]
+    peak_window   = f"{window_lo}–{window_hi}"
+    peak_gain_pct = round((peak_value - current_value) / current_value * 100, 1) \
+        if current_value > 0 else 0.0
+
+    competitive_window_rows.append({
+        "owner":         owner_name,
+        "core_age":      core_age,
+        "peak_year":     peak_year,
+        "peak_window":   peak_window,
+        "peak_gain_pct": peak_gain_pct,
+        "age_runway":    age_runway,
+        "value_curve":   value_curve,
+    })
+
+competitive_window_df = pd.DataFrame(competitive_window_rows)
+outlook_df = outlook_df.merge(competitive_window_df, on="owner", how="left")
+
+print("Competitive Window calculated ✅")
+print(outlook_df[["owner","core_age","peak_year","peak_window","peak_gain_pct"]].to_string(index=False))
+
+
 # In[18]:
 
 
@@ -3142,13 +3249,15 @@ to = outlook_df[[
     "owner","outlook","value_share","production_share","share_gap",
     "value_rank","production_rank","CF_total",
     *year_cols,
-    "total_firsts","player_ktc_value","pick_ktc_value","total_ktc_value"
+    "total_firsts","player_ktc_value","pick_ktc_value","total_ktc_value",
+    "core_age","peak_year","peak_window","peak_gain_pct","age_runway","value_curve"
 ]].copy()
 to.columns = [
     "Owner","Outlook","Value Share %","Production Share %","Gap",
     "Value Rank","Production Rank","C+F Total",
     *year_col_names,
-    "Total 1sts","Player Value","Pick Value","Total Value"
+    "Total 1sts","Player Value","Pick Value","Total Value",
+    "Core Age","Peak Year","Peak Window","Peak Gain %","Age Runway","Value Curve"
 ]
 push_json('teamOverview.json', df_to_records(to))
 

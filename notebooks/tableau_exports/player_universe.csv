@@ -1,279 +1,275 @@
 name,position,nfl_team,age,owner,on_taxi,KTC Value,multi_year_prod_score,combined_score,avg_ppg,n_seasons,tier,tier_rank,is_my_team
-Cam Ward,QB,TEN,24,ekleiner1123,False,5428.0,4950.1,5284.6,12.215293884277344,1.0,Upside Premier,3,True
-T.J. Hockenson,TE,MIN,28,ekleiner1123,False,2784.0,7738.1,4270.2,12.417003631591797,4.0,Mainstay,4,True
-Isaiah Davis,RB,NYJ,24,ekleiner1123,False,1844.0,2148.6,1935.4,5.02142858505249,2.0,Jag Insurance,11,True
-Kaleb Johnson,RB,PIT,22,ekleiner1123,False,2390.0,427.9,1801.4,1.0,1.0,Jag Developmental,10,True
-Ja'Kobi Lane,WR,BAL,22,ekleiner1123,False,2385.0,715.5,1884.2,0.0,0.0,Jag Developmental,10,True
-Jonah Coleman,RB,DEN,22,ekleiner1123,False,3148.0,944.4,2486.9,0.0,0.0,Jag Developmental,10,True
-Ricky Pearsall,WR,SF,25,ekleiner1123,False,3444.0,5088.1,3937.2,10.765972137451172,2.0,Serviceable,9,True
-Christian Watson,WR,GB,27,ekleiner1123,False,3751.0,5431.2,4255.1,11.491991996765137,4.0,Mainstay,4,True
-Tyjae Spears,RB,TEN,24,ekleiner1123,False,2590.0,3866.1,2972.8,9.035344123840332,3.0,Serviceable,9,True
-Troy Franklin,WR,DEN,23,ekleiner1123,False,2654.0,3745.4,2981.4,7.924999713897705,2.0,Jag Developmental,10,True
-Drew Allar,QB,PIT,22,ekleiner1123,True,1590.0,477.0,1256.1,0.0,0.0,Replaceable,12,True
-Carnell Tate,WR,TEN,21,ekleiner1123,False,5899.0,1769.7,4660.2,0.0,0.0,Upside Premier,3,True
-Mark Andrews,TE,BAL,30,ekleiner1123,False,2748.0,7739.9,4245.6,12.419875144958496,4.0,Serviceable,9,True
-KC Concepcion,WR,CLE,21,ekleiner1123,False,4522.0,1356.6,3572.4,0.0,0.0,Jag Developmental,10,True
-Tetairoa McMillan,WR,CAR,23,ekleiner1123,False,6540.0,5944.4,6361.3,12.577777862548828,1.0,Foundational,2,True
-Antonio Williams,WR,WAS,21,ekleiner1123,False,2992.0,897.6,2363.7,0.0,0.0,Jag Developmental,10,True
-Terrance Ferguson,TE,LAR,23,ekleiner1123,True,2623.0,4284.4,3121.4,6.875,1.0,Upside Shot,7,True
-Kayshon Boutte,WR,NE,24,ekleiner1123,False,2626.0,4055.9,3055.0,8.581960678100586,2.0,Serviceable,9,True
-Kyren Williams,RB,LAR,25,ekleiner1123,False,4834.0,7545.1,5647.3,17.63364601135254,4.0,Mainstay,4,True
-Tyrone Tracy,RB,NYG,26,ekleiner1123,False,2666.0,4616.2,3251.1,10.788431167602539,2.0,Serviceable,9,True
-Jalen Royals,WR,KC,23,ekleiner1123,True,1862.0,558.6,1471.0,0.0,0.0,Replaceable,12,True
-Isaac TeSlaa,WR,DET,24,ekleiner1123,False,2811.0,3985.7,3163.4,8.433333396911621,1.0,Serviceable,9,True
-Trey McBride,TE,ARI,26,ekleiner1123,False,7556.0,9243.2,8062.2,14.832107543945312,4.0,Cornerstone,1,True
-Jonathon Brooks,RB,CAR,22,ekleiner1123,False,3203.0,960.9,2530.4,0.0,0.0,Upside Shot,7,True
-Drake Maye,QB,NE,23,ekleiner1123,False,9374.0,7442.7,8794.6,18.366071701049805,2.0,Cornerstone,1,True
-Puka Nacua,WR,LAR,25,ekleiner1123,False,8609.0,9485.9,8872.1,20.071449279785156,3.0,Cornerstone,1,True
-Jayden Higgins,WR,HOU,23,ekleiner1123,False,3404.0,3893.8,3550.9,8.23888874053955,1.0,Upside Shot,7,True
-Tyler Allgeier,RB,ARI,26,ekleiner1123,False,2744.0,3572.7,2992.6,8.34975528717041,4.0,Serviceable,9,True
-Rome Odunze,WR,CHI,24,ekleiner1123,False,5401.0,4930.3,5259.8,10.432126998901367,2.0,Upside Premier,3,True
-Jahmyr Gibbs,RB,DET,24,ekleiner1123,False,9679.0,8489.2,9322.1,19.840087890625,3.0,Cornerstone,1,True
-Kyle Williams,WR,NE,23,ekleiner1123,False,2416.0,2495.4,2439.8,5.279999732971191,1.0,Jag Developmental,10,True
-Elic Ayomanor,WR,TEN,23,ekleiner1123,False,2602.0,3441.2,2853.8,7.28125,1.0,Serviceable,9,True
-Bryce Young,QB,CAR,24,ekleiner1123,False,4469.0,5624.9,4815.8,13.880367279052734,3.0,Upside Shot,7,True
-Josh Downs,WR,IND,24,ekleiner1123,False,3610.0,4861.8,3985.5,10.287238121032715,3.0,Serviceable,9,True
-Kirk Cousins,QB,LV,37,Herschey6153,False,1947.0,7076.0,3485.7,17.46120262145996,4.0,Short-term Production,8,False
-Anthony Richardson,QB,IND,24,Herschey6153,False,2267.0,6534.0,3547.1,16.12363624572754,1.0,Upside Shot,7,False
-Isaiah Bond,WR,CLE,22,Herschey6153,True,2013.0,2075.5,2031.8,4.391666889190674,1.0,Jag Developmental,10,False
-Ladd McConkey,WR,LAC,24,Herschey6153,False,5465.0,6412.2,5749.2,13.567646980285645,2.0,Upside Premier,3,False
-Dallas Goedert,TE,PHI,31,Herschey6153,False,2585.0,7525.4,4067.1,12.075630187988281,4.0,Serviceable,9,False
-Courtland Sutton,WR,DEN,30,Herschey6153,False,3145.0,6392.6,4119.3,13.526253700256348,4.0,Serviceable,9,False
-Marvin Mims,WR,DEN,24,Herschey6153,False,2112.0,3377.3,2491.6,7.146063327789307,3.0,Jag Insurance,11,False
-Kaelon Black,RB,SF,24,Herschey6153,True,1538.0,461.4,1215.0,0.0,0.0,Jag Insurance,11,False
-DJ Moore,WR,BUF,29,Herschey6153,False,3682.0,6728.6,4596.0,14.237255096435547,4.0,Serviceable,9,False
-Patrick Mahomes,QB,KC,30,Herschey6153,False,6697.0,8662.7,7286.7,21.376571655273438,4.0,Cornerstone,1,False
-Rashee Rice,WR,KC,26,Herschey6153,False,4488.0,7602.5,5422.4,16.08625030517578,2.0,Mainstay,4,False
-Tee Higgins,WR,CIN,27,Herschey6153,False,4883.0,7485.0,5663.6,15.837679862976074,4.0,Foundational,2,False
-Cooper Kupp,WR,SEA,32,Herschey6153,False,1765.0,7924.1,3612.7,16.76666831970215,4.0,Serviceable,9,False
-Jordan Mason,RB,MIN,27,Herschey6153,False,2676.0,3223.1,2840.1,7.5326385498046875,4.0,Serviceable,9,False
-Shedeur Sanders,QB,CLE,24,Herschey6153,False,2747.0,4908.5,3395.4,12.112499237060547,1.0,Upside Shot,7,False
-Jalen Tolbert,WR,MIA,27,Herschey6153,False,1793.0,3326.8,2253.1,7.0391669273376465,3.0,Jag Insurance,11,False
-A.J. Brown,WR,NE,28,Herschey6153,False,5038.0,7760.2,5854.7,16.420000076293945,4.0,Foundational,2,False
-Travis Kelce,TE,KC,36,Herschey6153,False,2444.0,10000.0,4710.8,16.046491622924805,4.0,Short-term Production,8,False
-Daniel Jones,QB,IND,29,Herschey6153,False,3905.0,6917.0,4808.6,17.06874656677246,4.0,Mainstay,4,False
-Alvin Kamara,RB,NO,30,Herschey6153,False,2049.0,7244.2,3607.6,16.930513381958008,4.0,Short-term Production,8,False
-Derrick Henry,RB,BAL,32,Herschey6153,False,3944.0,7924.7,5138.2,18.520788192749023,4.0,Short-term Winner,6,False
-Lamar Jackson,QB,BAL,29,Herschey6153,False,7673.0,9154.3,8117.4,22.58988380432129,4.0,Cornerstone,1,False
-Stefon Diggs,WR,,32,Herschey6153,False,2163.0,7817.8,3859.4,16.54189109802246,4.0,Serviceable,9,False
-Josh Jacobs,RB,GB,28,Herschey6153,False,3602.0,7435.0,4751.9,17.376239776611328,4.0,Serviceable,9,False
-Jack Bech,WR,LV,23,Herschey6153,True,2533.0,2226.5,2441.0,4.711111068725586,1.0,Jag Developmental,10,False
-Kimani Vidal,RB,LAC,24,Herschey6153,False,2203.0,2834.4,2392.4,6.624359130859375,2.0,Jag Insurance,11,False
-Tony Pollard,RB,TEN,29,Herschey6153,False,2812.0,5797.3,3707.6,13.548843383789062,4.0,Serviceable,9,False
-Jeremiyah Love,RB,ARI,21,jsinykin,False,7655.0,2296.5,6047.4,0.0,0.0,Upside Premier,3,False
-Tez Johnson,WR,TB,24,jsinykin,False,2140.0,3639.1,2589.7,7.700000286102295,1.0,Jag Insurance,11,False
-Darnell Mooney,WR,NYG,28,jsinykin,False,2076.0,4518.5,2808.8,9.560757637023926,4.0,Serviceable,9,False
-Emeka Egbuka,WR,TB,23,jsinykin,True,6079.0,5385.0,5870.8,11.39411735534668,1.0,Upside Premier,3,False
-Omar Cooper,WR,NYJ,22,jsinykin,False,0.0,0.0,0.0,0.0,0.0,Replaceable,12,False
-Ben Sinnott,TE,WAS,23,jsinykin,False,1739.0,2212.3,1881.0,3.549999952316284,1.0,Jag Developmental,10,False
-Michael Penix,QB,ATL,26,jsinykin,False,3162.0,5641.0,3905.7,13.920000076293945,1.0,Upside Shot,7,False
-Dont'e Thornton,WR,LV,23,jsinykin,False,2007.0,1586.6,1880.9,3.357142925262451,1.0,Jag Developmental,10,False
-Michael Mayer,TE,LV,24,jsinykin,False,2123.0,3464.6,2525.5,5.559394359588623,3.0,Serviceable,9,False
-Makai Lemon,WR,PHI,22,jsinykin,False,5092.0,1527.6,4022.7,0.0,0.0,Upside Premier,3,False
-Harold Fannin,TE,CLE,21,jsinykin,False,4902.0,7260.2,5609.5,11.649999618530273,1.0,Upside Premier,3,False
-Jaxson Dart,QB,NYG,23,jsinykin,False,6585.0,7695.8,6918.2,18.99077033996582,1.0,Upside Premier,3,False
-Jordyn Tyson,WR,NO,21,jsinykin,False,5374.0,1612.2,4245.5,0.0,0.0,Upside Premier,3,False
-Chris Olave,WR,NO,25,jsinykin,False,5536.0,7008.8,5977.8,14.83013916015625,4.0,Foundational,2,False
-Ted Hurst,WR,TB,21,jsinykin,False,2295.0,688.5,1813.0,0.0,0.0,Jag Developmental,10,False
-Luther Burden,WR,CHI,22,jsinykin,True,5355.0,3894.8,4916.9,8.24117660522461,1.0,Upside Premier,3,False
-Jordan Addison,WR,MIN,24,jsinykin,False,4021.0,5966.4,4604.6,12.624519348144531,3.0,Mainstay,4,False
-Quinshon Judkins,RB,CLE,22,jsinykin,True,5501.0,5128.5,5389.2,11.98571491241455,1.0,Upside Premier,3,False
+Kyren Williams,RB,LAR,25,ekleiner1123,False,4855.0,7545.1,5662.0,17.63364601135254,4.0,Mainstay,4,True
+Tyjae Spears,RB,TEN,25,ekleiner1123,False,2579.0,3866.1,2965.1,9.035344123840332,3.0,Serviceable,9,True
+Tetairoa McMillan,WR,CAR,23,ekleiner1123,False,6560.0,5944.4,6375.3,12.577777862548828,1.0,Foundational,2,True
+Drew Allar,QB,PIT,22,ekleiner1123,True,1856.0,556.8,1466.2,0.0,0.0,Replaceable,12,True
+Josh Downs,WR,IND,24,ekleiner1123,False,3666.0,4861.8,4024.7,10.287238121032715,3.0,Serviceable,9,True
+Jayden Higgins,WR,HOU,23,ekleiner1123,False,3453.0,3893.8,3585.2,8.23888874053955,1.0,Upside Shot,7,True
+Puka Nacua,WR,LAR,25,ekleiner1123,False,8744.0,9485.9,8966.6,20.071449279785156,3.0,Cornerstone,1,True
+Rome Odunze,WR,CHI,24,ekleiner1123,False,5287.0,4930.3,5180.0,10.432126998901367,2.0,Foundational,2,True
+Terrance Ferguson,TE,LAR,23,ekleiner1123,True,2670.0,4284.4,3154.3,6.875,1.0,Upside Shot,7,True
+Kayshon Boutte,WR,NE,24,ekleiner1123,False,2536.0,4055.9,2992.0,8.581960678100586,2.0,Serviceable,9,True
+Trey McBride,TE,ARI,26,ekleiner1123,False,7348.0,9243.2,7916.6,14.832107543945312,4.0,Cornerstone,1,True
+Jalen Royals,WR,KC,23,ekleiner1123,True,1804.0,541.2,1425.2,0.0,0.0,Replaceable,12,True
+Drake Maye,QB,NE,23,ekleiner1123,False,9402.0,7442.7,8814.2,18.366071701049805,2.0,Cornerstone,1,True
+Cam Ward,QB,TEN,24,ekleiner1123,False,5333.0,4950.1,5218.1,12.215293884277344,1.0,Upside Premier,3,True
+Carnell Tate,WR,TEN,21,ekleiner1123,False,5948.0,1784.4,4698.9,0.0,0.0,Upside Premier,3,True
+Tyler Allgeier,RB,ARI,26,ekleiner1123,False,2738.0,3572.7,2988.4,8.34975528717041,4.0,Serviceable,9,True
+Isaac TeSlaa,WR,DET,24,ekleiner1123,False,2772.0,3985.7,3136.1,8.433333396911621,1.0,Serviceable,9,True
+Bryce Young,QB,CAR,24,ekleiner1123,False,4338.0,5624.9,4724.1,13.880367279052734,3.0,Upside Shot,7,True
+Jonah Coleman,RB,DEN,22,ekleiner1123,False,3186.0,955.8,2516.9,0.0,0.0,Jag Developmental,10,True
+Kaleb Johnson,RB,PIT,22,ekleiner1123,False,2359.0,427.9,1779.7,1.0,1.0,Jag Developmental,10,True
+T.J. Hockenson,TE,MIN,28,ekleiner1123,False,2727.0,7738.1,4230.3,12.417003631591797,4.0,Mainstay,4,True
+Tyrone Tracy,RB,NYG,26,ekleiner1123,False,2657.0,4616.2,3244.8,10.788431167602539,2.0,Serviceable,9,True
+Elic Ayomanor,WR,TEN,23,ekleiner1123,False,2489.0,3441.2,2774.7,7.28125,1.0,Serviceable,9,True
+Troy Franklin,WR,DEN,23,ekleiner1123,False,2603.0,3745.4,2945.7,7.924999713897705,2.0,Jag Developmental,10,True
+Antonio Williams,WR,WAS,21,ekleiner1123,False,3019.0,905.7,2385.0,0.0,0.0,Jag Developmental,10,True
+Christian Watson,WR,GB,27,ekleiner1123,False,3904.0,5431.2,4362.2,11.491991996765137,4.0,Mainstay,4,True
+KC Concepcion,WR,CLE,21,ekleiner1123,False,4467.0,1340.1,3528.9,0.0,0.0,Jag Developmental,10,True
+Ja'Kobi Lane,WR,BAL,22,ekleiner1123,False,2387.0,716.1,1885.7,0.0,0.0,Jag Developmental,10,True
+Mark Andrews,TE,BAL,30,ekleiner1123,False,2782.0,7739.9,4269.4,12.419875144958496,4.0,Serviceable,9,True
+Jonathon Brooks,RB,CAR,22,ekleiner1123,False,3322.0,996.6,2624.4,0.0,0.0,Upside Shot,7,True
+Ricky Pearsall,WR,SF,25,ekleiner1123,False,3357.0,5088.1,3876.3,10.765972137451172,2.0,Serviceable,9,True
+Jahmyr Gibbs,RB,DET,24,ekleiner1123,False,9917.0,8489.2,9488.7,19.840087890625,3.0,Cornerstone,1,True
+Rashee Rice,WR,KC,26,Herschey6153,False,4660.0,7602.5,5542.8,16.08625030517578,2.0,Mainstay,4,False
+Jordan Mason,RB,MIN,27,Herschey6153,False,2662.0,3223.1,2830.3,7.5326385498046875,4.0,Serviceable,9,False
+DJ Moore,WR,BUF,29,Herschey6153,False,3631.0,6728.6,4560.3,14.237255096435547,4.0,Serviceable,9,False
+Patrick Mahomes,QB,KC,30,Herschey6153,False,6666.0,8662.7,7265.0,21.376571655273438,4.0,Cornerstone,1,False
+Courtland Sutton,WR,DEN,30,Herschey6153,False,3099.0,6392.6,4087.1,13.526253700256348,4.0,Serviceable,9,False
+A.J. Brown,WR,NE,28,Herschey6153,False,4982.0,7760.2,5815.5,16.420000076293945,4.0,Foundational,2,False
+Anthony Richardson,QB,IND,24,Herschey6153,False,2201.0,6534.0,3500.9,16.12363624572754,1.0,Upside Shot,7,False
+Josh Jacobs,RB,GB,28,Herschey6153,False,3817.0,7435.0,4902.4,17.376239776611328,4.0,Serviceable,9,False
+Jalen Tolbert,WR,MIA,27,Herschey6153,False,1792.0,3326.8,2252.4,7.0391669273376465,3.0,Jag Insurance,11,False
+Lamar Jackson,QB,BAL,29,Herschey6153,False,7600.0,9154.3,8066.3,22.58988380432129,4.0,Cornerstone,1,False
+Kaelon Black,RB,SF,24,Herschey6153,True,1811.0,543.3,1430.7,0.0,0.0,Jag Insurance,11,False
+Jack Bech,WR,LV,23,Herschey6153,True,2492.0,2226.5,2412.4,4.711111068725586,1.0,Jag Developmental,10,False
+Stefon Diggs,WR,,32,Herschey6153,False,2148.0,7817.8,3848.9,16.54189109802246,4.0,Serviceable,9,False
+Derrick Henry,RB,BAL,32,Herschey6153,False,4003.0,7924.7,5179.5,18.520788192749023,4.0,Short-term Winner,6,False
+Shedeur Sanders,QB,CLE,24,Herschey6153,False,2717.0,4908.5,3374.4,12.112499237060547,1.0,Upside Shot,7,False
+Marvin Mims,WR,DEN,24,Herschey6153,False,2121.0,3377.3,2497.9,7.146063327789307,3.0,Jag Insurance,11,False
+Dallas Goedert,TE,PHI,31,Herschey6153,False,2595.0,7525.4,4074.1,12.075630187988281,4.0,Serviceable,9,False
+Kirk Cousins,QB,LV,37,Herschey6153,False,1894.0,7076.0,3448.6,17.46120262145996,4.0,Short-term Production,8,False
+Isaiah Bond,WR,CLE,22,Herschey6153,True,1981.0,2075.5,2009.4,4.391666889190674,1.0,Jag Developmental,10,False
+Tee Higgins,WR,CIN,27,Herschey6153,False,4926.0,7485.0,5693.7,15.837679862976074,4.0,Foundational,2,False
+Daniel Jones,QB,IND,29,Herschey6153,False,3915.0,6917.0,4815.6,17.06874656677246,4.0,Mainstay,4,False
+Alvin Kamara,RB,NO,30,Herschey6153,False,2042.0,7244.2,3602.7,16.930513381958008,4.0,Short-term Production,8,False
+Cooper Kupp,WR,SEA,33,Herschey6153,False,1727.0,7924.1,3586.1,16.76666831970215,4.0,Short-term Production,8,False
+Kimani Vidal,RB,LAC,24,Herschey6153,False,2148.0,2834.4,2353.9,6.624359130859375,2.0,Jag Insurance,11,False
+Ladd McConkey,WR,LAC,24,Herschey6153,False,5558.0,6412.2,5814.3,13.567646980285645,2.0,Upside Premier,3,False
+Travis Kelce,TE,KC,36,Herschey6153,False,2510.0,10000.0,4757.0,16.046491622924805,4.0,Short-term Production,8,False
+Tony Pollard,RB,TEN,29,Herschey6153,False,2824.0,5797.3,3716.0,13.548843383789062,4.0,Serviceable,9,False
+Tory Horton,WR,SEA,23,jsinykin,False,2634.0,790.2,2080.9,0.0,0.0,Jag Developmental,10,False
+Malik Washington,WR,MIA,25,jsinykin,False,2561.0,2758.9,2620.4,5.837700843811035,2.0,Replaceable,12,False
+Darnell Mooney,WR,NYG,28,jsinykin,False,2033.0,4518.5,2778.6,9.560757637023926,4.0,Serviceable,9,False
+Harold Fannin,TE,CLE,21,jsinykin,False,4847.0,7260.2,5571.0,11.649999618530273,1.0,Upside Premier,3,False
+Ray Davis,RB,BUF,26,jsinykin,False,1983.0,2419.3,2113.9,5.654048442840576,2.0,Jag Insurance,11,False
+Jordan Addison,WR,MIN,24,jsinykin,False,3961.0,5966.4,4562.6,12.624519348144531,3.0,Mainstay,4,False
+Luther Burden,WR,CHI,22,jsinykin,True,5410.0,3894.8,4955.4,8.24117660522461,1.0,Upside Premier,3,False
 Odell Beckham,WR,NYG,33,jsinykin,False,0.0,0.0,0.0,0.0,0.0,Replaceable,12,False
-Malik Washington,WR,MIA,25,jsinykin,False,2514.0,2758.9,2587.5,5.837700843811035,2.0,Replaceable,12,False
-Caleb Williams,QB,CHI,24,jsinykin,False,7973.0,7018.0,7686.5,17.318204879760742,2.0,Cornerstone,1,False
-Eli Stowers,TE,PHI,23,jsinykin,False,3736.0,1120.8,2951.4,0.0,0.0,Jag Developmental,10,False
-Ray Davis,RB,BUF,26,jsinykin,False,1968.0,2419.3,2103.4,5.654048442840576,2.0,Jag Insurance,11,False
-Tory Horton,WR,SEA,23,jsinykin,False,2699.0,809.7,2132.2,0.0,0.0,Jag Developmental,10,False
-Jaylin Noel,WR,HOU,23,jsinykin,False,2683.0,2705.7,2689.8,5.724999904632568,1.0,Jag Developmental,10,False
-Parker Washington,WR,JAX,24,jsinykin,False,3576.0,4422.2,3829.9,9.356969833374023,3.0,Serviceable,9,False
-Adonai Mitchell,WR,NYJ,23,jsinykin,False,2451.0,2802.1,2556.3,5.928910255432129,2.0,Replaceable,12,False
-Oronde Gadsden,TE,LAC,22,SvenMoney34,False,3611.0,5429.5,4156.5,8.712499618530273,1.0,Upside Shot,7,False
-Adam Randall,RB,BAL,21,SvenMoney34,True,1019.0,305.7,805.0,0.0,0.0,Jag Developmental,10,False
-Justin Herbert,QB,LAC,28,SvenMoney34,False,6889.0,7321.2,7018.7,18.066356658935547,4.0,Foundational,2,False
-Jakobi Meyers,WR,JAX,29,SvenMoney34,False,3142.0,6494.5,4147.8,13.741844177246094,4.0,Mainstay,4,False
-Bucky Irving,RB,TB,23,SvenMoney34,False,4793.0,6061.6,5173.6,14.166666984558105,2.0,Upside Premier,3,False
-Jayden Daniels,QB,WAS,25,SvenMoney34,False,7798.0,7753.1,7784.5,19.132143020629883,2.0,Cornerstone,1,False
-Eli Raridon,TE,NE,22,SvenMoney34,False,1243.0,372.9,982.0,0.0,0.0,Jag Developmental,10,False
-Theo Johnson,TE,NYG,25,SvenMoney34,False,2242.0,4966.4,3059.3,7.96928596496582,2.0,Serviceable,9,False
-Mac Jones,QB,SF,27,SvenMoney34,False,2687.0,5110.1,3413.9,12.609912872314453,4.0,Serviceable,9,False
-De'Zhaun Stribling,WR,SF,23,SvenMoney34,False,2447.0,734.1,1933.1,0.0,0.0,Jag Developmental,10,False
-Demond Claiborne,RB,MIN,22,SvenMoney34,True,1770.0,531.0,1398.3,0.0,0.0,Jag Developmental,10,False
-Trevor Lawrence,QB,JAX,26,SvenMoney34,False,6383.0,7667.0,6768.2,18.91973114013672,4.0,Foundational,2,False
-Colston Loveland,TE,CHI,22,SvenMoney34,False,6117.0,7199.7,6441.8,11.552940368652344,1.0,Foundational,2,False
-Jaxon Smith-Njigba,WR,SEA,24,SvenMoney34,False,9802.0,6968.5,8951.9,14.744705200195312,3.0,Cornerstone,1,False
-Matthew Golden,WR,GB,22,SvenMoney34,False,3712.0,2984.2,3493.7,6.314285755157471,1.0,Upside Shot,7,False
-Jimmy Horn,WR,CAR,23,SvenMoney34,False,1553.0,1356.4,1494.0,2.869999885559082,1.0,Replaceable,12,False
-Dalton Kincaid,TE,BUF,26,SvenMoney34,False,3256.0,6165.9,4129.0,9.89403247833252,3.0,Mainstay,4,False
-Xavier Worthy,WR,KC,23,SvenMoney34,False,3346.0,5341.4,3944.6,11.301922798156738,2.0,Upside Shot,7,False
-Brian Thomas,WR,JAX,23,SvenMoney34,False,4779.0,6237.8,5216.6,13.198627471923828,2.0,Upside Premier,3,False
-Ja'Marr Chase,WR,CIN,26,SvenMoney34,False,9987.0,10000.0,9990.9,21.159181594848633,4.0,Cornerstone,1,False
-Travis Etienne,RB,NO,27,SvenMoney34,False,4503.0,6275.7,5034.8,14.666913032531738,4.0,Mainstay,4,False
-DeVonta Smith,WR,PHI,27,SvenMoney34,False,5421.0,7043.3,5907.7,14.903096199035645,4.0,Foundational,2,False
-Ty Simpson,QB,LAR,23,SvenMoney34,True,3644.0,1093.2,2878.8,0.0,0.0,Jag Developmental,10,False
-Devin Neal,RB,NO,22,SvenMoney34,False,2074.0,2852.5,2307.6,6.666666507720947,1.0,Jag Developmental,10,False
-Drake London,WR,ATL,24,SvenMoney34,False,6960.0,7063.1,6990.9,14.944881439208984,4.0,Cornerstone,1,False
-Omarion Hampton,RB,LAC,23,SvenMoney34,False,6818.0,6451.5,6708.0,15.077777862548828,1.0,Cornerstone,1,False
-De'Von Achane,RB,MIA,24,SvenMoney34,False,6919.0,7725.3,7160.9,18.054697036743164,3.0,Cornerstone,1,False
-J.J. McCarthy,QB,MIN,23,Akracoon,False,2823.0,5648.2,3670.6,13.938000679016113,1.0,Upside Shot,7,False
-Chris Brazzell,WR,CAR,22,Akracoon,False,2630.0,789.0,2077.7,0.0,0.0,Jag Developmental,10,False
-Andrei Iosivas,WR,CIN,26,Akracoon,False,1661.0,3345.1,2166.2,7.077906131744385,3.0,Jag Insurance,11,False
-Dak Prescott,QB,DAL,32,Akracoon,False,4958.0,7930.2,5849.7,19.56908416748047,4.0,Productive Vet,5,False
-Jacoby Brissett,QB,ARI,33,Akracoon,False,2666.0,5428.4,3494.7,13.395384788513184,3.0,Serviceable,9,False
-Aaron Jones,RB,MIN,31,Akracoon,False,2241.0,6112.3,3402.4,14.284950256347656,4.0,Short-term Production,8,False
-Ja'Tavion Sanders,TE,CAR,23,Akracoon,True,2070.0,3583.3,2524.0,5.75,2.0,Jag Developmental,10,False
-David Njoku,TE,LAC,29,Akracoon,False,2454.0,7572.1,3989.4,12.150496482849121,4.0,Mainstay,4,False
-Quentin Johnston,WR,LAC,24,Akracoon,False,3372.0,5050.8,3875.6,10.687088012695312,3.0,Mainstay,4,False
-Joe Flacco,QB,CIN,41,Akracoon,False,1098.0,6611.8,2752.1,16.315664291381836,3.0,Short-term Production,8,False
-Malik Nabers,WR,NYG,22,Akracoon,False,7610.0,8557.4,7894.2,18.106666564941406,1.0,Cornerstone,1,False
-Malachi Fields,WR,NYG,22,Akracoon,False,2708.0,812.4,2139.3,0.0,0.0,Jag Developmental,10,False
-Jameis Winston,QB,NYG,32,Akracoon,False,1396.0,5125.9,2515.0,12.649090766906738,1.0,Jag Insurance,11,False
-Kenneth Gainwell,RB,TB,27,Akracoon,False,2857.0,3600.0,3079.9,8.413557052612305,4.0,Jag Insurance,11,False
-Jalen Coker,WR,CAR,24,Akracoon,False,3090.0,4739.3,3584.8,10.027999877929688,2.0,Serviceable,9,False
-Cole Kmet,TE,CHI,27,Akracoon,False,1970.0,6304.7,3270.4,10.116825103759766,4.0,Serviceable,9,False
-Cade Klubnik,QB,NYJ,22,Akracoon,True,1791.0,537.3,1414.9,0.0,0.0,Replaceable,12,False
-Justin Fields,QB,KC,27,Akracoon,False,2059.0,7366.2,3651.2,18.17733383178711,4.0,Serviceable,9,False
-Isiah Pacheco,RB,DET,27,Akracoon,False,2347.0,4470.3,2984.0,10.447428703308105,4.0,Jag Insurance,11,False
-Tank Dell,WR,HOU,26,Akracoon,False,2535.0,6443.8,3707.6,13.634614944458008,2.0,Serviceable,9,False
-Elijah Sarratt,WR,BAL,23,Akracoon,False,2786.0,835.8,2200.9,0.0,0.0,Jag Developmental,10,False
-Hunter Henry,TE,NE,31,Akracoon,False,2264.0,6117.0,3419.9,9.815634727478027,4.0,Serviceable,9,False
-Bhayshul Tuten,RB,JAX,23,Akracoon,False,3952.0,2715.6,3581.1,6.34666633605957,1.0,Upside Shot,7,False
-Kyle Monangai,RB,CHI,23,Akracoon,False,3655.0,3598.7,3638.1,8.410526275634766,1.0,Upside Shot,7,False
-Nicholas Singleton,RB,TEN,22,Akracoon,True,2937.0,881.1,2320.2,0.0,0.0,Jag Developmental,10,False
-Fernando Mendoza,QB,LV,22,Akracoon,False,5637.0,1691.1,4453.2,0.0,0.0,Upside Shot,7,False
-Mack Hollins,WR,NE,32,Akracoon,False,1103.0,3993.4,1970.1,8.449779510498047,4.0,Serviceable,9,False
-Tyler Warren,TE,IND,24,GiantHawkTua,False,5806.0,6910.1,6137.2,11.088234901428223,1.0,Upside Premier,3,False
-Tua Tagovailoa,QB,ATL,28,GiantHawkTua,False,2710.0,7069.1,4017.7,17.444204330444336,4.0,Serviceable,9,False
-Ollie Gordon,RB,MIA,22,GiantHawkTua,False,2343.0,1950.4,2225.2,4.558333396911621,1.0,Jag Developmental,10,False
-Kyle Pitts,TE,ATL,25,GiantHawkTua,False,4445.0,6070.5,4932.6,9.741045951843262,4.0,Mainstay,4,False
-Nico Collins,WR,HOU,27,GiantHawkTua,False,5605.0,7785.9,6259.3,16.47435188293457,4.0,Foundational,2,False
-Malik Willis,QB,MIA,27,GiantHawkTua,False,3952.0,1185.6,3122.1,0.0,0.0,Upside Shot,7,False
-Denzel Boston,WR,CLE,22,GiantHawkTua,False,3448.0,1034.4,2723.9,0.0,0.0,Jag Developmental,10,False
-Terry McLaurin,WR,WAS,30,GiantHawkTua,False,3470.0,6663.1,4427.9,14.098529815673828,4.0,Short-term Production,8,False
-Isaiah Likely,TE,NYG,26,GiantHawkTua,False,3379.0,5145.9,3909.1,8.257394790649414,4.0,Serviceable,9,False
-Braelon Allen,RB,NYJ,22,GiantHawkTua,False,2661.0,2144.4,2506.0,5.011765003204346,1.0,Jag Developmental,10,False
-Alec Pierce,WR,IND,26,GiantHawkTua,False,4063.0,5353.0,4450.0,11.326587677001953,4.0,Mainstay,4,False
-Mike Washington,RB,LV,22,GiantHawkTua,True,2514.0,2758.9,2587.5,5.837700843811035,2.0,Serviceable,9,False
-Amon-Ra St. Brown,WR,DET,26,GiantHawkTua,False,7812.0,9491.0,8315.7,20.08208656311035,4.0,Cornerstone,1,False
-Emanuel Wilson,RB,SEA,27,GiantHawkTua,False,2074.0,1987.8,2048.1,4.645798206329346,3.0,Jag Insurance,11,False
-Jalen Hurts,QB,PHI,27,GiantHawkTua,False,6201.0,9388.7,7157.3,23.168283462524414,4.0,Foundational,2,False
-J.K. Dobbins,RB,DEN,27,GiantHawkTua,False,2939.0,5235.0,3627.8,12.234761238098145,3.0,Mainstay,4,False
-Blake Corum,RB,LAR,25,GiantHawkTua,False,3279.0,2133.7,2935.4,4.986666679382324,2.0,Serviceable,9,False
-David Montgomery,RB,HOU,28,GiantHawkTua,False,3402.0,5808.2,4123.9,13.574390411376953,4.0,Serviceable,9,False
-Rashid Shaheed,WR,SEA,27,GiantHawkTua,False,2879.0,4342.5,3318.0,9.188311576843262,3.0,Serviceable,9,False
-Will Howard,QB,PIT,24,GiantHawkTua,True,1990.0,597.0,1572.1,0.0,0.0,Jag Developmental,10,False
-Kenneth Walker,RB,KC,25,GiantHawkTua,False,5429.0,6177.0,5653.4,14.436325073242188,4.0,Mainstay,4,False
-Joe Burrow,QB,CIN,29,GiantHawkTua,False,7432.0,8443.8,7735.5,20.83638572692871,4.0,Cornerstone,1,False
-Dylan Sampson,RB,CLE,21,GiantHawkTua,False,2741.0,2744.5,2742.0,6.414285182952881,1.0,Upside Shot,7,False
-Kevin Coleman,WR,MIA,22,GiantHawkTua,True,1733.0,519.9,1369.1,0.0,0.0,Jag Developmental,10,False
-Chris Godwin,WR,TB,30,GiantHawkTua,False,2925.0,7397.3,4266.7,15.652146339416504,4.0,Serviceable,9,False
-Michael Wilson,WR,ARI,26,GiantHawkTua,False,3629.0,4984.0,4035.5,10.545692443847656,3.0,Mainstay,4,False
-Breece Hall,RB,NYJ,25,GiantHawkTua,False,5375.0,6936.0,5843.3,16.21013641357422,4.0,Mainstay,4,False
-Jonathan Taylor,RB,IND,27,GiantHawkTua,False,6009.0,7746.5,6530.2,18.104228973388672,4.0,Foundational,2,False
-Carson Beck,QB,ARI,23,GiantHawkTua,False,1797.0,539.1,1419.6,0.0,0.0,Replaceable,12,False
-Marvin Harrison,WR,ARI,23,nchernandez19,False,4999.0,5634.1,5189.5,11.921306610107422,2.0,Upside Premier,3,False
-Eli Heidenreich,RB,PIT,22,nchernandez19,True,1131.0,339.3,893.5,0.0,0.0,Jag Developmental,10,False
-Geno Smith,QB,NYJ,35,nchernandez19,False,2224.0,6902.9,3627.7,17.034099578857422,4.0,Short-term Production,8,False
-Dontayvion Wicks,WR,PHI,24,nchernandez19,False,2383.0,3716.6,2783.1,7.864065647125244,3.0,Jag Insurance,11,False
-Jayden Reed,WR,GB,26,nchernandez19,False,3476.0,5663.0,4132.1,11.982353210449219,3.0,Serviceable,9,False
-Tucker Kraft,TE,GB,25,nchernandez19,False,4881.0,6734.6,5437.1,10.8066987991333,3.0,Foundational,2,False
-Jordan Love,QB,GB,27,nchernandez19,False,5562.0,6954.8,5979.8,17.16217041015625,3.0,Foundational,2,False
-Romeo Doubs,WR,NE,26,nchernandez19,False,3210.0,5241.0,3819.3,11.089615821838379,4.0,Mainstay,4,False
-Brock Bowers,TE,LV,23,nchernandez19,False,8079.0,9338.4,8456.8,14.984804153442383,2.0,Cornerstone,1,False
-Jameson Williams,WR,DET,25,nchernandez19,False,4697.0,5662.2,4986.6,11.980793952941895,3.0,Foundational,2,False
-Bryce Lance,WR,NO,23,nchernandez19,True,1218.0,365.4,962.2,0.0,0.0,Replaceable,12,False
-Taylen Green,QB,CLE,23,nchernandez19,True,874.0,262.2,690.5,0.0,0.0,Replaceable,12,False
-RJ Harvey,RB,DEN,25,nchernandez19,False,3432.0,5136.8,3943.4,12.005263328552246,1.0,Upside Shot,7,False
+Omar Cooper,WR,NYJ,22,jsinykin,False,0.0,0.0,0.0,0.0,0.0,Replaceable,12,False
+Makai Lemon,WR,PHI,22,jsinykin,False,5074.0,1522.2,4008.5,0.0,0.0,Upside Premier,3,False
+Emeka Egbuka,WR,TB,23,jsinykin,True,6074.0,5385.0,5867.3,11.39411735534668,1.0,Upside Premier,3,False
+Michael Penix,QB,ATL,26,jsinykin,False,3075.0,5641.0,3844.8,13.920000076293945,1.0,Upside Shot,7,False
+Michael Mayer,TE,LV,24,jsinykin,False,2193.0,3464.6,2574.5,5.559394359588623,3.0,Serviceable,9,False
+Ted Hurst,WR,TB,21,jsinykin,False,2517.0,755.1,1988.4,0.0,0.0,Jag Developmental,10,False
+Adonai Mitchell,WR,NYJ,23,jsinykin,False,2535.0,2802.1,2615.1,5.928910255432129,2.0,Replaceable,12,False
+Dont'e Thornton,WR,LV,23,jsinykin,False,1927.0,1586.6,1824.9,3.357142925262451,1.0,Jag Developmental,10,False
+Eli Stowers,TE,PHI,23,jsinykin,False,3591.0,1077.3,2836.9,0.0,0.0,Jag Developmental,10,False
+Caleb Williams,QB,CHI,24,jsinykin,False,8044.0,7018.0,7736.2,17.318204879760742,2.0,Cornerstone,1,False
+Parker Washington,WR,JAX,24,jsinykin,False,3665.0,4422.2,3892.2,9.356969833374023,3.0,Serviceable,9,False
+Chris Olave,WR,NO,26,jsinykin,False,5518.0,7008.8,5965.2,14.83013916015625,4.0,Foundational,2,False
+Jeremiyah Love,RB,ARI,21,jsinykin,True,7582.0,2274.6,5989.8,0.0,0.0,Upside Premier,3,False
+Tez Johnson,WR,TB,24,jsinykin,False,2104.0,3639.1,2564.5,7.700000286102295,1.0,Jag Insurance,11,False
+Jaylin Noel,WR,HOU,23,jsinykin,False,2729.0,2705.7,2722.0,5.724999904632568,1.0,Jag Developmental,10,False
+Ben Sinnott,TE,WAS,24,jsinykin,False,1760.0,2212.3,1895.7,3.549999952316284,1.0,Jag Insurance,11,False
+Jordyn Tyson,WR,NO,21,jsinykin,False,5407.0,1622.1,4271.5,0.0,0.0,Upside Premier,3,False
+Jaxson Dart,QB,NYG,23,jsinykin,False,6464.0,7695.8,6833.5,18.99077033996582,1.0,Upside Premier,3,False
+Quinshon Judkins,RB,CLE,22,jsinykin,False,5503.0,5128.5,5390.6,11.98571491241455,1.0,Upside Premier,3,False
+Trevor Lawrence,QB,JAX,26,SvenMoney34,False,6341.0,7667.0,6738.8,18.91973114013672,4.0,Foundational,2,False
+DeVonta Smith,WR,PHI,27,SvenMoney34,False,5484.0,7043.3,5951.8,14.903096199035645,4.0,Foundational,2,False
+Brian Thomas,WR,JAX,23,SvenMoney34,False,4906.0,6237.8,5305.5,13.198627471923828,2.0,Upside Premier,3,False
+Jimmy Horn,WR,CAR,23,SvenMoney34,False,1545.0,1356.4,1488.4,2.869999885559082,1.0,Replaceable,12,False
+Mac Jones,QB,SF,27,SvenMoney34,False,2669.0,5110.1,3401.3,12.609912872314453,4.0,Serviceable,9,False
+Justin Herbert,QB,LAC,28,SvenMoney34,False,6976.0,7321.2,7079.6,18.066356658935547,4.0,Foundational,2,False
+Adam Randall,RB,BAL,21,SvenMoney34,True,1194.0,358.2,943.3,0.0,0.0,Jag Developmental,10,False
+Jayden Daniels,QB,WAS,25,SvenMoney34,False,7821.0,7753.1,7800.6,19.132143020629883,2.0,Cornerstone,1,False
+Ty Simpson,QB,LAR,23,SvenMoney34,True,3568.0,1070.4,2818.7,0.0,0.0,Jag Developmental,10,False
+Xavier Worthy,WR,KC,23,SvenMoney34,False,3324.0,5341.4,3929.2,11.301922798156738,2.0,Upside Shot,7,False
+Drake London,WR,ATL,24,SvenMoney34,False,7168.0,7063.1,7136.5,14.944881439208984,4.0,Cornerstone,1,False
+Colston Loveland,TE,CHI,22,SvenMoney34,False,6229.0,7199.7,6520.2,11.552940368652344,1.0,Foundational,2,False
+Devin Neal,RB,NO,22,SvenMoney34,False,2038.0,2852.5,2282.4,6.666666507720947,1.0,Jag Developmental,10,False
+Jakobi Meyers,WR,JAX,29,SvenMoney34,False,3077.0,6494.5,4102.2,13.741844177246094,4.0,Mainstay,4,False
+De'Von Achane,RB,MIA,24,SvenMoney34,False,6858.0,7725.3,7118.2,18.054697036743164,3.0,Cornerstone,1,False
+De'Zhaun Stribling,WR,SF,23,SvenMoney34,False,2716.0,814.8,2145.6,0.0,0.0,Jag Developmental,10,False
+Theo Johnson,TE,NYG,25,SvenMoney34,False,2182.0,4966.4,3017.3,7.96928596496582,2.0,Serviceable,9,False
+Ja'Marr Chase,WR,CIN,26,SvenMoney34,False,9974.0,10000.0,9981.8,21.159181594848633,4.0,Cornerstone,1,False
+Matthew Golden,WR,GB,22,SvenMoney34,False,3617.0,2984.2,3427.2,6.314285755157471,1.0,Upside Shot,7,False
+Bucky Irving,RB,TB,23,SvenMoney34,False,4728.0,6061.6,5128.1,14.166666984558105,2.0,Upside Premier,3,False
+Dalton Kincaid,TE,BUF,26,SvenMoney34,False,3146.0,6165.9,4052.0,9.89403247833252,3.0,Mainstay,4,False
+Omarion Hampton,RB,LAC,23,SvenMoney34,False,6840.0,6451.5,6723.4,15.077777862548828,1.0,Cornerstone,1,False
+Travis Etienne,RB,NO,27,SvenMoney34,False,4458.0,6275.7,5003.3,14.666913032531738,4.0,Mainstay,4,False
+Jaxon Smith-Njigba,WR,SEA,24,SvenMoney34,False,9593.0,6968.5,8805.6,14.744705200195312,3.0,Cornerstone,1,False
+Oronde Gadsden,TE,LAC,23,SvenMoney34,False,3601.0,5429.5,4149.5,8.712499618530273,1.0,Upside Shot,7,False
+Demond Claiborne,RB,MIN,22,SvenMoney34,True,1910.0,573.0,1508.9,0.0,0.0,Jag Developmental,10,False
+Eli Raridon,TE,NE,22,SvenMoney34,False,1543.0,462.9,1219.0,0.0,0.0,Jag Developmental,10,False
+Jameis Winston,QB,NYG,32,Akracoon,False,1309.0,5125.9,2454.1,12.649090766906738,1.0,Jag Insurance,11,False
+Tank Dell,WR,HOU,26,Akracoon,False,2533.0,6443.8,3706.2,13.634614944458008,2.0,Serviceable,9,False
+Kenny Gainwell,RB,TB,27,Akracoon,False,2897.0,3600.0,3107.9,8.413557052612305,4.0,Serviceable,9,False
+Malachi Fields,WR,NYG,22,Akracoon,False,2712.0,813.6,2142.5,0.0,0.0,Jag Developmental,10,False
+Kyle Monangai,RB,CHI,24,Akracoon,False,3549.0,3598.7,3563.9,8.410526275634766,1.0,Upside Shot,7,False
+Quentin Johnston,WR,LAC,24,Akracoon,False,3580.0,5050.8,4021.2,10.687088012695312,3.0,Mainstay,4,False
+Isiah Pacheco,RB,DET,27,Akracoon,False,2331.0,4470.3,2972.8,10.447428703308105,4.0,Jag Insurance,11,False
+Cade Klubnik,QB,NYJ,22,Akracoon,True,1853.0,555.9,1463.9,0.0,0.0,Replaceable,12,False
+David Njoku,TE,LAC,29,Akracoon,False,2412.0,7572.1,3960.0,12.150496482849121,4.0,Mainstay,4,False
+Dak Prescott,QB,DAL,32,Akracoon,False,4895.0,7930.2,5805.6,19.56908416748047,4.0,Productive Vet,5,False
+J.J. McCarthy,QB,MIN,23,Akracoon,False,2748.0,5648.2,3618.1,13.938000679016113,1.0,Upside Shot,7,False
+Jacoby Brissett,QB,ARI,33,Akracoon,False,2658.0,5428.4,3489.1,13.395384788513184,3.0,Serviceable,9,False
+Fernando Mendoza,QB,LV,22,Akracoon,False,5548.0,1664.4,4382.9,0.0,0.0,Upside Shot,7,False
+Ja'Tavion Sanders,TE,CAR,23,Akracoon,True,2020.0,3583.3,2489.0,5.75,2.0,Jag Developmental,10,False
+Justin Fields,QB,KC,27,Akracoon,False,2055.0,7366.2,3648.4,18.17733383178711,4.0,Serviceable,9,False
+Bhayshul Tuten,RB,JAX,23,Akracoon,False,4107.0,2715.6,3689.6,6.34666633605957,1.0,Upside Shot,7,False
+Andrei Iosivas,WR,CIN,26,Akracoon,False,1634.0,3345.1,2147.3,7.077906131744385,3.0,Jag Insurance,11,False
+Cole Kmet,TE,CHI,27,Akracoon,False,1976.0,6304.7,3274.6,10.116825103759766,4.0,Serviceable,9,False
+Elijah Sarratt,WR,BAL,23,Akracoon,False,2777.0,833.1,2193.8,0.0,0.0,Jag Developmental,10,False
+Hunter Henry,TE,NE,31,Akracoon,False,2234.0,6117.0,3398.9,9.815634727478027,4.0,Serviceable,9,False
+Jalen Coker,WR,CAR,24,Akracoon,False,3166.0,4739.3,3638.0,10.027999877929688,2.0,Serviceable,9,False
+Aaron Jones,RB,MIN,31,Akracoon,False,2284.0,6112.3,3432.5,14.284950256347656,4.0,Short-term Production,8,False
+Malik Nabers,WR,NYG,22,Akracoon,False,7454.0,8557.4,7785.0,18.106666564941406,1.0,Cornerstone,1,False
+Chris Brazzell,WR,CAR,22,Akracoon,False,2490.0,747.0,1967.1,0.0,0.0,Jag Developmental,10,False
+Nicholas Singleton,RB,TEN,22,Akracoon,True,2916.0,874.8,2303.6,0.0,0.0,Jag Developmental,10,False
+Braelon Allen,RB,NYJ,22,GiantHawkTua,False,2669.0,2144.4,2511.6,5.011765003204346,1.0,Jag Developmental,10,False
+Amon-Ra St. Brown,WR,DET,26,GiantHawkTua,False,7911.0,9491.0,8385.0,20.08208656311035,4.0,Cornerstone,1,False
+Denzel Boston,WR,CLE,22,GiantHawkTua,False,3458.0,1037.4,2731.8,0.0,0.0,Jag Developmental,10,False
+Isaiah Likely,TE,NYG,26,GiantHawkTua,False,3377.0,5145.9,3907.7,8.257394790649414,4.0,Serviceable,9,False
+Joe Burrow,QB,CIN,29,GiantHawkTua,False,7449.0,8443.8,7747.4,20.83638572692871,4.0,Cornerstone,1,False
+Rashid Shaheed,WR,SEA,27,GiantHawkTua,False,2767.0,4342.5,3239.6,9.188311576843262,3.0,Serviceable,9,False
+Chris Godwin,WR,TB,30,GiantHawkTua,False,2904.0,7397.3,4252.0,15.652146339416504,4.0,Serviceable,9,False
+Ollie Gordon,RB,MIA,22,GiantHawkTua,False,2378.0,1950.4,2249.7,4.558333396911621,1.0,Jag Developmental,10,False
+Dylan Sampson,RB,CLE,21,GiantHawkTua,False,2732.0,2744.5,2735.8,6.414285182952881,1.0,Upside Shot,7,False
+Michael Wilson,WR,ARI,26,GiantHawkTua,False,3612.0,4984.0,4023.6,10.545692443847656,3.0,Mainstay,4,False
+Alec Pierce,WR,IND,26,GiantHawkTua,False,3995.0,5353.0,4402.4,11.326587677001953,4.0,Mainstay,4,False
+Blake Corum,RB,LAR,25,GiantHawkTua,False,3361.0,2133.7,2992.8,4.986666679382324,2.0,Serviceable,9,False
+Tua Tagovailoa,QB,ATL,28,GiantHawkTua,False,2774.0,7069.1,4062.5,17.444204330444336,4.0,Serviceable,9,False
+Terry McLaurin,WR,WAS,30,GiantHawkTua,False,3494.0,6663.1,4444.7,14.098529815673828,4.0,Short-term Production,8,False
+Mike Washington,RB,LV,22,GiantHawkTua,True,2561.0,2758.9,2620.4,5.837700843811035,2.0,Serviceable,9,False
+Tyler Warren,TE,IND,24,GiantHawkTua,False,5854.0,6910.1,6170.8,11.088234901428223,1.0,Upside Premier,3,False
+Jalen Hurts,QB,PHI,27,GiantHawkTua,False,6166.0,9388.7,7132.8,23.168283462524414,4.0,Foundational,2,False
+Malik Willis,QB,MIA,27,GiantHawkTua,False,3845.0,1153.5,3037.6,0.0,0.0,Upside Shot,7,False
+Emanuel Wilson,RB,SEA,27,GiantHawkTua,False,2029.0,1987.8,2016.6,4.645798206329346,3.0,Jag Insurance,11,False
+Kenneth Walker,RB,KC,25,GiantHawkTua,False,5447.0,6177.0,5666.0,14.436325073242188,4.0,Mainstay,4,False
+J.K. Dobbins,RB,DEN,27,GiantHawkTua,False,2962.0,5235.0,3643.9,12.234761238098145,3.0,Mainstay,4,False
+Kyle Pitts,TE,ATL,25,GiantHawkTua,False,4483.0,6070.5,4959.2,9.741045951843262,4.0,Mainstay,4,False
+Jonathan Taylor,RB,IND,27,GiantHawkTua,False,5988.0,7746.5,6515.5,18.104228973388672,4.0,Foundational,2,False
+Carson Beck,QB,ARI,23,GiantHawkTua,False,2171.0,651.3,1715.1,0.0,0.0,Jag Developmental,10,False
+Nico Collins,WR,HOU,27,GiantHawkTua,False,5583.0,7785.9,6243.9,16.47435188293457,4.0,Foundational,2,False
+Breece Hall,RB,NYJ,25,GiantHawkTua,False,5399.0,6936.0,5860.1,16.21013641357422,4.0,Mainstay,4,False
+David Montgomery,RB,HOU,29,GiantHawkTua,False,3380.0,5808.2,4108.5,13.574390411376953,4.0,Serviceable,9,False
+Kevin Coleman,WR,MIA,22,GiantHawkTua,True,1914.0,574.2,1512.1,0.0,0.0,Jag Developmental,10,False
+Will Howard,QB,PIT,24,GiantHawkTua,True,1952.0,585.6,1542.1,0.0,0.0,Jag Developmental,10,False
+AJ Barner,TE,SEA,24,nchernandez19,False,2750.0,4336.5,3226.0,6.958571434020996,2.0,Serviceable,9,False
+Luke McCaffrey,WR,WAS,25,nchernandez19,False,1653.0,2689.2,1963.9,5.690151214599609,2.0,Replaceable,12,False
+Woody Marks,RB,HOU,25,nchernandez19,False,2738.0,3943.6,3099.7,9.216666221618652,1.0,Upside Shot,7,False
+Romeo Doubs,WR,NE,26,nchernandez19,False,3097.0,5241.0,3740.2,11.089615821838379,4.0,Mainstay,4,False
+Eli Heidenreich,RB,PIT,23,nchernandez19,True,1316.0,394.8,1039.6,0.0,0.0,Jag Developmental,10,False
+MarShawn Lloyd,RB,GB,25,nchernandez19,False,2149.0,644.7,1697.7,0.0,0.0,Jag Insurance,11,False
+Jordan James,RB,SF,22,nchernandez19,False,2138.0,641.4,1689.0,0.0,0.0,Jag Developmental,10,False
+Jameson Williams,WR,DET,25,nchernandez19,False,4682.0,5662.2,4976.1,11.980793952941895,3.0,Foundational,2,False
+Brock Bowers,TE,LV,23,nchernandez19,False,8138.0,9338.4,8498.1,14.984804153442383,2.0,Cornerstone,1,False
+Jordan Love,QB,GB,27,nchernandez19,False,5505.0,6954.8,5939.9,17.16217041015625,3.0,Foundational,2,False
+Jayden Reed,WR,GB,26,nchernandez19,False,3427.0,5663.0,4097.8,11.982353210449219,3.0,Serviceable,9,False
+Jaydon Blue,RB,DAL,22,nchernandez19,False,2080.0,624.0,1643.2,0.0,0.0,Jag Developmental,10,False
+Tucker Kraft,TE,GB,25,nchernandez19,False,4885.0,6734.6,5439.9,10.8066987991333,3.0,Foundational,2,False
+Geno Smith,QB,NYJ,35,nchernandez19,False,2268.0,6902.9,3658.5,17.034099578857422,4.0,Short-term Production,8,False
+Bryce Lance,WR,NO,23,nchernandez19,True,1399.0,419.7,1105.2,0.0,0.0,Replaceable,12,False
+C.J. Stroud,QB,HOU,24,nchernandez19,False,4805.0,6433.0,5293.4,15.874587059020996,3.0,Upside Shot,7,False
+RJ Harvey,RB,DEN,25,nchernandez19,False,3369.0,5136.8,3899.3,12.005263328552246,1.0,Upside Shot,7,False
+Taylen Green,QB,CLE,23,nchernandez19,True,999.0,299.7,789.2,0.0,0.0,Replaceable,12,False
+Dalton Schultz,TE,HOU,29,nchernandez19,False,2171.0,6758.1,3547.1,10.84445858001709,4.0,Mainstay,4,False
+Marvin Harrison,WR,ARI,23,nchernandez19,False,4963.0,5634.1,5164.3,11.921306610107422,2.0,Upside Premier,3,False
 Bijan Robinson,RB,ATL,24,nchernandez19,False,9999.0,8027.4,9407.5,18.760784149169922,3.0,Cornerstone,1,False
-Dalton Schultz,TE,HOU,29,nchernandez19,False,2241.0,6758.1,3596.1,10.84445858001709,4.0,Mainstay,4,False
-Gunnar Helm,TE,TEN,23,nchernandez19,False,2686.0,3571.7,2951.7,5.731250286102295,1.0,Serviceable,9,False
-MarShawn Lloyd,RB,GB,25,nchernandez19,False,1982.0,594.6,1565.8,0.0,0.0,Jag Insurance,11,False
-C.J. Stroud,QB,HOU,24,nchernandez19,False,4823.0,6433.0,5306.0,15.874587059020996,3.0,Upside Shot,7,False
-Luke McCaffrey,WR,WAS,25,nchernandez19,False,1693.0,2689.2,1991.9,5.690151214599609,2.0,Replaceable,12,False
-Jaydon Blue,RB,DAL,22,nchernandez19,False,2056.0,616.8,1624.2,0.0,0.0,Jag Developmental,10,False
-Woody Marks,RB,HOU,25,nchernandez19,False,2786.0,3943.6,3133.3,9.216666221618652,1.0,Upside Shot,7,False
-Keon Coleman,WR,BUF,23,nchernandez19,False,2483.0,3748.0,2862.5,7.930476188659668,2.0,Upside Shot,7,False
-AJ Barner,TE,SEA,24,nchernandez19,False,2764.0,4336.5,3235.8,6.958571434020996,2.0,Serviceable,9,False
-Jordan James,RB,SF,22,nchernandez19,False,2134.0,640.2,1685.9,0.0,0.0,Jag Developmental,10,False
-Zachariah Branch,WR,ATL,22,nchernandez19,False,2698.0,809.4,2131.4,0.0,0.0,Jag Developmental,10,False
-Jalen McMillan,WR,TB,24,sethfriedman12,False,2954.0,5144.2,3611.1,10.884614944458008,1.0,Serviceable,9,False
-Michael Pittman,WR,PIT,28,sethfriedman12,False,3360.0,6460.5,4290.2,13.669975280761719,4.0,Serviceable,9,False
-Mason Taylor,TE,NYJ,22,sethfriedman12,False,2378.0,4165.8,2914.3,6.684615612030029,1.0,Upside Shot,7,False
-Kaytron Allen,RB,WAS,23,sethfriedman12,True,2549.0,764.7,2013.7,0.0,0.0,Jag Developmental,10,False
-Rachaad White,RB,WAS,27,sethfriedman12,False,2741.0,5351.9,3524.3,12.507901191711426,4.0,Serviceable,9,False
-Quinn Ewers,QB,MIA,23,sethfriedman12,False,1783.0,534.9,1408.6,0.0,0.0,Replaceable,12,False
-Jadarian Price,RB,SEA,22,sethfriedman12,False,4849.0,1454.7,3830.7,0.0,0.0,Upside Shot,7,False
-Chris Bell,WR,MIA,21,sethfriedman12,False,2996.0,898.8,2366.8,0.0,0.0,Jag Developmental,10,False
-Chuba Hubbard,RB,CAR,26,sethfriedman12,False,3311.0,5142.6,3860.5,12.018848419189453,4.0,Mainstay,4,False
-George Kittle,TE,SF,32,sethfriedman12,False,3225.0,9002.9,4958.4,14.44649887084961,4.0,Short-term Winner,6,False
-Pat Bryant,WR,DEN,23,sethfriedman12,False,2518.0,2992.0,2660.2,6.3307695388793945,1.0,Jag Developmental,10,False
-George Pickens,WR,DAL,25,sethfriedman12,False,5872.0,6569.0,6081.1,13.899497985839844,4.0,Foundational,2,False
-Tyler Shough,QB,NO,26,sethfriedman12,False,4871.0,6644.3,5403.0,16.395999908447266,1.0,Upside Shot,7,False
-Cam Skattebo,RB,NYG,24,sethfriedman12,False,4718.0,6723.1,5319.5,15.712499618530273,1.0,Upside Premier,3,False
-Cyrus Allen,WR,KC,23,sethfriedman12,True,752.0,225.6,594.1,0.0,0.0,Replaceable,12,False
-Tre Tucker,WR,LV,25,sethfriedman12,False,2460.0,3893.5,2890.0,8.23825740814209,3.0,Serviceable,9,False
-Germie Bernard,WR,PIT,22,sethfriedman12,False,2963.0,888.9,2340.8,0.0,0.0,Jag Developmental,10,False
-Aaron Rodgers,QB,PIT,42,sethfriedman12,False,1878.0,6020.6,3120.8,14.85686206817627,3.0,Jag Insurance,11,False
-Jauan Jennings,WR,MIN,28,sethfriedman12,False,2678.0,5049.4,3389.4,10.684150695800781,4.0,Serviceable,9,False
-Jake Ferguson,TE,DAL,27,sethfriedman12,False,3226.0,6550.8,4223.4,10.511739730834961,4.0,Serviceable,9,False
-Chris Rodriguez,RB,JAX,26,sethfriedman12,False,2592.0,2518.0,2569.8,5.8847222328186035,3.0,Serviceable,9,False
-TreVeyon Henderson,RB,NE,23,sethfriedman12,False,5437.0,4525.3,5163.5,10.576190948486328,1.0,Upside Shot,7,False
-Travis Hunter,WR,JAX,23,sethfriedman12,False,3341.0,4307.5,3631.0,9.114285469055176,1.0,Upside Premier,3,False
-Calvin Ridley,WR,TEN,31,sethfriedman12,False,1869.0,5022.4,2815.0,10.626890182495117,3.0,Serviceable,9,False
-Khalil Shakir,WR,BUF,26,sethfriedman12,False,2971.0,5059.8,3597.6,10.706019401550293,4.0,Serviceable,9,False
-Oscar Delp,TE,NO,22,sethfriedman12,True,1323.0,396.9,1045.2,0.0,0.0,Jag Developmental,10,False
-Tre' Harris,WR,LAC,24,sethfriedman12,False,2756.0,2312.6,2623.0,4.893333435058594,1.0,Jag Insurance,11,False
-Jaylen Warren,RB,PIT,27,sethfriedman12,False,3161.0,4664.1,3611.9,10.9005708694458,4.0,Serviceable,9,False
-Matthew Stafford,QB,LAR,38,GreyWaedekin27,False,3762.0,7152.2,4779.1,17.64936065673828,4.0,Short-term Production,8,False
+Dontayvion Wicks,WR,PHI,25,nchernandez19,False,2413.0,3716.6,2804.1,7.864065647125244,3.0,Jag Insurance,11,False
+Gunnar Helm,TE,TEN,23,nchernandez19,False,2636.0,3571.7,2916.7,5.731250286102295,1.0,Serviceable,9,False
+Zachariah Branch,WR,ATL,22,nchernandez19,False,2712.0,813.6,2142.5,0.0,0.0,Jag Developmental,10,False
+Keon Coleman,WR,BUF,23,nchernandez19,False,2408.0,3748.0,2810.0,7.930476188659668,2.0,Upside Shot,7,False
+Tre' Harris,WR,LAC,24,sethfriedman12,False,2731.0,2312.6,2605.5,4.893333435058594,1.0,Jag Insurance,11,False
+Chuba Hubbard,RB,CAR,27,sethfriedman12,False,3302.0,5142.6,3854.2,12.018848419189453,4.0,Mainstay,4,False
+Calvin Ridley,WR,TEN,31,sethfriedman12,False,1871.0,5022.4,2816.4,10.626890182495117,3.0,Serviceable,9,False
+Jaylen Warren,RB,PIT,27,sethfriedman12,False,3207.0,4664.1,3644.1,10.9005708694458,4.0,Serviceable,9,False
+Mason Taylor,TE,NYJ,22,sethfriedman12,False,2379.0,4165.8,2915.0,6.684615612030029,1.0,Upside Shot,7,False
+Quinn Ewers,QB,MIA,23,sethfriedman12,False,1735.0,520.5,1370.6,0.0,0.0,Replaceable,12,False
+Jalen McMillan,WR,TB,24,sethfriedman12,False,3071.0,5144.2,3693.0,10.884614944458008,1.0,Serviceable,9,False
+Michael Pittman,WR,PIT,28,sethfriedman12,False,3361.0,6460.5,4290.8,13.669975280761719,4.0,Serviceable,9,False
+Cyrus Allen,WR,KC,23,sethfriedman12,True,919.0,275.7,726.0,0.0,0.0,Replaceable,12,False
+Tre Tucker,WR,LV,25,sethfriedman12,False,2490.0,3893.5,2911.0,8.23825740814209,3.0,Serviceable,9,False
+Jake Ferguson,TE,DAL,27,sethfriedman12,False,3212.0,6550.8,4213.6,10.511739730834961,4.0,Serviceable,9,False
+Aaron Rodgers,QB,PIT,42,sethfriedman12,False,1978.0,6020.6,3190.8,14.85686206817627,3.0,Jag Insurance,11,False
+Pat Bryant,WR,DEN,23,sethfriedman12,False,2453.0,2992.0,2614.7,6.3307695388793945,1.0,Jag Developmental,10,False
+Chris Bell,WR,MIA,22,sethfriedman12,False,3053.0,915.9,2411.9,0.0,0.0,Jag Developmental,10,False
+George Pickens,WR,DAL,25,sethfriedman12,False,5929.0,6569.0,6121.0,13.899497985839844,4.0,Foundational,2,False
+Cam Skattebo,RB,NYG,24,sethfriedman12,False,4787.0,6723.1,5367.8,15.712499618530273,1.0,Upside Premier,3,False
+TreVeyon Henderson,RB,NE,23,sethfriedman12,False,5507.0,4525.3,5212.5,10.576190948486328,1.0,Upside Shot,7,False
+Khalil Shakir,WR,BUF,26,sethfriedman12,False,2929.0,5059.8,3568.2,10.706019401550293,4.0,Serviceable,9,False
+Tyler Shough,QB,NO,26,sethfriedman12,False,4823.0,6644.3,5369.4,16.395999908447266,1.0,Upside Shot,7,False
+Rachaad White,RB,WAS,27,sethfriedman12,False,2756.0,5351.9,3534.8,12.507901191711426,4.0,Serviceable,9,False
+Jauan Jennings,WR,MIN,28,sethfriedman12,False,2606.0,5049.4,3339.0,10.684150695800781,4.0,Serviceable,9,False
+Germie Bernard,WR,PIT,22,sethfriedman12,False,2970.0,891.0,2346.3,0.0,0.0,Jag Developmental,10,False
+Chris Rodriguez,RB,JAX,26,sethfriedman12,False,2636.0,2518.0,2600.6,5.8847222328186035,3.0,Serviceable,9,False
+George Kittle,TE,SF,32,sethfriedman12,False,3278.0,9002.9,4995.5,14.44649887084961,4.0,Short-term Winner,6,False
+Kaytron Allen,RB,WAS,23,sethfriedman12,True,2588.0,776.4,2044.5,0.0,0.0,Jag Developmental,10,False
+Jadarian Price,RB,SEA,22,sethfriedman12,False,4843.0,1452.9,3826.0,0.0,0.0,Upside Shot,7,False
+Oscar Delp,TE,NO,22,sethfriedman12,True,1666.0,499.8,1316.1,0.0,0.0,Jag Developmental,10,False
+Travis Hunter,WR,JAX,23,sethfriedman12,False,3329.0,4307.5,3622.6,9.114285469055176,1.0,Upside Premier,3,False
+Sam Darnold,QB,SEA,29,GreyWaedekin27,False,4529.0,6648.6,5164.9,16.40648078918457,3.0,Mainstay,4,False
+Mike Evans,WR,SF,32,GreyWaedekin27,False,3325.0,7754.1,4653.7,16.407047271728516,4.0,Serviceable,9,False
+Deebo Samuel,WR,,30,GreyWaedekin27,False,1998.0,6307.2,3290.8,13.345601081848145,4.0,Serviceable,9,False
+Christian McCaffrey,RB,SF,30,GreyWaedekin27,False,4979.0,10000.0,6485.3,23.370996475219727,3.0,Short-term Winner,6,False
+Brian Robinson,RB,ATL,27,GreyWaedekin27,False,2348.0,4805.7,3085.3,11.231471061706543,4.0,Serviceable,9,False
+Rico Dowdle,RB,PIT,28,GreyWaedekin27,False,3145.0,4302.4,3492.2,10.055037498474121,3.0,Serviceable,9,False
+Justice Hill,RB,BAL,28,GreyWaedekin27,False,1360.0,3415.6,1976.7,7.982597827911377,4.0,Jag Insurance,11,False
+Jared Goff,QB,DET,31,GreyWaedekin27,False,4680.0,7458.2,5513.5,18.404253005981445,4.0,Productive Vet,5,False
+Brock Purdy,QB,SF,26,GreyWaedekin27,False,5824.0,7783.8,6411.9,19.207735061645508,4.0,Foundational,2,False
+D'Andre Swift,RB,CHI,27,GreyWaedekin27,False,3628.0,5695.8,4248.3,13.311640739440918,4.0,Mainstay,4,False
+Tank Bigsby,RB,PHI,23,GreyWaedekin27,False,2473.0,2227.0,2399.2,5.204798221588135,3.0,Serviceable,9,False
+Wan'Dale Robinson,WR,TEN,25,GreyWaedekin27,False,3490.0,5237.4,4014.2,11.08193588256836,4.0,Mainstay,4,False
 Cade Otton,TE,TB,27,GreyWaedekin27,False,2313.0,5750.2,3344.2,9.226984024047852,4.0,Serviceable,9,False
-Christian McCaffrey,RB,SF,29,GreyWaedekin27,False,4993.0,10000.0,6495.1,23.370996475219727,3.0,Productive Vet,5,False
-Wan'Dale Robinson,WR,TEN,25,GreyWaedekin27,False,3533.0,5237.4,4044.3,11.08193588256836,4.0,Mainstay,4,False
-Brian Robinson,RB,ATL,27,GreyWaedekin27,False,2379.0,4805.7,3107.0,11.231471061706543,4.0,Serviceable,9,False
-James Conner,RB,ARI,31,GreyWaedekin27,False,1794.0,6651.8,3251.3,15.545832633972168,3.0,Short-term Production,8,False
-D'Andre Swift,RB,CHI,27,GreyWaedekin27,False,3556.0,5695.8,4197.9,13.311640739440918,4.0,Mainstay,4,False
-Trevor Etienne,RB,CAR,21,GreyWaedekin27,True,2060.0,670.3,1643.1,1.5666667222976685,1.0,Jag Developmental,10,False
-CeeDee Lamb,WR,DAL,27,GreyWaedekin27,False,7267.0,9316.9,7882.0,19.71385955810547,4.0,Cornerstone,1,False
-Jared Goff,QB,DET,31,GreyWaedekin27,False,4678.0,7458.2,5512.1,18.404253005981445,4.0,Productive Vet,5,False
-Brenton Strange,TE,JAX,25,GreyWaedekin27,False,2990.0,5129.3,3631.8,8.230769157409668,2.0,Mainstay,4,False
-Sam Darnold,QB,SEA,28,GreyWaedekin27,False,4660.0,6648.6,5256.6,16.40648078918457,3.0,Mainstay,4,False
-Justin Jefferson,WR,MIN,26,GreyWaedekin27,False,7759.0,9400.7,8251.5,19.891111373901367,4.0,Cornerstone,1,False
-Deebo Samuel,WR,,30,GreyWaedekin27,False,2153.0,6307.2,3399.3,13.345601081848145,4.0,Serviceable,9,False
-Brock Purdy,QB,SF,26,GreyWaedekin27,False,5848.0,7783.8,6428.7,19.207735061645508,4.0,Foundational,2,False
-Tyreek Hill,WR,,31,GreyWaedekin27,False,2001.0,8800.2,4040.8,18.620479583740234,3.0,Serviceable,9,False
-Tank Bigsby,RB,PHI,23,GreyWaedekin27,False,2416.0,2227.0,2359.3,5.204798221588135,3.0,Serviceable,9,False
-Saquon Barkley,RB,PHI,29,GreyWaedekin27,False,4922.0,7996.9,5844.5,18.689443588256836,4.0,Productive Vet,5,False
-DJ Giddens,RB,IND,22,GreyWaedekin27,True,2060.0,618.0,1627.4,0.0,0.0,Jag Developmental,10,False
-Rico Dowdle,RB,PIT,27,GreyWaedekin27,False,3171.0,4302.4,3510.4,10.055037498474121,3.0,Serviceable,9,False
-Mike Evans,WR,SF,32,GreyWaedekin27,False,3300.0,7754.1,4636.2,16.407047271728516,4.0,Serviceable,9,False
-Justice Hill,RB,BAL,28,GreyWaedekin27,False,1364.0,3415.6,1979.5,7.982597827911377,4.0,Jag Insurance,11,False
-Jerry Jeudy,WR,CLE,27,GreyWaedekin27,False,2633.0,5889.2,3609.9,12.461169242858887,4.0,Serviceable,9,False
-Jalen Milroe,QB,SEA,23,GreyWaedekin27,True,2235.0,670.5,1765.6,0.0,0.0,Jag Developmental,10,False
-Chase Brown,RB,CIN,26,GreyWaedekin27,False,4998.0,5353.2,5104.6,12.511029243469238,3.0,Mainstay,4,False
-Brandon Aiyuk,WR,SF,28,gavinw20,False,2296.0,5667.0,3307.3,11.990864753723145,3.0,Serviceable,9,False
-Kyler Murray,QB,MIN,28,gavinw20,False,4115.0,7421.3,5106.9,18.313316345214844,3.0,Mainstay,4,False
-Garrett Wilson,WR,NYJ,25,gavinw20,False,5704.0,6982.7,6087.6,14.774836540222168,4.0,Foundational,2,False
-Calvin Austin,WR,NYG,27,gavinw20,False,1454.0,2866.6,1877.8,6.065395355224609,3.0,Jag Insurance,11,False
-Davante Adams,WR,LAR,33,gavinw20,False,3276.0,8261.2,4771.6,17.479970932006836,4.0,Short-term Production,8,False
-Rhamondre Stevenson,RB,NE,28,gavinw20,False,2952.0,5620.2,3752.5,13.134913444519043,4.0,Serviceable,9,False
-DK Metcalf,WR,PIT,28,gavinw20,False,3534.0,6600.9,4454.1,13.966944694519043,4.0,Serviceable,9,False
-Ashton Jeanty,RB,LV,22,gavinw20,False,7585.0,6169.0,7160.2,14.417647361755371,1.0,Cornerstone,1,False
-James Cook,RB,BUF,26,gavinw20,False,5987.0,6808.6,6233.5,15.912280082702637,4.0,Foundational,2,False
-Chimere Dike,WR,TEN,24,gavinw20,False,2421.0,3441.2,2727.1,7.28125,1.0,Serviceable,9,False
-Jalen Nailor,WR,LV,27,gavinw20,False,2350.0,3697.0,2754.1,7.822499752044678,2.0,Jag Insurance,11,False
-DeMario Douglas,WR,NE,25,gavinw20,False,2000.0,3663.1,2498.9,7.750767230987549,3.0,Jag Insurance,11,False
-Sam LaPorta,TE,DET,25,gavinw20,False,4516.0,7717.0,5476.3,12.383082389831543,3.0,Foundational,2,False
-Bo Nix,QB,DEN,26,gavinw20,False,6026.0,7633.8,6508.3,18.83777618408203,2.0,Foundational,2,False
-Zach Charbonnet,RB,SEA,25,gavinw20,False,3356.0,3995.5,3547.8,9.337867736816406,3.0,Mainstay,4,False
-Skyler Bell,WR,BUF,23,gavinw20,False,2541.0,762.3,2007.4,0.0,0.0,Jag Developmental,10,False
-Chig Okonkwo,TE,WAS,26,gavinw20,False,2745.0,4611.2,3304.9,7.399358749389648,4.0,Serviceable,9,False
-Deshaun Watson,QB,CLE,30,gavinw20,False,2164.0,5424.3,3142.1,13.385477066040039,2.0,Serviceable,9,False
-Juwan Johnson,TE,NO,29,gavinw20,False,2332.0,5947.9,3416.8,9.544295310974121,4.0,Mainstay,4,False
-Javonte Williams,RB,DAL,26,gavinw20,False,4509.0,5062.9,4675.2,11.83240795135498,3.0,Mainstay,4,False
-Elijah Arroyo,TE,SEA,23,gavinw20,True,2484.0,2693.6,2546.9,4.3222222328186035,1.0,Jag Developmental,10,False
-Max Klare,TE,LAR,22,gavinw20,True,2279.0,683.7,1800.4,0.0,0.0,Jag Developmental,10,False
-Baker Mayfield,QB,TB,31,gavinw20,False,4786.0,7654.2,5646.5,18.88812828063965,4.0,Productive Vet,5,False
-Emmett Johnson,RB,KC,22,gavinw20,True,2569.0,770.7,2029.5,0.0,0.0,Jag Developmental,10,False
+Chase Brown,RB,CIN,26,GreyWaedekin27,False,5124.0,5353.2,5192.8,12.511029243469238,3.0,Mainstay,4,False
+Matthew Stafford,QB,LAR,38,GreyWaedekin27,False,3804.0,7152.2,4808.5,17.64936065673828,4.0,Short-term Production,8,False
+CeeDee Lamb,WR,DAL,27,GreyWaedekin27,False,7219.0,9316.9,7848.4,19.71385955810547,4.0,Cornerstone,1,False
+DJ Giddens,RB,IND,22,GreyWaedekin27,True,2057.0,617.1,1625.0,0.0,0.0,Jag Developmental,10,False
+James Conner,RB,ARI,31,GreyWaedekin27,False,1753.0,6651.8,3222.6,15.545832633972168,3.0,Short-term Production,8,False
+Tyreek Hill,WR,,31,GreyWaedekin27,False,1880.0,8800.2,3956.1,18.620479583740234,3.0,Serviceable,9,False
+Trevor Etienne,RB,CAR,21,GreyWaedekin27,True,2023.0,670.3,1617.2,1.5666667222976685,1.0,Jag Developmental,10,False
+Jerry Jeudy,WR,CLE,27,GreyWaedekin27,False,2611.0,5889.2,3594.5,12.461169242858887,4.0,Serviceable,9,False
+Saquon Barkley,RB,PHI,29,GreyWaedekin27,False,4972.0,7996.9,5879.5,18.689443588256836,4.0,Productive Vet,5,False
+Brenton Strange,TE,JAX,25,GreyWaedekin27,False,2989.0,5129.3,3631.1,8.230769157409668,2.0,Mainstay,4,False
+Justin Jefferson,WR,MIN,27,GreyWaedekin27,False,7640.0,9400.7,8168.2,19.891111373901367,4.0,Cornerstone,1,False
+Jalen Milroe,QB,SEA,23,GreyWaedekin27,True,2238.0,671.4,1768.0,0.0,0.0,Jag Developmental,10,False
+Davante Adams,WR,LAR,33,gavinw20,False,3338.0,8261.2,4815.0,17.479970932006836,4.0,Short-term Production,8,False
+Calvin Austin,WR,NYG,27,gavinw20,False,1431.0,2866.6,1861.7,6.065395355224609,3.0,Jag Insurance,11,False
+Baker Mayfield,QB,TB,31,gavinw20,False,4720.0,7654.2,5600.3,18.88812828063965,4.0,Productive Vet,5,False
+Emmett Johnson,RB,KC,22,gavinw20,True,2559.0,767.7,2021.6,0.0,0.0,Jag Developmental,10,False
+Brandon Aiyuk,WR,SF,28,gavinw20,False,2181.0,5667.0,3226.8,11.990864753723145,3.0,Serviceable,9,False
+Jaylen Waddle,WR,DEN,27,gavinw20,False,4765.0,6417.9,5260.9,13.57972240447998,4.0,Foundational,2,False
+Javonte Williams,RB,DAL,26,gavinw20,False,4484.0,5062.9,4657.7,11.83240795135498,3.0,Mainstay,4,False
 Jacory Croskey-Merritt,RB,WAS,25,gavinw20,False,2952.0,3531.3,3125.8,8.252941131591797,1.0,Upside Shot,7,False
-Zay Flowers,WR,BAL,25,gavinw20,False,4819.0,6311.8,5266.8,13.355338096618652,3.0,Foundational,2,False
-Josh Allen,QB,BUF,30,gavinw20,False,9987.0,10000.0,9990.9,24.676687240600586,4.0,Cornerstone,1,False
-Kenyon Sadiq,TE,NYJ,21,gavinw20,False,4167.0,1250.1,3291.9,0.0,0.0,Upside Premier,3,False
-Jaylen Waddle,WR,DEN,27,gavinw20,False,4778.0,6417.9,5270.0,13.57972240447998,4.0,Foundational,2,False
+Deshaun Watson,QB,CLE,30,gavinw20,False,2159.0,5424.3,3138.6,13.385477066040039,2.0,Serviceable,9,False
+Garrett Wilson,WR,NYJ,25,gavinw20,False,5699.0,6982.7,6084.1,14.774836540222168,4.0,Foundational,2,False
+Zach Charbonnet,RB,SEA,25,gavinw20,False,3368.0,3995.5,3556.2,9.337867736816406,3.0,Mainstay,4,False
+Max Klare,TE,LAR,22,gavinw20,True,2354.0,706.2,1859.7,0.0,0.0,Jag Developmental,10,False
+Jalen Nailor,WR,LV,27,gavinw20,False,2432.0,3697.0,2811.5,7.822499752044678,2.0,Jag Insurance,11,False
+Zay Flowers,WR,BAL,25,gavinw20,False,4882.0,6311.8,5310.9,13.355338096618652,3.0,Foundational,2,False
+James Cook,RB,BUF,26,gavinw20,False,6047.0,6808.6,6275.5,15.912280082702637,4.0,Foundational,2,False
+Juwan Johnson,TE,NO,29,gavinw20,False,2311.0,5947.9,3402.1,9.544295310974121,4.0,Mainstay,4,False
+Elijah Arroyo,TE,SEA,23,gavinw20,True,2414.0,2693.6,2497.9,4.3222222328186035,1.0,Jag Developmental,10,False
+Chig Okonkwo,TE,WAS,26,gavinw20,False,2826.0,4611.2,3361.6,7.399358749389648,4.0,Serviceable,9,False
+Sam LaPorta,TE,DET,25,gavinw20,False,4487.0,7717.0,5456.0,12.383082389831543,3.0,Mainstay,4,False
+Ashton Jeanty,RB,LV,22,gavinw20,False,7668.0,6169.0,7218.3,14.417647361755371,1.0,Cornerstone,1,False
+Josh Allen,QB,BUF,30,gavinw20,False,9988.0,10000.0,9991.6,24.676687240600586,4.0,Cornerstone,1,False
+Kyler Murray,QB,MIN,28,gavinw20,False,4129.0,7421.3,5116.7,18.313316345214844,3.0,Mainstay,4,False
+Rhamondre Stevenson,RB,NE,28,gavinw20,False,2940.0,5620.2,3744.1,13.134913444519043,4.0,Serviceable,9,False
+DeMario Douglas,WR,NE,25,gavinw20,False,1948.0,3663.1,2462.5,7.750767230987549,3.0,Jag Insurance,11,False
+Bo Nix,QB,DEN,26,gavinw20,False,6062.0,7633.8,6533.5,18.83777618408203,2.0,Foundational,2,False
+DK Metcalf,WR,PIT,28,gavinw20,False,3447.0,6600.9,4393.2,13.966944694519043,4.0,Serviceable,9,False
+Kenyon Sadiq,TE,NYJ,21,gavinw20,False,4066.0,1219.8,3212.1,0.0,0.0,Upside Premier,3,False
+Chimere Dike,WR,TEN,24,gavinw20,False,2423.0,3441.2,2728.5,7.28125,1.0,Serviceable,9,False
+Skyler Bell,WR,BUF,23,gavinw20,False,2463.0,738.9,1945.8,0.0,0.0,Jag Developmental,10,False

@@ -47,6 +47,15 @@ Both leagues are **fully built and deployed**. The auto-update data pipeline is 
 - Admin view-as does not affect watchlist or goals — always loads logged-in user's uid data
 - Sections: Goals → Watchlist → Value Proportion card → Trade Strategy → Top Priorities → Trade Suggestions → Trade Finder
 
+### Wilson's — Power Rankings (Complete)
+- **Notebook:** `notebooks/power_rankings.ipynb` — pulls Sleeper users/rosters, reads existing `public/data/` JSONs (teamOverview, playerUniverse, rosterGrades, tradeHistory, positionalProportion), formats a structured prompt, makes one Anthropic API call (`claude-sonnet-4-6`), writes `public/data/power_rankings.json`
+- **Workflow:** `.github/workflows/power_rankings.yml` — runs every **Tuesday at 15:00 UTC** (9am CT); requires `ANTHROPIC_API_KEY` as a GitHub Actions repository secret
+- **React page:** `src/pages/PowerRankings.js` — rank numbers color-coded (gold #1, green top 3, orange 7–8, red 9–10), outlook badges, AI disclaimer footer with `generated_at` timestamp
+- **Wired into:** `dataService.js` (fetches `power_rankings.json`), `App.jsx` (`/powerrankings` route), `Sidebar.jsx` (nav item between League History and My Blueprint)
+- **Required Python packages:** `anthropic`, `python-dotenv` — installed inline in the workflow
+- **Local API key:** `ANTHROPIC_API_KEY` in `.env` at repo root (gitignored); loaded via `find_dotenv(usecwd=True)` from `notebooks/`
+- **CLTC does not have this feature** — not started, do not add
+
 ### Wilson's — Trade Finder (Complete)
 - `src/utils/playerUtils.js` — `normalizeName()` and `findPlayerByName()` handle name variants
 - Template reordering — Cornerstone/Foundational give-side floats qualifying packages to top
@@ -58,6 +67,26 @@ Both leagues are **fully built and deployed**. The auto-update data pipeline is 
 ## Known Issues
 
 None currently. Both leagues are stable and auto-updating.
+
+---
+
+## Improvement Roadmap
+
+### Phase 1 — New Features
+1. **Competitive Window / Age Runway** — core age, peak window years, projected value curve by year, age runway bar (Young/Prime/Late Prime/Aging). Add to Team Deep Dive and Blueprint pages.
+2. **Dynasty Matrix** — grid of Rising/Prime/Aging player counts by position. Add to Team Deep Dive.
+3. **Prime Windows Chart** — horizontal per-player timeline showing Rising → Prime → Declining phases sorted by value. Add to Team Deep Dive.
+4. **Position Distribution with Age Buckets** — Under 23 / 23-26 / 27-30 / 31+ player counts with value. Add to Team Deep Dive.
+5. **Trade Value Trajectory** — line chart of roster KTC value over time. Requires snapshot storage strategy. Add to Home or Blueprint.
+
+### Phase 2 — Existing Feature Upgrades
+6. **BUY/SELL/HOLD Signal + Hype %** column on Team Deep Dive roster table.
+7. **Pick Portfolio visual card upgrade** — year-grouped cards with Sent badges like Dynatyze.
+8. **Power Rankings bar chart** alongside AI narratives.
+9. **Blueprint trade targets visual upgrade**.
+
+### Phase 3 — Future
+10. **Multi-league / Sleeper username input** — full architectural rework to support any user entering their Sleeper league ID and pulling their own league data dynamically.
 
 ---
 
@@ -82,6 +111,7 @@ Shared utilities (`tradeLogic.js`, `playerUtils.js`, Blueprint sections) should 
 | GitHub repo | https://github.com/evanee1123/wilsons-moms-house |
 | Wilson's GitHub Actions | https://github.com/evanee1123/wilsons-moms-house/actions/workflows/update_data.yml |
 | CLTC GitHub Actions | https://github.com/evanee1123/wilsons-moms-house/actions/workflows/update_cltc_data.yml |
+| Power Rankings workflow | https://github.com/evanee1123/wilsons-moms-house/actions/workflows/power_rankings.yml |
 
 ---
 
