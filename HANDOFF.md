@@ -78,28 +78,38 @@ Both leagues are **fully built and deployed**. The auto-update data pipeline is 
   - Widened the Peak Window membership rule from "within 5% of peak" to "within 10%" — at 5%, no team
     in the league reached a 4+ year window; at 10%, ekleiner1123 (and several others) do.
 
-#### Follow-up: Pick Conversion Model Fix (Complete)
+#### Follow-up: Pick Conversion Model Fix #1 — 100% draft-year value (Superseded by Fix #2 below)
 - The original pick conversion (1st picks 60% of KTC value, 2nd 30%, 3rd/4th 10%, injected once in
   the draft year with no further growth) was wrong — picks become young Rising players and should
-  keep gaining value after the draft. Replaced with:
-  - **Draft year**: picks convert at 100% of KTC value (regardless of round) — round only affects
-    post-draft growth now
-  - **Post-draft growth**: each pick compounds annually at a round-scaled share of the 13%
-    league-average Rising rate — 1st 13%/yr, 2nd 9.75%/yr, 3rd 6.5%/yr, 4th 3.25%/yr — through 2030
-  - Verified against worked examples to the dollar (2028 1st @ 5,619 → 6,350 → 7,175;
-    2027 2nd @ 3,462 → 3,800 → 4,170 → 4,577) and against Akracoon's 5x 2028 1sts: curve now spikes
-    at 2028 (138,633) and keeps climbing through 2030 (157,221 → 162,899) with no post-spike drop
-  - **Judgment call, flagged and approved by the user**: pure 100% conversion made ekleiner1123's
-    Peak Gain jump to ~32% — far above their own ~9-10% estimate, since 100% is inherently much bigger
-    than the old 10-60% rates for any non-trivial pick stash, even without a marquee 1st. Re-applied
-    the existing outlook-aware pick multiplier (Rebuild 1.3x, Reload 1.1x, Contender 0.9x) to the
-    draft-year conversion value as a partial offset — this only softens the gap (ekleiner1123 lands at
-    +29.0%, not ~9-10%), which the user accepted as an inherent consequence of 100% draft-year
-    conversion rather than a bug.
-- Current verified values: ekleiner1123 → Core Age 23.9, Peak Year 2029, Peak Window 2028–2030,
-  Peak Gain +29.0%. Akracoon → Peak Year 2030, Peak Window 2029–2030, Peak Gain +119.7%. Most teams
-  now show double-digit-to-triple-digit gains since picks contribute much more broadly than before;
-  only the 2 oldest-core teams (GreyWaedekin27, Herschey6153) still show "At peak now" (0%).
+  keep gaining value after the draft. First attempt: picks converted at 100% of KTC value in the
+  draft year, then compounded annually post-draft at a round-scaled share of a 13% league-average
+  Rising rate (1st 13%/yr, 2nd 9.75%/yr, 3rd 6.5%/yr, 4th 3.25%/yr), with the existing outlook-aware
+  pick multiplier (Rebuild 1.3x, Reload 1.1x, Contender 0.9x) re-applied to the draft-year value.
+  This produced unrealistic compounded values (Akracoon +119.7% gain, jsinykin projecting 200K+) and
+  was replaced by Fix #2 immediately below in the same session.
+
+#### Follow-up: Pick Conversion Model Fix #2 — draft-year only + value cap (Complete, current)
+- Removed post-draft compounding entirely — a pick now adds 100% of its KTC value (scaled by the
+  outlook-aware pick multiplier) **only in its draft year**, then contributes nothing in later years.
+  The pick's KTC value already prices in the player's projected upside; compounding on top of it was
+  double-counting that growth. This makes the curve "lumpy" — a draft class with picks creates a
+  spike in that one year, which can recede the following year once those picks no longer contribute —
+  this is expected/correct behavior now, not a bug.
+- Added a projected value cap: every team's curve is clamped at 1.25x the league's current highest
+  `Total Value` (`outlook_df["total_ktc_value"].max()`) before Peak Year/Window/Gain are derived.
+  This is an absolute-dollar ceiling, so it doesn't bind for below-average-value teams even with a
+  large percentage gain (see Akracoon below) — it only protects against a team's absolute dollars
+  blowing past what's realistic league-wide.
+- **Verified against all 3 target teams** (judgment call on the remaining gap flagged to and accepted
+  by the user):
+  - ekleiner1123 → Core Age 23.9, Peak Year 2029, Peak Window 2027–2029, Peak Gain **+15.2%** (within
+    the user's 10-20% target)
+  - jsinykin → peaks at 157,515 (well under 200K — Fix #2 alone resolved this without the cap needing
+    to bind)
+  - Akracoon (5x 2028 1sts) → Peak Year 2028, Peak Gain **+62.5%** (down from +119.7%, but still above
+    the user's 20-40% target — accepted as a genuine outlier rather than something the cap can fix,
+    since Akracoon ranks 8th of 10 in current Total Value and the cap is league-max-relative, not
+    per-team-relative)
 
 ---
 
