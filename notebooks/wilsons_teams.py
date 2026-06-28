@@ -2284,38 +2284,31 @@ def project_player_value(position, age, ktc_value, young_mult, aging_mult):
     return values
 
 # ---- Pick conversion value (Step 2) ----
-# Picks convert at 100% of KTC value in their draft year, then grow each
-# subsequent year as Rising players at a round-scaled share of the
-# league-average Rising rate (13% = avg of QB .12, RB .15, WR .12, TE .10).
-RISING_AVG_RATE = 0.13
-POST_DRAFT_GROWTH_RATE = {
-    1: RISING_AVG_RATE * 1.00,
-    2: RISING_AVG_RATE * 0.75,
-    3: RISING_AVG_RATE * 0.50,
-    4: RISING_AVG_RATE * 0.25,
-}
+# Picks convert at 100% of KTC value in their draft year only. No growth is
+# applied in subsequent years -- the pick's KTC value already reflects the
+# player's projected worth, and any further upside once they're rostered is
+# captured by the player age curves above, not by the pick itself.
 VALUE_CURVE_YEAR_STRS = [str(y) for y in VALUE_CURVE_YEARS]
 
 def pick_value_by_year(owner_name, pick_mult):
     """Returns {year_str: dollar contribution} for an owner's future picks.
     Each pick contributes 100% of its KTC value (scaled by the outlook-aware
-    pick_mult) starting in its draft year, then compounds at its round's
-    post-draft growth rate every year after."""
+    pick_mult) in its draft year only."""
     contributions = {}
     owner_picks = picks_master_df[picks_master_df["current_owner_name"] == owner_name]
     for _, pick in owner_picks.iterrows():
         draft_year = pick["year"]
         if draft_year == CURRENT_DRAFT_YEAR or draft_year not in VALUE_CURVE_YEAR_STRS:
             continue
-        growth_rate = POST_DRAFT_GROWTH_RATE.get(int(pick["round"]), POST_DRAFT_GROWTH_RATE[4])
-        value = pick["ktc_value"] * pick_mult
-        for year_str in VALUE_CURVE_YEAR_STRS:
-            if int(year_str) < int(draft_year):
-                continue
-            if int(year_str) > int(draft_year):
-                value = value * (1 + growth_rate)
-            contributions[year_str] = contributions.get(year_str, 0) + value
+        contributions[draft_year] = contributions.get(draft_year, 0) + pick["ktc_value"] * pick_mult
     return contributions
+
+# ---- Projected value cap (Step 4 prerequisite) ----
+# Grounds the ceiling in real league context: no team should project further
+# than 25% above whatever the single highest current team value in the
+# league already is.
+MAX_TEAM_VALUE = outlook_df["total_ktc_value"].max()
+VALUE_CURVE_CAP = MAX_TEAM_VALUE * 1.25
 
 competitive_window_rows = []
 for owner_name in merged_df["owner"].unique():
@@ -2352,6 +2345,9 @@ for owner_name in merged_df["owner"].unique():
     pick_contrib = pick_value_by_year(owner_name, mult["pick"])
     for idx, year in enumerate(VALUE_CURVE_YEARS):
         curve_totals[idx] += pick_contrib.get(str(year), 0)
+
+    # ---- Clamp to the league-context cap before deriving Peak Year/Window/Gain ----
+    curve_totals = [min(v, VALUE_CURVE_CAP) for v in curve_totals]
 
     value_curve = {year: round(val, 0) for year, val in zip(VALUE_CURVE_YEARS, curve_totals)}
 
