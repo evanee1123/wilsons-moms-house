@@ -1,6 +1,6 @@
 import { useState, Fragment } from 'react'
 import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid,
+  LineChart, Line, XAxis, YAxis, CartesianGrid, ReferenceLine,
   Tooltip as RechartsTooltip, ResponsiveContainer,
 } from 'recharts'
 
@@ -289,6 +289,50 @@ function ValueCurveTooltip({ active, payload, label }) {
 
 const VALUE_TRAJECTORY_ACCENT = '#3182ce'
 const VALUE_TRAJECTORY_GRAY   = '#94a3b8'
+const TRADE_TRAJECTORY_GREEN  = '#48bb78'
+const TRADE_TRAJECTORY_RED    = '#f56565'
+
+const TIME_RANGE_OPTIONS = [
+  { key: '4w',  label: '4W',  days: 28 },
+  { key: '3m',  label: '3M',  days: 90 },
+  { key: '6m',  label: '6M',  days: 180 },
+  { key: '1y',  label: '1Y',  days: 365 },
+  { key: 'all', label: 'All', days: null },
+]
+
+function filterEntriesByRange(entries, rangeKey) {
+  const opt = TIME_RANGE_OPTIONS.find(o => o.key === rangeKey)
+  if (!opt || opt.days == null) return entries
+  const cutoff = new Date()
+  cutoff.setDate(cutoff.getDate() - opt.days)
+  return entries.filter(e => new Date(`${e.date}T00:00:00`) >= cutoff)
+}
+
+function TimeRangeTabs({ value, onChange }) {
+  return (
+    <div style={{ display: 'flex', gap: '6px' }}>
+      {TIME_RANGE_OPTIONS.map(opt => (
+        <button key={opt.key} onClick={() => onChange(opt.key)} style={{
+          padding: '4px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: 600,
+          border: '1px solid var(--card-border)', cursor: 'pointer',
+          background: value === opt.key ? 'var(--blue)' : 'var(--page-bg)',
+          color: value === opt.key ? '#fff' : 'var(--text-secondary)',
+        }}>{opt.label}</button>
+      ))}
+    </div>
+  )
+}
+
+function NotEnoughDataMessage() {
+  return (
+    <div style={{
+      textAlign: 'center', color: 'var(--text-secondary)',
+      fontSize: '13px', padding: '2rem 0'
+    }}>
+      Not enough data yet for this range — try a wider window
+    </div>
+  )
+}
 
 function formatTrajectoryDate(dateStr) {
   const d = new Date(`${dateStr}T00:00:00`)
@@ -324,13 +368,16 @@ function ValueTrajectoryTooltip({ active, payload, label, teamOwner }) {
   )
 }
 
-function ValueTrajectory({ valueHistory, teamOwner }) {
+function RosterValueTrajectory({ valueHistory, teamOwner }) {
+  const [range, setRange] = useState('all')
+
   if (!valueHistory || valueHistory.length === 0) return null
 
-  const sortedHistory = [...valueHistory].sort((a, b) => a.date.localeCompare(b.date))
-  const teams = [...new Set(sortedHistory.flatMap(entry => Object.keys(entry.teams || {})))]
+  const sortedHistory   = [...valueHistory].sort((a, b) => a.date.localeCompare(b.date))
+  const filteredHistory = filterEntriesByRange(sortedHistory, range)
+  const teams = [...new Set(filteredHistory.flatMap(entry => Object.keys(entry.teams || {})))]
 
-  const chartData = sortedHistory.map(entry => {
+  const chartData = filteredHistory.map(entry => {
     const row = { date: entry.date, dateLabel: formatTrajectoryDate(entry.date) }
     teams.forEach(team => { row[team] = entry.teams?.[team]?.totalKTC ?? null })
     return row
@@ -340,18 +387,19 @@ function ValueTrajectory({ valueHistory, teamOwner }) {
 
   return (
     <div className='card'>
-      <div className='card-header'>
-        <h3>📉 Value Trajectory</h3>
-        <span>Total roster KTC value over time</span>
+      <div className='card-header' style={{
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+        flexWrap: 'wrap', gap: '8px'
+      }}>
+        <div>
+          <h3>📉 Roster Value Trajectory</h3>
+          <span>Total roster KTC value over time</span>
+        </div>
+        <TimeRangeTabs value={range} onChange={setRange} />
       </div>
       <div style={{ padding: '1rem' }}>
         {chartData.length < 2 ? (
-          <div style={{
-            textAlign: 'center', color: 'var(--text-secondary)',
-            fontSize: '13px', padding: '2rem 0'
-          }}>
-            Not enough data yet — check back after the next scheduled update
-          </div>
+          <NotEnoughDataMessage />
         ) : (
           <ResponsiveContainer width='100%' height={280}>
             <LineChart data={chartData} margin={{ top: 8, right: 12, bottom: 0, left: 0 }}>
@@ -383,6 +431,122 @@ function ValueTrajectory({ valueHistory, teamOwner }) {
                   isAnimationActive={false} connectNulls
                 />
               )}
+            </LineChart>
+          </ResponsiveContainer>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function formatTradeDate(dateStr) {
+  const d = new Date(`${dateStr}T00:00:00`)
+  const month = d.toLocaleDateString('en-US', { month: 'short' })
+  const yy = String(d.getFullYear()).slice(-2)
+  return `${month} ${d.getDate()} '${yy}`
+}
+
+function formatSignedKtc(value) {
+  if (value == null) return ''
+  const rounded = Math.round(value)
+  return `${rounded > 0 ? '+' : ''}${rounded.toLocaleString()}`
+}
+
+function TradeValueTooltip({ active, payload }) {
+  if (!active || !payload || !payload.length) return null
+  const point = payload[0].payload
+
+  return (
+    <div style={{
+      background: 'var(--card-bg)', border: '1px solid var(--card-border)',
+      borderRadius: '8px', padding: '8px 10px', fontSize: '12px',
+    }}>
+      <div style={{ color: 'var(--text-primary)', fontWeight: 600, marginBottom: '4px' }}>
+        {point.dateLabel}
+      </div>
+      {point.opponent && (
+        <div style={{ color: 'var(--text-secondary)' }}>vs {point.opponent}</div>
+      )}
+      {point.net != null && (
+        <div style={{ color: 'var(--text-secondary)' }}>Trade net: {formatSignedKtc(point.net)}</div>
+      )}
+      <div style={{ color: 'var(--text-primary)', fontWeight: 600 }}>
+        Cumulative: {formatSignedKtc(point.cumulative)}
+      </div>
+    </div>
+  )
+}
+
+function buildTeamTradePoints(tradeHistory, teamOwner) {
+  const teamTrades = (tradeHistory || [])
+    .filter(t => t['Team A'] === teamOwner || t['Team B'] === teamOwner)
+    .slice()
+    .sort((a, b) => a.Date.localeCompare(b.Date))
+
+  let cumulative = 0
+  return teamTrades.map(t => {
+    const isTeamA  = t['Team A'] === teamOwner
+    const net      = isTeamA
+      ? (t['Team A Face'] ?? 0) - (t['Team B Face'] ?? 0)
+      : (t['Team B Face'] ?? 0) - (t['Team A Face'] ?? 0)
+    const opponent = isTeamA ? t['Team B'] : t['Team A']
+    cumulative += net
+    return { date: t.Date, dateLabel: formatTradeDate(t.Date), opponent, net, cumulative }
+  })
+}
+
+function TradeValueTrajectory({ tradeHistory, teamOwner }) {
+  const [range, setRange] = useState('all')
+
+  const allPoints = buildTeamTradePoints(tradeHistory, teamOwner)
+  if (allPoints.length === 0) return null
+
+  const filteredPoints = filterEntriesByRange(allPoints, range)
+  const chartData = filteredPoints.length >= 2
+    ? [{ dateLabel: 'Start', opponent: null, net: null, cumulative: 0 }, ...filteredPoints]
+    : []
+  const finalValue = filteredPoints.length
+    ? filteredPoints[filteredPoints.length - 1].cumulative
+    : 0
+  const lineColor = finalValue >= 0 ? TRADE_TRAJECTORY_GREEN : TRADE_TRAJECTORY_RED
+
+  return (
+    <div className='card'>
+      <div className='card-header' style={{
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+        flexWrap: 'wrap', gap: '8px'
+      }}>
+        <div>
+          <h3>🔁 Trade Value Trajectory</h3>
+          <span>Cumulative net KTC value gained or lost from trades</span>
+        </div>
+        <TimeRangeTabs value={range} onChange={setRange} />
+      </div>
+      <div style={{ padding: '1rem' }}>
+        {filteredPoints.length < 2 ? (
+          <NotEnoughDataMessage />
+        ) : (
+          <ResponsiveContainer width='100%' height={280}>
+            <LineChart data={chartData} margin={{ top: 8, right: 12, bottom: 0, left: 0 }}>
+              <CartesianGrid stroke='var(--card-border)' vertical={false} />
+              <XAxis
+                dataKey='dateLabel' tick={{ fontSize: 12, fill: 'var(--text-secondary)' }}
+                axisLine={{ stroke: 'var(--card-border)' }} tickLine={false}
+              />
+              <YAxis
+                tick={{ fontSize: 12, fill: 'var(--text-secondary)' }}
+                axisLine={false} tickLine={false}
+                tickFormatter={v => Math.round(v).toLocaleString()}
+                width={64} domain={['auto', 'auto']}
+              />
+              <ReferenceLine y={0} stroke='var(--card-border)' />
+              <RechartsTooltip content={<TradeValueTooltip />} />
+              <Line
+                type='monotone' dataKey='cumulative'
+                stroke={lineColor} strokeWidth={3}
+                dot={{ r: 3, fill: lineColor }} activeDot={{ r: 5, fill: lineColor }}
+                isAnimationActive={false} connectNulls
+              />
             </LineChart>
           </ResponsiveContainer>
         )}
@@ -1345,7 +1509,8 @@ export default function TeamDeepDive({ data, owner }) {
 
       <PickPortfolioSection picks={data?.pickPortfolio || []} teamOwner={teamOwner} />
       <DynastyHealth teamData={teamOverview} />
-      <ValueTrajectory valueHistory={data?.valueHistory} teamOwner={teamOwner} />
+      <RosterValueTrajectory valueHistory={data?.valueHistory} teamOwner={teamOwner} />
+      <TradeValueTrajectory tradeHistory={data?.tradeHistory} teamOwner={teamOwner} />
       <CompetitiveWindow teamData={teamOverview} />
       <DynastyMatrix players={teamPlayers} />
       <PositionDistribution players={teamPlayers} />
