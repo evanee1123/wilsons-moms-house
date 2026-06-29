@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, Fragment } from 'react'
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid,
   Tooltip as RechartsTooltip, ResponsiveContainer,
@@ -677,41 +677,73 @@ function PositionDistribution({ players }) {
             </thead>
             <tbody>
               {AGE_BUCKETS.map(bucket => (
-                <tr key={bucket}>
-                  <td style={{ padding: '7px 10px', fontWeight: 700,
-                               color: 'var(--text-primary)', borderBottom: '1px solid var(--card-border)' }}>
-                    {bucket}
-                  </td>
-                  {positions.map(pos => {
-                    const { count, value } = cellValue(bucket, pos)
-                    const isActive = activeCell?.bucket === bucket && activeCell?.pos === pos
-                    return (
-                      <td
-                        key={pos}
-                        onClick={() => setActiveCell(isActive ? null : (count > 0 ? { bucket, pos } : null))}
-                        style={{
-                          padding: '7px 10px', textAlign: 'center',
-                          borderBottom: '1px solid var(--card-border)',
-                          cursor: count > 0 ? 'pointer' : 'default',
-                          background: isActive ? 'var(--page-bg)' : 'transparent',
-                        }}
-                      >
-                        {count > 0 ? (
-                          <div>
-                            <div style={{ fontWeight: 700, color: AGE_BUCKET_COLORS[bucket] }}>
-                              {count} {count === 1 ? 'player' : 'players'}
+                <Fragment key={bucket}>
+                  <tr>
+                    <td style={{ padding: '7px 10px', fontWeight: 700,
+                                 color: 'var(--text-primary)', borderBottom: '1px solid var(--card-border)' }}>
+                      {bucket}
+                    </td>
+                    {positions.map(pos => {
+                      const { count, value } = cellValue(bucket, pos)
+                      const isActive = activeCell?.bucket === bucket && activeCell?.pos === pos
+                      return (
+                        <td
+                          key={pos}
+                          onClick={() => setActiveCell(isActive ? null : (count > 0 ? { bucket, pos } : null))}
+                          style={{
+                            padding: '7px 10px', textAlign: 'center',
+                            borderBottom: '1px solid var(--card-border)',
+                            cursor: count > 0 ? 'pointer' : 'default',
+                            background: isActive ? 'var(--page-bg)' : 'transparent',
+                          }}
+                        >
+                          {count > 0 ? (
+                            <div>
+                              <div style={{ fontWeight: 700, color: AGE_BUCKET_COLORS[bucket] }}>
+                                {count} {count === 1 ? 'player' : 'players'}
+                              </div>
+                              <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                                {Math.round(value).toLocaleString()}
+                              </div>
                             </div>
-                            <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '2px' }}>
-                              {Math.round(value).toLocaleString()}
-                            </div>
+                          ) : (
+                            <span style={{ color: 'var(--text-muted)' }}>—</span>
+                          )}
+                        </td>
+                      )
+                    })}
+                  </tr>
+                  {activeCell?.bucket === bucket && activePlayers && activePlayers.length > 0 && (
+                    <tr>
+                      <td colSpan={positions.length + 1} style={{ padding: 0, borderBottom: '1px solid var(--card-border)' }}>
+                        <div style={{ padding: '1rem' }}>
+                          <div style={{
+                            fontSize: '11px', fontWeight: 700, color: 'var(--text-secondary)',
+                            textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '8px'
+                          }}>
+                            {activeCell.pos} · {activeCell.bucket}
                           </div>
-                        ) : (
-                          <span style={{ color: 'var(--text-muted)' }}>—</span>
-                        )}
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                            {[...activePlayers]
+                              .sort((a, b) => parseFloat(b['KTC Value']) - parseFloat(a['KTC Value']))
+                              .map(p => (
+                                <div key={p.Player} style={{
+                                  background: 'var(--page-bg)', borderRadius: '8px',
+                                  padding: '8px 12px', fontSize: '12px',
+                                  border: `1px solid ${AGE_BUCKET_COLORS[activeCell.bucket]}33`
+                                }}>
+                                  <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{p.Player}</div>
+                                  <div style={{ color: 'var(--text-secondary)', marginTop: '2px' }}>
+                                    Age {parseFloat(p.Age)} · {parseInt(p['KTC Value']).toLocaleString()} KTC
+                                  </div>
+                                </div>
+                              ))}
+                          </div>
+                        </div>
                       </td>
-                    )
-                  })}
-                </tr>
+                    </tr>
+                  )}
+                </Fragment>
               ))}
               <tr>
                 <td style={{ padding: '7px 10px', fontWeight: 700, color: 'var(--text-primary)' }}>
@@ -740,33 +772,6 @@ function PositionDistribution({ players }) {
             </tbody>
           </table>
         </div>
-
-        {activeCell && activePlayers && activePlayers.length > 0 && (
-          <div style={{ marginTop: '1rem' }}>
-            <div style={{
-              fontSize: '11px', fontWeight: 700, color: 'var(--text-secondary)',
-              textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '8px'
-            }}>
-              {activeCell.pos} · {activeCell.bucket}
-            </div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-              {[...activePlayers]
-                .sort((a, b) => parseFloat(b['KTC Value']) - parseFloat(a['KTC Value']))
-                .map(p => (
-                  <div key={p.Player} style={{
-                    background: 'var(--page-bg)', borderRadius: '8px',
-                    padding: '8px 12px', fontSize: '12px',
-                    border: `1px solid ${AGE_BUCKET_COLORS[activeCell.bucket]}33`
-                  }}>
-                    <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{p.Player}</div>
-                    <div style={{ color: 'var(--text-secondary)', marginTop: '2px' }}>
-                      Age {parseFloat(p.Age)} · {parseInt(p['KTC Value']).toLocaleString()} KTC
-                    </div>
-                  </div>
-                ))}
-            </div>
-          </div>
-        )}
       </div>
     </div>
   )
