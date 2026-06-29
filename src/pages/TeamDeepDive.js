@@ -287,6 +287,110 @@ function ValueCurveTooltip({ active, payload, label }) {
   )
 }
 
+const VALUE_TRAJECTORY_ACCENT = '#3182ce'
+const VALUE_TRAJECTORY_GRAY   = '#94a3b8'
+
+function formatTrajectoryDate(dateStr) {
+  const d = new Date(`${dateStr}T00:00:00`)
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+}
+
+function ValueTrajectoryTooltip({ active, payload, label, teamOwner }) {
+  if (!active || !payload || !payload.length) return null
+  const sorted = [...payload]
+    .filter(entry => entry.value != null)
+    .sort((a, b) => b.value - a.value)
+
+  return (
+    <div style={{
+      background: 'var(--card-bg)', border: '1px solid var(--card-border)',
+      borderRadius: '8px', padding: '8px 10px', fontSize: '12px',
+      maxHeight: '260px', overflowY: 'auto'
+    }}>
+      <div style={{ color: 'var(--text-secondary)', marginBottom: '4px', fontWeight: 600 }}>
+        {label}
+      </div>
+      {sorted.map(entry => (
+        <div key={entry.dataKey} style={{
+          display: 'flex', justifyContent: 'space-between', gap: '10px',
+          color: entry.dataKey === teamOwner ? 'var(--text-primary)' : 'var(--text-secondary)',
+          fontWeight: entry.dataKey === teamOwner ? 700 : 400,
+        }}>
+          <span>{entry.dataKey}</span>
+          <span>{Math.round(entry.value).toLocaleString()}</span>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function ValueTrajectory({ valueHistory, teamOwner }) {
+  if (!valueHistory || valueHistory.length === 0) return null
+
+  const sortedHistory = [...valueHistory].sort((a, b) => a.date.localeCompare(b.date))
+  const teams = [...new Set(sortedHistory.flatMap(entry => Object.keys(entry.teams || {})))]
+
+  const chartData = sortedHistory.map(entry => {
+    const row = { date: entry.date, dateLabel: formatTrajectoryDate(entry.date) }
+    teams.forEach(team => { row[team] = entry.teams?.[team]?.totalKTC ?? null })
+    return row
+  })
+
+  const otherTeams = teams.filter(t => t !== teamOwner)
+
+  return (
+    <div className='card'>
+      <div className='card-header'>
+        <h3>📉 Value Trajectory</h3>
+        <span>Total roster KTC value over time</span>
+      </div>
+      <div style={{ padding: '1rem' }}>
+        {chartData.length < 2 ? (
+          <div style={{
+            textAlign: 'center', color: 'var(--text-secondary)',
+            fontSize: '13px', padding: '2rem 0'
+          }}>
+            Not enough data yet — check back after the next scheduled update
+          </div>
+        ) : (
+          <ResponsiveContainer width='100%' height={280}>
+            <LineChart data={chartData} margin={{ top: 8, right: 12, bottom: 0, left: 0 }}>
+              <CartesianGrid stroke='var(--card-border)' vertical={false} />
+              <XAxis
+                dataKey='dateLabel' tick={{ fontSize: 12, fill: 'var(--text-secondary)' }}
+                axisLine={{ stroke: 'var(--card-border)' }} tickLine={false}
+              />
+              <YAxis
+                tick={{ fontSize: 12, fill: 'var(--text-secondary)' }}
+                axisLine={false} tickLine={false}
+                tickFormatter={v => Math.round(v).toLocaleString()}
+                width={56}
+              />
+              <RechartsTooltip content={<ValueTrajectoryTooltip teamOwner={teamOwner} />} />
+              {otherTeams.map(team => (
+                <Line
+                  key={team} type='monotone' dataKey={team}
+                  stroke={VALUE_TRAJECTORY_GRAY} strokeWidth={1} strokeOpacity={0.3}
+                  dot={false} isAnimationActive={false} connectNulls
+                />
+              ))}
+              {teams.includes(teamOwner) && (
+                <Line
+                  key={teamOwner} type='monotone' dataKey={teamOwner}
+                  stroke={VALUE_TRAJECTORY_ACCENT} strokeWidth={3} strokeOpacity={1}
+                  dot={{ r: 3, fill: VALUE_TRAJECTORY_ACCENT }}
+                  activeDot={{ r: 5, fill: VALUE_TRAJECTORY_ACCENT }}
+                  isAnimationActive={false} connectNulls
+                />
+              )}
+            </LineChart>
+          </ResponsiveContainer>
+        )}
+      </div>
+    </div>
+  )
+}
+
 function CompetitiveWindow({ teamData }) {
   if (!teamData) return null
 
@@ -1241,6 +1345,7 @@ export default function TeamDeepDive({ data, owner }) {
 
       <PickPortfolioSection picks={data?.pickPortfolio || []} teamOwner={teamOwner} />
       <DynastyHealth teamData={teamOverview} />
+      <ValueTrajectory valueHistory={data?.valueHistory} teamOwner={teamOwner} />
       <CompetitiveWindow teamData={teamOverview} />
       <DynastyMatrix players={teamPlayers} />
       <PositionDistribution players={teamPlayers} />

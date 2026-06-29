@@ -3629,7 +3629,45 @@ print(f"\n✅ All JSON files pushed to {OUTPUT_DIR}")
 
 
 # ============================================================
-# 24. Export Data for Tableau
+# 24. Append Value History Snapshot
+# ============================================================
+
+from datetime import date
+
+print("Pushing Value History Snapshot...")
+
+snapshot_date = date.today().isoformat()
+
+teams_snapshot = {}
+for owner_name, owner_df in merged_df.groupby("owner"):
+    by_position = {
+        pos: int(round(owner_df.loc[owner_df["position"] == pos, "KTC Value"].sum()))
+        for pos in ["QB", "RB", "WR", "TE"]
+    }
+    teams_snapshot[owner_name] = {
+        "totalKTC": int(round(owner_df["KTC Value"].sum())),
+        "byPosition": by_position,
+    }
+
+value_history_path = os.path.join(OUTPUT_DIR, "valueHistory.json")
+if os.path.exists(value_history_path):
+    with open(value_history_path, "r") as f:
+        value_history = json.load(f)
+else:
+    value_history = []
+
+value_history = [entry for entry in value_history if entry.get("date") != snapshot_date]
+value_history.append({"date": snapshot_date, "teams": teams_snapshot})
+value_history.sort(key=lambda entry: entry["date"])
+
+push_json('valueHistory.json', value_history)
+
+
+# In[27]:
+
+
+# ============================================================
+# 25. Export Data for Tableau
 # ============================================================
 
 import os

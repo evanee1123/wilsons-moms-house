@@ -60,6 +60,7 @@ export async function loadAllData() {
     historyPlayerGames,
     historyBrackets,
     powerRankings,
+    valueHistory,
   ] = await Promise.all([
     fetchJSON('teamOverview.json'),
     fetchJSON('playerUniverse.json'),
@@ -83,6 +84,7 @@ export async function loadAllData() {
     fetchJSON('historyPlayerGames.json'),
     fetchJSON('historyBrackets.json'),
     fetchJSON('power_rankings.json'),
+    fetchJSON('valueHistory.json'),
   ])
 
   return {
@@ -108,6 +110,7 @@ export async function loadAllData() {
     historyPlayerGames,
     historyBrackets,
     powerRankings,
+    valueHistory,
     lastUpdated: new Date().toLocaleString(),
   }
 }
