@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { PickYearGroup, dedupePicks } from '../components/PickPortfolioCards'
+import { PickYearGroup, dedupePicks, buildTeamColorMap } from '../components/PickPortfolioCards'
 
 export default function PickPortfolio({ data }) {
   const [ownerFilter, setOwnerFilter] = useState('ALL')
@@ -27,6 +27,11 @@ export default function PickPortfolio({ data }) {
   }, [picks, owners])
 
   const viewerOwner = ownerFilter === 'ALL' ? undefined : ownerFilter
+  const isAllMode   = !viewerOwner
+
+  const teamColorMap = useMemo(() => (
+    buildTeamColorMap(owners.filter(o => o !== 'ALL'))
+  ), [owners])
 
   const yearGroups = useMemo(() => {
     const yearsToShow = yearFilter === 'ALL' ? allYears : [yearFilter]
@@ -150,6 +155,19 @@ export default function PickPortfolio({ data }) {
           <span>{totalShown} picks</span>
         </div>
         <div style={{ padding: '16px' }}>
+          {isAllMode && (
+            <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '14px' }}>
+              {Object.entries(teamColorMap).map(([owner, color]) => (
+                <div key={owner} style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                  <span style={{
+                    display: 'inline-block', width: '8px', height: '8px',
+                    borderRadius: '50%', background: color, flexShrink: 0,
+                  }} />
+                  <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>{owner}</span>
+                </div>
+              ))}
+            </div>
+          )}
           {yearGroups.length === 0 && (
             <div style={{ color: 'var(--text-muted)', fontSize: '13px' }}>No picks match these filters.</div>
           )}
@@ -161,6 +179,8 @@ export default function PickPortfolio({ data }) {
               sentPicks={g.sentPicks}
               allRoundsForYear={g.allRoundsForYear}
               viewerOwner={viewerOwner}
+              compact={isAllMode}
+              teamColors={isAllMode ? teamColorMap : undefined}
             />
           ))}
         </div>

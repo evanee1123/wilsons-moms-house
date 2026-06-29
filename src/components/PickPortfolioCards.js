@@ -7,6 +7,22 @@ const TIER_BADGE_CLASS = {
   Late:  'badge-red',
 }
 
+// Accent color per round — shown on the big round number and as a subtle
+// top-border on the card. Round 3 keeps the original green.
+const ROUND_ACCENT = {
+  1: 'var(--amber)',
+  2: 'var(--blue)',
+  3: 'var(--green)',
+  4: 'var(--purple)',
+}
+
+// 10 visually distinct colors for league-wide ALL-mode team accenting, cycled
+// by index so any number of owners gets a stable, repeatable assignment.
+const TEAM_COLOR_PALETTE = [
+  '#F87171', '#FB923C', '#FBBF24', '#A3E635', '#34D399',
+  '#22D3EE', '#60A5FA', '#818CF8', '#C084FC', '#F472B6',
+]
+
 const ROUND_ORDINAL = { 1: '1st', 2: '2nd', 3: '3rd', 4: '4th' }
 const ROUND_WORD     = { 1: 'first',  2: 'second',  3: 'third',  4: 'fourth' }
 const ROUND_WORD_PL  = { 1: 'firsts', 2: 'seconds', 3: 'thirds', 4: 'fourths' }
@@ -14,6 +30,10 @@ const ROUND_WORD_PL  = { 1: 'firsts', 2: 'seconds', 3: 'thirds', 4: 'fourths' }
 export function roundOrdinal(round) {
   const r = parseInt(round)
   return ROUND_ORDINAL[r] || `${r}th`
+}
+
+function roundAccent(round) {
+  return ROUND_ACCENT[parseInt(round)] || 'var(--green)'
 }
 
 function roundWord(round, count) {
@@ -26,6 +46,17 @@ export function formatKtc(value) {
   const v = parseFloat(value) || 0
   if (v >= 1000) return `${(v / 1000).toFixed(1)}K`
   return Math.round(v).toLocaleString()
+}
+
+// Assigns each owner a stable color from TEAM_COLOR_PALETTE, sorted
+// alphabetically so the mapping doesn't shift as filters change.
+export function buildTeamColorMap(owners) {
+  const sorted = [...new Set(owners || [])].sort()
+  const map = {}
+  sorted.forEach((owner, i) => {
+    map[owner] = TEAM_COLOR_PALETTE[i % TEAM_COLOR_PALETTE.length]
+  })
+  return map
 }
 
 // Picks for the furthest synthetic year are generated per-slot (not per-trade),
@@ -46,8 +77,9 @@ export function dedupePicks(rawPicks) {
   })
 }
 
-function PickCard({ pick, viewerOwner }) {
+function PickCard({ pick, viewerOwner, compact, teamColor }) {
   const round     = parseInt(pick.Round)
+  const accent    = roundAccent(round)
   const isOwn     = pick['Original Owner'] === pick['Current Owner']
   const tierClass = TIER_BADGE_CLASS[pick.Tier] || 'badge-blue'
 
@@ -59,11 +91,13 @@ function PickCard({ pick, viewerOwner }) {
     <div style={{
       background: 'var(--pick-card-bg)',
       border: '1px solid var(--pick-card-border)',
+      borderTop: `3px solid ${accent}`,
+      borderLeft: teamColor ? `3px solid ${teamColor}` : undefined,
       borderRadius: '10px',
-      padding: '12px 14px',
+      padding: compact ? '8px 10px' : '12px 14px',
     }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-        <div style={{ fontSize: '22px', fontWeight: 800, color: 'var(--green)', lineHeight: 1 }}>
+        <div style={{ fontSize: compact ? '16px' : '22px', fontWeight: 800, color: accent, lineHeight: 1 }}>
           {roundOrdinal(round)}
         </div>
         <span className={`badge ${tierClass}`}>{pick.Tier}</span>
@@ -80,15 +114,15 @@ function PickCard({ pick, viewerOwner }) {
 
       <div style={{
         display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
-        marginTop: viewerOwner ? '14px' : '8px',
+        marginTop: viewerOwner ? (compact ? '10px' : '14px') : (compact ? '5px' : '8px'),
       }}>
         <span style={{
-          fontSize: '12px', color: 'var(--text-secondary)',
+          fontSize: compact ? '11px' : '12px', color: 'var(--text-secondary)',
           whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginRight: '8px',
         }}>
           {footerLeft}
         </span>
-        <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)', flexShrink: 0 }}>
+        <span style={{ fontSize: compact ? '12px' : '13px', fontWeight: 700, color: 'var(--text-primary)', flexShrink: 0 }}>
           {formatKtc(pick['KTC Value'])}
         </span>
       </div>
@@ -102,7 +136,9 @@ function PickCard({ pick, viewerOwner }) {
 //                    round summary pills, including zero counts) — never hardcode 1-4
 // viewerOwner   — the team whose perspective this is ("Your original pick" framing); omit for
 //                  the league-wide ALL view
-export function PickYearGroup({ year, ownedPicks, sentPicks = [], allRoundsForYear, viewerOwner }) {
+// compact       — league-wide ALL view only: smaller cards, tighter grid, more columns
+// teamColors    — league-wide ALL view only: { owner: color } map for the left-border accent
+export function PickYearGroup({ year, ownedPicks, sentPicks = [], allRoundsForYear, viewerOwner, compact = false, teamColors }) {
   const totalValue = ownedPicks.reduce((sum, p) => sum + (parseFloat(p['KTC Value']) || 0), 0)
 
   const roundCounts = {}
@@ -129,9 +165,19 @@ export function PickYearGroup({ year, ownedPicks, sentPicks = [], allRoundsForYe
 
       {ownedPicks.length > 0 && (
         <div style={{
-          display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '10px',
+          display: 'grid',
+          gridTemplateColumns: `repeat(auto-fit, minmax(${compact ? 140 : 200}px, 1fr))`,
+          gap: compact ? '8px' : '10px',
         }}>
-          {ownedPicks.map((p, i) => <PickCard key={i} pick={p} viewerOwner={viewerOwner} />)}
+          {ownedPicks.map((p, i) => (
+            <PickCard
+              key={i}
+              pick={p}
+              viewerOwner={viewerOwner}
+              compact={compact}
+              teamColor={teamColors ? teamColors[p['Current Owner']] : undefined}
+            />
+          ))}
         </div>
       )}
 
@@ -159,7 +205,7 @@ export function PickYearGroup({ year, ownedPicks, sentPicks = [], allRoundsForYe
             color: roundCounts[r] ? 'var(--text-secondary)' : 'var(--text-muted)',
             opacity: roundCounts[r] ? 1 : 0.6,
           }}>
-            {roundCounts[r] || 0}x {roundOrdinal(r)}
+            <span style={{ color: roundCounts[r] ? roundAccent(r) : 'inherit' }}>{roundCounts[r] || 0}x</span> {roundOrdinal(r)}
           </span>
         ))}
       </div>
