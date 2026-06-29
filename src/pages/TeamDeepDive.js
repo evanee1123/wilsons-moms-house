@@ -759,6 +759,11 @@ function PrimeWindowsChart({ players }) {
                     width: `${cliffPct - primeEndPct}%`,
                     background: 'linear-gradient(to right, #f87171, rgba(248,113,113,0.1))'
                   }} />
+                  <div style={{
+                    position: 'absolute', left: `${agePct(age)}%`, top: 0, bottom: 0,
+                    width: '2px', background: '#fff', opacity: 0.6, transform: 'translateX(-1px)',
+                    pointerEvents: 'none', zIndex: 2
+                  }} />
                 </div>
 
                 <div style={{
@@ -770,29 +775,6 @@ function PrimeWindowsChart({ players }) {
               </div>
             )
           })}
-
-          {/* "Now" indicator — spans the full height of the chart area, on top of every row's bar */}
-          <div style={{
-            position: 'absolute', top: 0, bottom: 0, left: '210px', right: '64px',
-            pointerEvents: 'none', zIndex: 2
-          }}>
-            {displayPlayers.map(p => {
-              const nowPct = agePct(parseFloat(p.Age))
-              return (
-                <div key={p.Player} style={{
-                  position: 'absolute', left: `${nowPct}%`, top: 0, bottom: 0,
-                  width: '2px', background: '#fff', opacity: 0.6, transform: 'translateX(-1px)',
-                  boxShadow: '0 0 3px rgba(0,0,0,0.5)'
-                }}>
-                  <span style={{
-                    position: 'absolute', top: '-16px', left: '50%', transform: 'translateX(-50%)',
-                    fontSize: '9px', fontWeight: 700, color: '#fff', whiteSpace: 'nowrap',
-                    textShadow: '0 0 3px rgba(0,0,0,0.7), 0 0 1px rgba(0,0,0,0.7)'
-                  }}>Now</span>
-                </div>
-              )
-            })}
-          </div>
         </div>
 
         <div style={{
