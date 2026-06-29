@@ -1176,7 +1176,7 @@ function TradeTargetsSection({ uid, myOwner, myOutlook, data, outlookByOwner, po
           ? <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>Loading...</div>
           : targets.length === 0
           ? <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>No trade targets right now.</div>
-          : <div className='trade-card-grid'>
+          : <div className='trade-card-list'>
               {targets.map((p, i) => (
                 <TradeCard key={i} player={p} type='buy' accent='var(--green)' showOwner
                   isSaved={savedSet.has(`${p.Player}:buy`)} onDismiss={handleDismiss} onSave={handleSave} onUnsave={handleUnsave} />
@@ -1231,7 +1231,7 @@ function SellCandidatesSection({ uid, myOwner, myOutlook, data, positionalRankin
           ? <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>Loading...</div>
           : sells.length === 0
           ? <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>No sell suggestions right now.</div>
-          : <div className='trade-card-grid'>
+          : <div className='trade-card-list'>
               {sells.map((p, i) => (
                 <TradeCard key={i} player={p} type='sell' accent='var(--red)'
                   isSaved={savedSet.has(`${p.Player}:sell`)} onDismiss={handleDismiss} onSave={handleSave} onUnsave={handleUnsave} />
@@ -1412,9 +1412,11 @@ export default function Blueprint({ data, setPage }) {
       <WatchlistSection uid={uid} data={data} allAssets={allAssets} outlookByOwner={outlookByOwner} />
       <ValueProportionSection myOwner={myOwner} data={data} />
       <TradeStrategySection myOwner={myOwner} data={data} />
-      <TradeTargetsSection uid={uid} myOwner={myOwner} myOutlook={myOutlook} data={data} outlookByOwner={outlookByOwner} positionalRankings={positionalRankings} />
+      <div className='trade-sell-grid'>
+        <TradeTargetsSection uid={uid} myOwner={myOwner} myOutlook={myOutlook} data={data} outlookByOwner={outlookByOwner} positionalRankings={positionalRankings} />
+        <SellCandidatesSection uid={uid} myOwner={myOwner} myOutlook={myOutlook} data={data} positionalRankings={positionalRankings} />
+      </div>
       <TopPrioritiesSection myOwner={myOwner} data={data} />
-      <SellCandidatesSection uid={uid} myOwner={myOwner} myOutlook={myOutlook} data={data} positionalRankings={positionalRankings} />
       <TradeFinderSection myOwner={myOwner} myOutlook={myOutlook} data={data} allAssets={allAssets} outlookByOwner={outlookByOwner} positionalRankings={positionalRankings} adjustYears={adjustYears} />
     </div>
   )

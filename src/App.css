@@ -206,3 +206,22 @@ tr:hover td { background: var(--page-bg); }
     grid-template-columns: 1fr;
   }
 }
+
+.trade-card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.trade-sell-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+  align-items: start;
+}
+
+@media (max-width: 768px) {
+  .trade-sell-grid {
+    grid-template-columns: 1fr;
+  }
+}
