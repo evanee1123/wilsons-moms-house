@@ -140,7 +140,17 @@ None currently. Both leagues are stable and auto-updating.
 
 ### Phase 2 — Existing Feature Upgrades
 6. **BUY/SELL/HOLD Signal + Hype %** column on Team Deep Dive roster table.
-7. **Pick Portfolio visual card upgrade** — year-grouped cards with Sent badges like Dynatyze.
+7. **Pick Portfolio visual card upgrade** — ✅ Done. New shared component `src/components/PickPortfolioCards.js` (`PickYearGroup`, `dedupePicks`, `formatKtc`, `roundOrdinal`) used by both `TeamDeepDive.js`'s `PickPortfolioSection` and `PickPortfolio.js`. Replaced the flat pick tables with year-grouped card grids (`auto-fit, minmax(200px, 1fr)` — 3/2/1 cols responsive, matches the no-hardcoded-breakpoint convention already used elsewhere in the file):
+   - **Pick data has no real draft-slot number** (only `Round` 1–4 and `Tier` Early/Mid/Late — future-year slot order can't be known) — flagged to and resolved by the user: big round display renders the round ordinal ("1st"/"2nd"/...) in green instead of a fabricated "1.xx" slot number, with the existing Early/Mid/Late tier badge in the corner instead of a separate redundant round label.
+   - Card footer: "Your original pick" (Team Deep Dive) / "Own pick" (league ALL view) when `Original Owner === Current Owner`, else "From {original owner}"; KTC value formatted "5.6K"/"3.5K" via `formatKtc`.
+   - New CSS vars `--pick-card-bg`/`--pick-card-border` in `App.css` (light: pale green `#eefcf3`/`#c6f6d5`; dark: `#16241c`/`#234433` — slightly lighter than `--page-bg`, matching the Dynastyze reference).
+   - Year header shows pick count, round breakdown ("5 firsts / 3 seconds / ..."), and total value.
+   - Sent badges (amber outline, strikethrough) only render when there's a single-team perspective (Team Deep Dive, or the league page with a team selected in the owner dropdown) — never in the league-wide ALL view, since "sent" requires a perspective.
+   - Round summary pills (`0x 1st · 1x 2nd · ...`) show every round present in that year's actual pick data (never hardcoded 1–4), muted when count is 0.
+   - League Pick Portfolio page: ranking cards at top unchanged; year/owner filters now drive the card view instead of a sortable table. ALL-owner view groups by year only (sorted round then KTC desc), shows current owner on each card, no Sent badges. Selecting a team switches to the same single-perspective view as Team Deep Dive.
+   - `dedupePicks()` (the synthetic-furthest-year dedup logic that previously only lived in the league page) is now shared, so Team Deep Dive's pick section is also deduped correctly.
+   - Verified both pages end-to-end with a headless Playwright pass against the local dev server (ALL view, team-filtered view via the page's own owner dropdown — not the sidebar's separate "Viewing as" admin select — and the Team Deep Dive card for the logged-in/selected team).
+   - **Wilson's only — not added to CLTC** (consistent with the recent feature pattern of client-side-only additions going to Wilson's first; CLTC parity not requested for this feature).
 8. **Power Rankings bar chart** alongside AI narratives.
 9. **Blueprint trade targets visual upgrade**.
 

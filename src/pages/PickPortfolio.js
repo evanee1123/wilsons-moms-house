@@ -1,30 +1,17 @@
 import { useState, useMemo } from 'react'
+import { PickYearGroup, dedupePicks } from '../components/PickPortfolioCards'
 
 export default function PickPortfolio({ data }) {
   const [ownerFilter, setOwnerFilter] = useState('ALL')
   const [yearFilter,  setYearFilter]  = useState('ALL')
-  const [sortBy,      setSortBy]      = useState('KTC Value')
-  const [sortDir,     setSortDir]     = useState('desc')
 
-  const picks = useMemo(() => {
-    const raw   = data?.pickPortfolio || []
-    const years = [...new Set(raw.map(p => p.Year))].sort()
-    const syntheticYear = years[years.length - 1]
-    const seen  = new Set()
-    return raw.filter(p => {
-      // Synthetic year picks are generated per-slot not per-trade, so dedup by name+owner only
-      const key = p.Year === syntheticYear
-        ? `${p['Pick Name']}|${p['Current Owner']}`
-        : `${p['Pick Name']}|${p['Original Owner']}|${p['Current Owner']}`
-      if (seen.has(key)) return false
-      seen.add(key)
-      return true
-    })
-  }, [data])
+  const picks = useMemo(() => dedupePicks(data?.pickPortfolio || []), [data])
 
-  const years = useMemo(() => (
-    ['ALL', ...new Set(picks.map(p => p.Year).filter(Boolean))]
+  const allYears = useMemo(() => (
+    [...new Set(picks.map(p => p.Year).filter(Boolean))].sort((a, b) => a - b)
   ), [picks])
+
+  const years = useMemo(() => ['ALL', ...allYears], [allYears])
 
   const owners = useMemo(() => (
     ['ALL', ...new Set(picks.map(p => p['Current Owner']).filter(Boolean))]
@@ -34,50 +21,41 @@ export default function PickPortfolio({ data }) {
     return owners.filter(o => o !== 'ALL').map(owner => {
       const ownerPicks  = picks.filter(p => p['Current Owner'] === owner)
       const totalValue  = ownerPicks.reduce((sum, p) => sum + parseFloat(p['KTC Value'] || 0), 0)
-      const firstRounds = ownerPicks.filter(p => p.Round === '1' || p.Round === 1).length
+      const firstRounds = ownerPicks.filter(p => parseInt(p.Round) === 1).length
       return { owner, totalValue, firstRounds }
     }).sort((a, b) => b.totalValue - a.totalValue)
   }, [picks, owners])
 
-  const filtered = useMemo(() => {
-    let result = picks.filter(p => {
-      const matchOwner = ownerFilter === 'ALL' || p['Current Owner'] === ownerFilter
-      const matchYear  = yearFilter  === 'ALL' || p.Year === yearFilter
-      return matchOwner && matchYear
-    })
-    return [...result].sort((a, b) => {
-      const av = parseFloat(a[sortBy]) || 0
-      const bv = parseFloat(b[sortBy]) || 0
-      return sortDir === 'desc' ? bv - av : av - bv
-    })
-  }, [picks, ownerFilter, yearFilter, sortBy, sortDir])
+  const viewerOwner = ownerFilter === 'ALL' ? undefined : ownerFilter
 
-  const handleSort = col => {
-    if (sortBy === col) setSortDir(d => d === 'desc' ? 'asc' : 'desc')
-    else { setSortBy(col); setSortDir('desc') }
-  }
+  const yearGroups = useMemo(() => {
+    const yearsToShow = yearFilter === 'ALL' ? allYears : [yearFilter]
+    return yearsToShow.map(year => {
+      const yearPicks = picks.filter(p => p.Year === year)
+      const allRoundsForYear = [...new Set(yearPicks.map(p => parseInt(p.Round)))].sort((a, b) => a - b)
 
-  const SortTh = ({ col, label, align = 'left' }) => (
-    <th onClick={() => handleSort(col)} style={{
-      cursor: 'pointer', userSelect: 'none', textAlign: align
-    }}>
-      {label} {sortBy === col ? (sortDir === 'desc' ? '↓' : '↑') : ''}
-    </th>
-  )
+      const ownedPicks = (viewerOwner
+        ? yearPicks.filter(p => p['Current Owner'] === viewerOwner)
+        : [...yearPicks]
+      ).sort((a, b) => parseInt(a.Round) - parseInt(b.Round) || (parseFloat(b['KTC Value']) || 0) - (parseFloat(a['KTC Value']) || 0))
 
-  function getRoundLabel(round) {
-    const r = parseInt(round)
-    if (r === 1) return '1st'
-    if (r === 2) return '2nd'
-    if (r === 3) return '3rd'
-    return '4th'
-  }
+      const sentPicks = viewerOwner
+        ? yearPicks
+            .filter(p => p['Original Owner'] === viewerOwner && p['Current Owner'] !== viewerOwner)
+            .sort((a, b) => parseInt(a.Round) - parseInt(b.Round))
+        : []
+
+      return { year, ownedPicks, sentPicks, allRoundsForYear }
+    }).filter(g => g.ownedPicks.length > 0 || g.sentPicks.length > 0)
+  }, [yearFilter, allYears, picks, viewerOwner])
+
+  const totalShown = yearGroups.reduce((sum, g) => sum + g.ownedPicks.length, 0)
 
   return (
     <div className='page'>
       <div className='page-title'>Pick Portfolio</div>
       <div className='page-subtitle'>
-        League-wide draft capital · {filtered.length} picks shown
+        League-wide draft capital · {totalShown} picks shown
       </div>
 
       {/* Summary cards */}
@@ -165,48 +143,26 @@ export default function PickPortfolio({ data }) {
         )}
       </div>
 
-      {/* Pick table */}
+      {/* Pick cards */}
       <div className='card'>
         <div className='card-header'>
-          <h3>All Picks</h3>
-          <span>{filtered.length} picks</span>
+          <h3>{viewerOwner ? `${viewerOwner}'s Picks` : 'All Picks'}</h3>
+          <span>{totalShown} picks</span>
         </div>
-        <div className='table-scroll'>
-          <table>
-            <thead>
-              <tr>
-                <th>Pick Name</th>
-                <SortTh col='Year'      label='Year' />
-                <SortTh col='Round'     label='Round' />
-                <th>Tier</th>
-                <th>Original Owner</th>
-                <th>Current Owner</th>
-                <SortTh col='KTC Value' label='KTC Value' align='right' />
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((p, i) => (
-                <tr key={i}>
-                  <td style={{ fontWeight: 500 }}>{p['Pick Name']}</td>
-                  <td>{p.Year}</td>
-                  <td>{getRoundLabel(p.Round)}</td>
-                  <td>
-                    {p.Year !== '2026' && (
-                      <span className={
-                        p.Tier === 'Early' ? 'badge badge-green' :
-                        p.Tier === 'Mid'   ? 'badge badge-yellow' : 'badge badge-red'
-                      }>{p.Tier}</span>
-                    )}
-                  </td>
-                  <td style={{ color: 'var(--text-secondary)' }}>{p['Original Owner']}</td>
-                  <td style={{ fontWeight: 500 }}>{p['Current Owner']}</td>
-                  <td style={{ textAlign: 'right', fontWeight: 600 }}>
-                    {parseInt(p['KTC Value'] || 0).toLocaleString()}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div style={{ padding: '16px' }}>
+          {yearGroups.length === 0 && (
+            <div style={{ color: 'var(--text-muted)', fontSize: '13px' }}>No picks match these filters.</div>
+          )}
+          {yearGroups.map(g => (
+            <PickYearGroup
+              key={g.year}
+              year={g.year}
+              ownedPicks={g.ownedPicks}
+              sentPicks={g.sentPicks}
+              allRoundsForYear={g.allRoundsForYear}
+              viewerOwner={viewerOwner}
+            />
+          ))}
         </div>
       </div>
     </div>

@@ -24,6 +24,8 @@
   --yellow-bg: #fffff0;
   --purple: #805ad5;
   --purple-bg: #faf5ff;
+  --pick-card-bg: #eefcf3;
+  --pick-card-border: #c6f6d5;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -40,6 +42,8 @@
     --red-bg: #2d0f0f;
     --yellow-bg: #2d2510;
     --purple-bg: #1f1030;
+    --pick-card-bg: #16241c;
+    --pick-card-border: #234433;
   }
 }
 

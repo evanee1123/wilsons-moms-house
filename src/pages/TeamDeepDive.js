@@ -1,10 +1,11 @@
-import { useState, Fragment } from 'react'
+import { useState, useMemo, Fragment } from 'react'
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, ReferenceLine,
   Tooltip as RechartsTooltip, ResponsiveContainer,
 } from 'recharts'
 
 import PlayerDetailModal from '../components/PlayerDetailModal'
+import { PickYearGroup, dedupePicks, formatKtc } from '../components/PickPortfolioCards'
 
 const TIER_COLORS = {
   'Cornerstone':           { bg: '#f6e05e', color: '#744210' },
@@ -173,56 +174,52 @@ function RosterSection({ players, position, onPlayerClick }) {
 }
 
 function PickPortfolioSection({ picks, teamOwner }) {
-  const myPicks = picks
-    .filter(p => p['Current Owner'] === teamOwner)
-    .sort((a, b) => {
-      if (a.Year !== b.Year) return a.Year - b.Year
-      return a.Round - b.Round
-    })
+  const deduped = useMemo(() => dedupePicks(picks), [picks])
+  const years   = useMemo(() => (
+    [...new Set(deduped.map(p => p.Year))].sort((a, b) => a - b)
+  ), [deduped])
 
-  const totalValue = myPicks.reduce((sum, p) => sum + parseFloat(p['KTC Value'] || 0), 0)
-  const firstRound = myPicks.filter(p => p.Round === '1' || p.Round === 1)
+  const yearGroups = useMemo(() => {
+    return years.map(year => {
+      const yearPicks = deduped.filter(p => p.Year === year)
+      const allRoundsForYear = [...new Set(yearPicks.map(p => parseInt(p.Round)))].sort((a, b) => a - b)
+
+      const ownedPicks = yearPicks
+        .filter(p => p['Current Owner'] === teamOwner)
+        .sort((a, b) => parseInt(a.Round) - parseInt(b.Round) || (parseFloat(b['KTC Value']) || 0) - (parseFloat(a['KTC Value']) || 0))
+
+      const sentPicks = yearPicks
+        .filter(p => p['Original Owner'] === teamOwner && p['Current Owner'] !== teamOwner)
+        .sort((a, b) => parseInt(a.Round) - parseInt(b.Round))
+
+      return { year, ownedPicks, sentPicks, allRoundsForYear }
+    }).filter(g => g.ownedPicks.length > 0 || g.sentPicks.length > 0)
+  }, [years, deduped, teamOwner])
+
+  const totalOwned     = yearGroups.reduce((sum, g) => sum + g.ownedPicks.length, 0)
+  const totalValue     = yearGroups.reduce((sum, g) => sum + g.ownedPicks.reduce((s, p) => s + (parseFloat(p['KTC Value']) || 0), 0), 0)
+  const firstRounders  = yearGroups.reduce((sum, g) => sum + g.ownedPicks.filter(p => parseInt(p.Round) === 1).length, 0)
 
   return (
     <div className='card'>
       <div className='card-header'>
         <h3>Pick Portfolio</h3>
-        <span>{firstRound.length} first rounders · Total value: {totalValue.toLocaleString()}</span>
+        <span>{firstRounders} first rounders · Total value: {formatKtc(totalValue)}</span>
       </div>
-      <div className='table-scroll'>
-        <table>
-          <thead>
-            <tr>
-              <th>Pick</th>
-              <th>Round</th>
-              <th>Tier</th>
-              <th>Original Owner</th>
-              <th style={{ textAlign: 'right' }}>KTC Value</th>
-            </tr>
-          </thead>
-          <tbody>
-            {myPicks.map((p, i) => (
-              <tr key={i}>
-                <td style={{ fontWeight: 500 }}>{p['Pick Name']}</td>
-                <td>
-                  {p.Round === '1' || p.Round === 1 ? '1st' :
-                   p.Round === '2' || p.Round === 2 ? '2nd' :
-                   p.Round === '3' || p.Round === 3 ? '3rd' : '4th'}
-                </td>
-                <td>
-                  <span className={
-                    p.Tier === 'Early' ? 'badge badge-green' :
-                    p.Tier === 'Mid'   ? 'badge badge-yellow' : 'badge badge-red'
-                  }>{p.Tier}</span>
-                </td>
-                <td style={{ color: 'var(--text-secondary)' }}>{p['Original Owner']}</td>
-                <td style={{ textAlign: 'right', fontWeight: 500 }}>
-                  {parseInt(p['KTC Value']).toLocaleString()}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <div style={{ padding: '16px' }}>
+        {totalOwned === 0 && yearGroups.length === 0 && (
+          <div style={{ color: 'var(--text-muted)', fontSize: '13px' }}>No picks owned.</div>
+        )}
+        {yearGroups.map(g => (
+          <PickYearGroup
+            key={g.year}
+            year={g.year}
+            ownedPicks={g.ownedPicks}
+            sentPicks={g.sentPicks}
+            allRoundsForYear={g.allRoundsForYear}
+            viewerOwner={teamOwner}
+          />
+        ))}
       </div>
     </div>
   )
