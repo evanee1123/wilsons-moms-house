@@ -87,12 +87,20 @@ function PickCard({ pick, viewerOwner, compact, teamColor }) {
     ? (viewerOwner ? 'Your original pick' : 'Own pick')
     : `From ${pick['Original Owner']}`
 
+  // ALL mode (teamColor set): top border carries the team color, and the
+  // card background gets a subtle team-color tint so cards group visually
+  // by team. Round color is then conveyed only through the round number
+  // text below. Team-filtered / Team Deep Dive (no teamColor): top border
+  // stays the round accent, as before.
+  const background = teamColor
+    ? `linear-gradient(${teamColor}1A, ${teamColor}1A), var(--pick-card-bg)`
+    : 'var(--pick-card-bg)'
+
   return (
     <div style={{
-      background: 'var(--pick-card-bg)',
+      background,
       border: '1px solid var(--pick-card-border)',
-      borderTop: `3px solid ${accent}`,
-      borderLeft: teamColor ? `3px solid ${teamColor}` : undefined,
+      borderTop: `3px solid ${teamColor || accent}`,
       borderRadius: '10px',
       padding: compact ? '8px 10px' : '12px 14px',
     }}>
