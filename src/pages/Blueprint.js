@@ -1413,8 +1413,8 @@ export default function Blueprint({ data, setPage }) {
       <ValueProportionSection myOwner={myOwner} data={data} />
       <TradeStrategySection myOwner={myOwner} data={data} />
       <TradeTargetsSection uid={uid} myOwner={myOwner} myOutlook={myOutlook} data={data} outlookByOwner={outlookByOwner} positionalRankings={positionalRankings} />
-      <TopPrioritiesSection myOwner={myOwner} data={data} />
       <SellCandidatesSection uid={uid} myOwner={myOwner} myOutlook={myOutlook} data={data} positionalRankings={positionalRankings} />
+      <TopPrioritiesSection myOwner={myOwner} data={data} />
       <TradeFinderSection myOwner={myOwner} myOutlook={myOutlook} data={data} allAssets={allAssets} outlookByOwner={outlookByOwner} positionalRankings={positionalRankings} adjustYears={adjustYears} />
     </div>
   )
