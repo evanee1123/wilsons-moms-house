@@ -271,6 +271,42 @@ None currently. Both leagues are stable and auto-updating.
       session); the wiring is identical to `PowerRankings.js`'s already-flagged-unverified pattern, so the
       next person to touch this page should confirm both at once while logged in as `ekleiner1123`.
 
+#### Follow-up: Simulation Accuracy Fix + In-Season Record Support (Complete)
+- **Historical PPG source** — changed from an equal-weight average across all historical seasons to
+  the single most-recently-completed season only (`str(current_season)`, filtered against
+  `standings_df['Season']` — no hardcoded year). The all-time average was overweighting teams with
+  good 2024 records that have since rebuilt/declined; using only the latest season reflects current
+  team strength.
+- **Blend weights flipped** — `blended_ppg` is now `0.4 * historical_ppg + 0.6 * roster_strength_score`
+  (was `0.6/0.4`), so current roster KTC value dominates over last season's scoring record. Verified:
+  ekleiner1123 and SvenMoney34 (both strong current rosters, mediocre-to-bad recent records) now sit at
+  100% playoff odds at the top of `playoffPicture.json`, instead of teams with good historical PPG.
+- **In-season record support** — the simulation now locks in completed weeks instead of re-simulating
+  the full 14-week schedule every time. Each team's actual Sleeper roster `settings.wins/losses/fpts`
+  (already used for `standings.json`) seeds the Monte Carlo loop's starting wins/points, and only
+  `schedule_weeks[weeks_played:]` gets simulated going forward — `weeks_played` is derived as the max
+  `wins+losses` across all rosters. New top-level `playoffPicture.json` fields: `weeks_played`,
+  `current_week` (`weeks_played + 1`, capped at 14), `season_started` (`True` if any team has
+  `wins+losses > 0`). New per-team fields: `current_wins`, `current_losses`.
+- **Frontend label** — `PlayoffPictureSection` in `src/pages/Home.js` renders a `.badge-amber` next to
+  the existing "Top 6 make it · Monte Carlo simulation · N iterations" subtext: "PRESEASON PROJECTION"
+  when `season_started` is `False`, "WEEK {current_week} PROJECTION" once it flips `True`. New
+  `--amber-bg` CSS var + `.badge-amber` class added to `App.css` (light `#fffbeb`/dark `#2d2410`,
+  text color reuses the existing `--amber` var).
+- Edited `wilsons_teams.ipynb` cell 28 directly via raw notebook-JSON manipulation (same approach as
+  the original Playoff Picture build — the notebook remains too large for the Read tool in one shot),
+  then regenerated `wilsons_teams.py` via `jupyter nbconvert --to script` — diff outside the target
+  cell was empty.
+- Ran the full pipeline locally with `/opt/anaconda3/bin/python3 wilsons_teams.py` (must use this
+  absolute path, not bare `python3` — the sandboxed shell's `conda activate base` resolves `python3` to
+  the system 3.9.6 install which can't parse the repo's Python-3.12+ f-string syntax; the anaconda
+  `python3` symlink is 3.13). Verified output end-to-end and visually with a headless Playwright pass
+  against the local dev server — preseason badge renders, zero console errors, rankings match the
+  expected ekleiner1123/SvenMoney34-on-top outcome.
+- **In-season mode (`WEEK X PROJECTION`, locked-in records) is not yet visually verified** — the league
+  is still in preseason (`season_started: False` as of this run), so the in-season code path has only
+  been verified by reading the logic, not by observing it against a live mid-season league.
+
 ---
 
 ## Next Steps

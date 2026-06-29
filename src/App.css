@@ -25,6 +25,7 @@
   --purple: #805ad5;
   --purple-bg: #faf5ff;
   --amber: #f59e0b;
+  --amber-bg: #fffbeb;
   --pick-card-bg: #eefcf3;
   --pick-card-border: #c6f6d5;
 }
@@ -43,6 +44,7 @@
     --red-bg: #2d0f0f;
     --yellow-bg: #2d2510;
     --purple-bg: #1f1030;
+    --amber-bg: #2d2410;
     --pick-card-bg: #16241c;
     --pick-card-border: #234433;
   }
@@ -127,6 +129,7 @@ tr:hover td { background: var(--page-bg); }
 .badge-red    { background: var(--red-bg);    color: var(--red); }
 .badge-yellow { background: var(--yellow-bg); color: var(--yellow); }
 .badge-purple { background: var(--purple-bg); color: var(--purple); }
+.badge-amber  { background: var(--amber-bg);  color: var(--amber); font-weight: 700; }
 
 .my-row td {
   background: #3182ce !important;

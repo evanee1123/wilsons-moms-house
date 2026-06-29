@@ -3735,10 +3735,14 @@ print("Running Playoff Picture simulation...")
 
 owners_list = list(to['Owner'])
 
-# Historical PPG (equal weight per season) + best score, from League History standings
-hist_ppg_by_owner  = standings_df.groupby('Owner')['PPG'].mean()
-hist_best_by_owner = standings_df.groupby('Owner')['Best Score'].max()
-hist_std_by_owner  = standings_df.groupby('Owner')['PPG'].std(ddof=1)
+# Historical PPG from the most recently completed season only (not all-time
+# average) + best score, from League History standings
+recent_season = str(current_season)
+recent_standings_df = standings_df[standings_df['Season'] == recent_season]
+
+hist_ppg_by_owner  = recent_standings_df.groupby('Owner')['PPG'].mean()
+hist_best_by_owner = recent_standings_df.groupby('Owner')['Best Score'].max()
+hist_std_by_owner  = recent_standings_df.groupby('Owner')['PPG'].std(ddof=1)
 
 # Roster strength: player-only KTC value normalized onto the PPG scale
 player_value_by_owner = to.set_index('Owner')['Player Value']
@@ -3750,7 +3754,7 @@ for owner in owners_list:
     historical_ppg = float(hist_ppg_by_owner.get(owner, league_avg_ppg))
     player_ktc     = float(player_value_by_owner.get(owner, league_avg_player_ktc))
     roster_strength_score = (player_ktc / league_avg_player_ktc) * league_avg_ppg
-    blended_ppg = 0.6 * historical_ppg + 0.4 * roster_strength_score
+    blended_ppg = 0.4 * historical_ppg + 0.6 * roster_strength_score
 
     best_score = float(hist_best_by_owner.get(owner, blended_ppg * 1.3))
     std_dev    = hist_std_by_owner.get(owner, np.nan)
@@ -3788,17 +3792,41 @@ def build_round_robin(teams, n_weeks):
 
 round_robin_weeks = build_round_robin(owners_list, REGULAR_SEASON_WEEKS)
 
-sim_schedule = []
+sim_schedule_full = []
 for i, week_entry in enumerate(schedule_weeks):
-    sim_schedule.append(week_entry['matchups'] if week_entry['matchups'] else round_robin_weeks[i])
+    sim_schedule_full.append(week_entry['matchups'] if week_entry['matchups'] else round_robin_weeks[i])
+
+# Current season record (Sleeper rosters already reflect every completed
+# matchup) — used to lock in played weeks instead of re-simulating them
+current_record_by_owner = {}
+for roster in rosters:
+    owner    = roster_id_map.get(roster['roster_id'], 'Unknown')
+    settings = roster.get('settings', {}) or {}
+    current_record_by_owner[owner] = {
+        'wins':   settings.get('wins', 0),
+        'losses': settings.get('losses', 0),
+        'pf':     float(settings.get('fpts', 0)),
+    }
+
+season_started = any(
+    r['wins'] + r['losses'] > 0 for r in current_record_by_owner.values()
+)
+weeks_played = max(
+    (r['wins'] + r['losses'] for r in current_record_by_owner.values()), default=0
+) if season_started else 0
+current_week = min(weeks_played + 1, REGULAR_SEASON_WEEKS)
+
+# Only the remaining weeks get simulated — completed weeks are locked in via
+# each team's actual current win/loss record and points-for below
+sim_schedule = sim_schedule_full[weeks_played:]
 
 # Monte Carlo simulation
 rng = np.random.default_rng()
 playoff_counts = {owner: 0 for owner in owners_list}
 
 for _ in range(SIM_ITERATIONS):
-    wins   = {owner: 0 for owner in owners_list}
-    points = {owner: 0.0 for owner in owners_list}
+    wins   = {owner: current_record_by_owner[owner]['wins'] for owner in owners_list}
+    points = {owner: current_record_by_owner[owner]['pf']   for owner in owners_list}
 
     for week_pairs in sim_schedule:
         for owner_a, owner_b in week_pairs:
@@ -3827,6 +3855,7 @@ for u in users:
 playoff_teams_output = []
 for owner in owners_list:
     params = team_sim_params[owner]
+    record = current_record_by_owner[owner]
     playoff_teams_output.append({
         'owner':                 owner,
         'team_name':             team_name_map.get(owner, owner),
@@ -3834,6 +3863,8 @@ for owner in owners_list:
         'blended_ppg':           params['blended_ppg'],
         'historical_ppg':        params['historical_ppg'],
         'roster_strength_score': params['roster_strength_score'],
+        'current_wins':          record['wins'],
+        'current_losses':        record['losses'],
         'outlook':               outlook_by_owner.get(owner, 'Unknown'),
     })
 
@@ -3843,6 +3874,9 @@ playoff_picture_data = {
     'generated_at':     datetime.utcnow().isoformat() + 'Z',
     'season':           sim_season,
     'weeks_simulated':  REGULAR_SEASON_WEEKS,
+    'weeks_played':     weeks_played,
+    'current_week':     current_week,
+    'season_started':   season_started,
     'playoff_spots':    PLAYOFF_SPOTS,
     'iterations':       SIM_ITERATIONS,
     'teams':            playoff_teams_output,

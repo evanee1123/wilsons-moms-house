@@ -1,8 +1,8 @@
 name,position,age,KTC Value,multi_year_prod_score,combined_score,tier,sell_score
 Jalen Royals,WR,23,1805.0,541.5,1426.0,Replaceable,0.775
-KC Concepcion,WR,21,4465.0,1339.5,3527.4,Jag Developmental,0.735
-Antonio Williams,WR,21,3029.0,908.7,2392.9,Jag Developmental,0.735
 Ja'Kobi Lane,WR,22,2378.0,713.4,1878.6,Jag Developmental,0.735
+Antonio Williams,WR,21,3029.0,908.7,2392.9,Jag Developmental,0.735
+KC Concepcion,WR,21,4465.0,1339.5,3527.4,Jag Developmental,0.735
 Drew Allar,QB,22,1868.0,560.4,1475.7,Replaceable,0.655
 Troy Franklin,WR,23,2597.0,3745.4,2941.5,Jag Developmental,0.5428
 Josh Downs,WR,24,3667.0,4861.8,4025.4,Serviceable,0.5079
@@ -12,22 +12,22 @@ Ricky Pearsall,WR,25,3363.0,5088.1,3880.5,Serviceable,0.5001
 Christian Watson,WR,27,3907.0,5431.2,4364.3,Mainstay,0.4999
 Kayshon Boutte,WR,24,2536.0,4055.9,2992.0,Serviceable,0.4971
 Mark Andrews,TE,30,2785.0,7739.9,4271.5,Serviceable,0.49
-Kaleb Johnson,RB,22,2359.0,427.9,1779.7,Jag Developmental,0.465
 Jonah Coleman,RB,22,3183.0,954.9,2514.6,Jag Developmental,0.465
+Kaleb Johnson,RB,22,2359.0,427.9,1779.7,Jag Developmental,0.465
 Jayden Higgins,WR,23,3447.0,3893.8,3581.0,Upside Shot,0.4288
-Jonathon Brooks,RB,22,3322.0,996.6,2624.4,Upside Shot,0.335
+Jonathon Brooks,RB,22,3319.0,995.7,2622.0,Upside Shot,0.335
 T.J. Hockenson,TE,28,2730.0,7738.1,4232.4,Mainstay,0.3344
-Tyler Allgeier,RB,26,2744.0,3572.7,2992.6,Serviceable,0.314
+Tyler Allgeier,RB,26,2747.0,3572.7,2994.7,Serviceable,0.3141
 Bryce Young,QB,24,4326.0,5624.9,4715.7,Upside Shot,0.2991
-Tyrone Tracy,RB,26,2660.0,4616.2,3246.9,Serviceable,0.298
+Tyrone Tracy,RB,26,2657.0,4616.2,3244.8,Serviceable,0.298
 Tyjae Spears,RB,25,2597.0,3866.1,2977.7,Serviceable,0.231
 Terrance Ferguson,TE,23,2670.0,4284.4,3154.3,Upside Shot,0.1969
 Kyren Williams,RB,25,4856.0,7545.1,5662.7,Mainstay,0.1486
-Tetairoa McMillan,WR,23,6557.0,5944.4,6373.2,Foundational,0.1
 Rome Odunze,WR,24,5273.0,4930.3,5170.2,Foundational,0.1
+Tetairoa McMillan,WR,23,6557.0,5944.4,6373.2,Foundational,0.1
 Carnell Tate,WR,21,5945.0,1783.5,4696.6,Upside Premier,0.08
 Cam Ward,QB,24,5344.0,4950.1,5225.8,Upside Premier,0.08
-Puka Nacua,WR,25,8746.0,9485.9,8968.0,Cornerstone,0.05
-Drake Maye,QB,23,9421.0,7442.7,8827.5,Cornerstone,0.05
 Jahmyr Gibbs,RB,24,9911.0,8489.2,9484.5,Cornerstone,0.05
 Trey McBride,TE,26,7344.0,9243.2,7913.8,Cornerstone,0.05
+Puka Nacua,WR,25,8741.0,9485.9,8964.5,Cornerstone,0.05
+Drake Maye,QB,23,9423.0,7442.7,8828.9,Cornerstone,0.05

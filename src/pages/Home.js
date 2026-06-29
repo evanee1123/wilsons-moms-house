@@ -229,6 +229,9 @@ function PlayoffBarRow({ team, isPlayoffSpot, isMe }) {
 function PlayoffPictureSection({ playoffPicture, myOwner }) {
   const teams = playoffPicture?.teams
   const spots = playoffPicture?.playoff_spots || 6
+  const projectionLabel = playoffPicture?.season_started
+    ? `WEEK ${playoffPicture.current_week} PROJECTION`
+    : 'PRESEASON PROJECTION'
 
   return (
     <div className='card'>
@@ -238,6 +241,7 @@ function PlayoffPictureSection({ playoffPicture, myOwner }) {
           <span>
             Top {spots} make it · Monte Carlo simulation
             {teams?.length ? ` · ${playoffPicture.iterations} iterations` : ''}
+            {teams?.length ? <span className='badge badge-amber' style={{ marginLeft: '8px' }}>{projectionLabel}</span> : ''}
           </span>
         </div>
       </div>
