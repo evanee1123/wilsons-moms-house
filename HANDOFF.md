@@ -216,6 +216,61 @@ None currently. Both leagues are stable and auto-updating.
 ### Phase 3 — Future
 10. **Multi-league / Sleeper username input** — full architectural rework to support any user entering their Sleeper league ID and pulling their own league data dynamically.
 
+### Phase 4 — Playoff Picture (Complete)
+11. **Playoff Picture Monte Carlo simulation on Home page** — ✅ Done. Wilson's only.
+    - **Data audit findings**: no current-season schedule pull existed before this (only historical
+      league-id matchups inside `get_season_history`). Confirmed directly against the Sleeper API that
+      the live league already has real matchup pairings for all 14 regular-season weeks even in
+      preseason (`playoff_week_start: 15`, `playoff_teams: 6` — matches "top 6, 14 weeks" exactly) —
+      points are all 0 but `matchup_id` pairings are fully populated, so the pipeline uses the real
+      schedule rather than the round-robin fallback. Per-season PPG lives in `historyStandings.json`
+      (`Season`/`Owner`/`PPG`/`Best Score`, 2024+2025 currently); `teamOverview.json`'s `Player Value`
+      field is already players-only KTC (no picks) and was used directly for roster strength rather than
+      re-summing `leagueRosters.json`.
+    - **Pipeline**: two new notebook cells, inserted after "24. Append Value History Snapshot" and before
+      Tableau Export (which got bumped from a duplicate "24." label to "27." in the process) —
+      "25. Fetch 2026 Schedule" (writes `public/data/schedule.json`: real Sleeper pairings per week, with
+      a `note` field calling out preseason/live/unavailable) and "26. Playoff Picture Monte Carlo
+      Simulation" (writes `public/data/playoffPicture.json`). New config constants
+      `REGULAR_SEASON_WEEKS=14`, `PLAYOFF_SPOTS=6`, `SIM_ITERATIONS=1000` added to the Config cell.
+      `season` in both output files is `int(CURRENT_DRAFT_YEAR)` — not a new hardcoded year — since
+      `get_current_season()`'s month-based logic returns last year's number for several months after the
+      season starts, and `CURRENT_DRAFT_YEAR` (`current_season+1`) happens to land on the actual playing
+      season already.
+    - **Notebook edited directly via JSON manipulation, not the NotebookEdit tool** — the notebook is too
+      large (71k+ tokens) for the Read tool to load in one shot (required before NotebookEdit can act on
+      a cell), even after stripping all cell outputs. Inserted the two new cells as raw notebook-JSON code
+      cells via a one-off Python script, then ran `jupyter nbconvert --to script` (the project's own
+      documented sync command) to regenerate `wilsons_teams.py` from the patched notebook — confirmed the
+      resulting `.py` diff outside the new cells was only `# In[n]:` execution-count marker renumbering,
+      no logic changes.
+    - **Simulation model**: blended weekly score = 0.6 × historical PPG (mean of each team's per-season
+      PPG, equally weighted across seasons, not games-weighted) + 0.4 × roster strength
+      (`(player_ktc / league_avg_player_ktc) * league_avg_ppg`). Std dev uses the real per-team historical
+      PPG std (`ddof=1` across the 2 available seasons) when computable; falls back to
+      `(best_score - blended_ppg) / 2.5` floored at 5.0 otherwise. Weekly scores drawn from
+      `max(50, normal(blended_ppg, std_dev))`. 1000 iterations, top 6 by (wins, then points tiebreaker)
+      make the playoffs each iteration; `playoff_pct` = fraction of iterations a team made it.
+    - **Verified output**: ran `wilsons_teams.py` end-to-end (full ~10min pipeline run, no errors) —
+      `playoffPicture.json` teams sorted by `playoff_pct` descending, sane tiering (e.g. gavinw20/
+      Herschey6153/GiantHawkTua near 100%, the bottom 4 rebuilding teams under 36%).
+    - **React**: new `PlayoffBarRow`/`PlayoffPictureSection` in `src/pages/Home.js`, added below
+      Positional Rankings. Custom hand-rolled bar rows (not Recharts) since the spec needed a dashed
+      "PLAYOFF CUT" divider injected mid-list after rank 6, which a chart library can't do cleanly — green
+      bars for the top `playoff_spots`, amber below, bold/brighter bar for the logged-in user's row via
+      the same `useAuth()` → `viewAsOwner || userProfile?.rosterOwnerName` pattern already used on
+      `PowerRankings.js`. Hover tooltip (local `useState`, not Recharts) shows blended/historical/roster-
+      strength PPG. Placeholder copy renders if `playoffPicture.json` is missing or empty.
+      `dataService.js` fetches it with `.catch(() => null)` so a missing file degrades to the placeholder
+      instead of breaking the whole `Promise.all` data load.
+    - Verified end-to-end with a headless Playwright pass against the local dev server (no project `run`
+      skill existed for this repo, same situation as prior sessions) — confirmed the section renders with
+      real team names, correct green/amber split at rank 6, the dashed divider, and the hover tooltip
+      contents; zero console errors. **Did not verify the logged-in "my row" bold highlight** — same
+      recurring limitation as `PowerRankings.js`/`Blueprint.js` (no Firebase credentials available in this
+      session); the wiring is identical to `PowerRankings.js`'s already-flagged-unverified pattern, so the
+      next person to touch this page should confirm both at once while logged in as `ekleiner1123`.
+
 ---
 
 ## Next Steps
