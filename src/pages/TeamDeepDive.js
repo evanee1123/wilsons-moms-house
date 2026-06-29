@@ -602,7 +602,14 @@ function DynastyMatrix({ players }) {
   )
 }
 
-const PRIME_CUTOFF_AGE = { QB: 36, RB: 30, WR: 33, TE: 33 }
+// riseEnd = last age of Rising, primeEnd = last age of Prime, cliff = age where the bar ends entirely
+// (cliff is always primeEnd + 6, i.e. a 5-year fade through Declining starting at primeEnd + 1)
+const PRIME_WINDOW_CUTOFFS = {
+  QB: { riseEnd: 25, primeEnd: 33, cliff: 39 },
+  RB: { riseEnd: 23, primeEnd: 27, cliff: 33 },
+  WR: { riseEnd: 24, primeEnd: 30, cliff: 36 },
+  TE: { riseEnd: 26, primeEnd: 30, cliff: 36 },
+}
 const PRIME_PHASE_COLORS = {
   Rising:    '#f97316',
   Prime:     '#4ade80',
@@ -616,7 +623,7 @@ const POSITION_BADGE_COLORS = {
 }
 
 const PRIME_AGE_MIN = 21
-const PRIME_AGE_MAX = 36
+const PRIME_AGE_MAX = 39
 const PRIME_AGE_SPAN = PRIME_AGE_MAX - PRIME_AGE_MIN
 
 function agePct(age) {
@@ -624,22 +631,62 @@ function agePct(age) {
   return ((clamped - PRIME_AGE_MIN) / PRIME_AGE_SPAN) * 100
 }
 
-function PrimeWindowsChart({ players }) {
-  const topPlayers = [...players]
-    .filter(p => PHASE_AGE_CUTOFFS[p.Position] && p.Age != null)
-    .sort((a, b) => parseFloat(b['KTC Value']) - parseFloat(a['KTC Value']))
-    .slice(0, 12)
+const PRIME_SORT_OPTIONS = [
+  { key: 'value',    label: 'Value' },
+  { key: 'age',       label: 'Age' },
+  { key: 'position', label: 'Position' },
+]
+const PRIME_POSITION_ORDER = ['QB', 'RB', 'WR', 'TE']
 
-  if (topPlayers.length === 0) return null
+function sortPrimePlayers(list, sortBy) {
+  const arr = [...list]
+  if (sortBy === 'age') {
+    arr.sort((a, b) => parseFloat(a.Age) - parseFloat(b.Age))
+  } else if (sortBy === 'position') {
+    arr.sort((a, b) => {
+      const posDiff = PRIME_POSITION_ORDER.indexOf(a.Position) - PRIME_POSITION_ORDER.indexOf(b.Position)
+      if (posDiff !== 0) return posDiff
+      return parseFloat(b['KTC Value']) - parseFloat(a['KTC Value'])
+    })
+  } else {
+    arr.sort((a, b) => parseFloat(b['KTC Value']) - parseFloat(a['KTC Value']))
+  }
+  return arr
+}
+
+function PrimeWindowsChart({ players }) {
+  const [sortBy, setSortBy] = useState('value')
+  const [showAll, setShowAll] = useState(false)
+
+  const eligiblePlayers = players.filter(p => PRIME_WINDOW_CUTOFFS[p.Position] && p.Age != null)
+  const sortedPlayers   = sortPrimePlayers(eligiblePlayers, sortBy)
+  const displayPlayers  = showAll ? sortedPlayers : sortedPlayers.slice(0, 12)
+
+  if (displayPlayers.length === 0) return null
 
   const ageTicks = []
   for (let a = PRIME_AGE_MIN; a <= PRIME_AGE_MAX; a++) ageTicks.push(a)
 
   return (
     <div className='card'>
-      <div className='card-header'>
-        <h3>⏳ Prime Windows</h3>
-        <span>Career phase by age</span>
+      <div className='card-header' style={{
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+        flexWrap: 'wrap', gap: '8px'
+      }}>
+        <div>
+          <h3>⏳ Prime Windows</h3>
+          <span>Career phase by age</span>
+        </div>
+        <div style={{ display: 'flex', gap: '6px' }}>
+          {PRIME_SORT_OPTIONS.map(opt => (
+            <button key={opt.key} onClick={() => setSortBy(opt.key)} style={{
+              padding: '4px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: 600,
+              border: '1px solid var(--card-border)', cursor: 'pointer',
+              background: sortBy === opt.key ? 'var(--blue)' : 'var(--page-bg)',
+              color: sortBy === opt.key ? '#fff' : 'var(--text-secondary)',
+            }}>{opt.label}</button>
+          ))}
+        </div>
       </div>
       <div style={{ padding: '1rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', marginBottom: '8px' }}>
@@ -657,88 +704,120 @@ function PrimeWindowsChart({ players }) {
           <div style={{ width: '64px', flexShrink: 0 }} />
         </div>
 
-        {topPlayers.map(p => {
-          const position  = p.Position
-          const age       = parseFloat(p.Age)
-          const cutoffs   = PHASE_AGE_CUTOFFS[position]
-          const cutoffAge = PRIME_CUTOFF_AGE[position]
-          const riseEndPct    = agePct(cutoffs.rising)
-          const primeEndPct   = agePct(cutoffs.prime)
-          const declineEndPct = agePct(cutoffAge)
-          const ageMarkerPct  = agePct(age)
-          const badgeColors   = POSITION_BADGE_COLORS[position] || { bg: '#e2e8f0', color: '#4a5568' }
+        <div style={{ position: 'relative' }}>
+          {displayPlayers.map(p => {
+            const position  = p.Position
+            const age       = parseFloat(p.Age)
+            const cutoffs   = PRIME_WINDOW_CUTOFFS[position]
+            const riseEndPct  = agePct(cutoffs.riseEnd)
+            const primeEndPct = agePct(cutoffs.primeEnd)
+            const cliffPct    = agePct(cutoffs.cliff)
+            const badgeColors = POSITION_BADGE_COLORS[position] || { bg: '#e2e8f0', color: '#4a5568' }
 
-          return (
-            <div key={p.Player} style={{
-              display: 'flex', alignItems: 'center', marginBottom: '8px', height: '24px'
-            }}>
-              <div style={{
-                width: '210px', flexShrink: 0, display: 'flex', alignItems: 'center',
-                gap: '8px', paddingRight: '10px', overflow: 'hidden'
+            return (
+              <div key={p.Player} style={{
+                display: 'flex', alignItems: 'center', marginBottom: '8px', height: '24px'
               }}>
-                <span style={{
-                  background: badgeColors.bg, color: badgeColors.color,
-                  fontSize: '10px', fontWeight: 700, padding: '2px 6px',
-                  borderRadius: '5px', flexShrink: 0
-                }}>{position}</span>
-                <span style={{
-                  fontSize: '12px', fontWeight: 500, color: 'var(--text-primary)',
-                  whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'
-                }}>{p.Player}</span>
-                <span style={{ fontSize: '11px', color: 'var(--text-muted)', flexShrink: 0 }}>
-                  {age}
-                </span>
-              </div>
+                <div style={{
+                  width: '210px', flexShrink: 0, display: 'flex', alignItems: 'center',
+                  gap: '8px', paddingRight: '10px', overflow: 'hidden'
+                }}>
+                  <span style={{
+                    background: badgeColors.bg, color: badgeColors.color,
+                    fontSize: '10px', fontWeight: 700, padding: '2px 6px',
+                    borderRadius: '5px', flexShrink: 0
+                  }}>{position}</span>
+                  <span style={{
+                    fontSize: '12px', fontWeight: 500, color: 'var(--text-primary)',
+                    whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'
+                  }}>{p.Player}</span>
+                  <span style={{ fontSize: '11px', color: 'var(--text-muted)', flexShrink: 0 }}>
+                    {age}
+                  </span>
+                </div>
 
-              <div style={{
-                flex: 1, position: 'relative', height: '14px', borderRadius: '4px',
-                background: 'var(--card-border)', overflow: 'hidden'
-              }}>
-                {ageTicks.map(a => (
-                  <div key={a} style={{
-                    position: 'absolute', left: `${agePct(a)}%`, top: 0, bottom: 0,
-                    width: '1px', background: 'rgba(255,255,255,0.08)'
+                <div style={{
+                  flex: 1, position: 'relative', height: '14px', borderRadius: '4px',
+                  background: 'var(--card-border)', overflow: 'hidden'
+                }}>
+                  {ageTicks.map(a => (
+                    <div key={a} style={{
+                      position: 'absolute', left: `${agePct(a)}%`, top: 0, bottom: 0,
+                      width: '1px', background: 'rgba(255,255,255,0.08)'
+                    }} />
+                  ))}
+                  <div style={{
+                    position: 'absolute', left: 0, top: 0, bottom: 0,
+                    width: `${riseEndPct}%`, background: PRIME_PHASE_COLORS.Rising
                   }} />
-                ))}
-                <div style={{
-                  position: 'absolute', left: 0, top: 0, bottom: 0,
-                  width: `${riseEndPct}%`, background: PRIME_PHASE_COLORS.Rising
-                }} />
-                <div style={{
-                  position: 'absolute', left: `${riseEndPct}%`, top: 0, bottom: 0,
-                  width: `${primeEndPct - riseEndPct}%`, background: PRIME_PHASE_COLORS.Prime
-                }} />
-                <div style={{
-                  position: 'absolute', left: `${primeEndPct}%`, top: 0, bottom: 0,
-                  width: `${declineEndPct - primeEndPct}%`, background: PRIME_PHASE_COLORS.Declining
-                }} />
-                <div style={{
-                  position: 'absolute', left: `${ageMarkerPct}%`, top: '-2px', bottom: '-2px',
-                  width: '2px', background: '#fff', transform: 'translateX(-1px)',
-                  boxShadow: '0 0 2px rgba(0,0,0,0.6)'
-                }} />
-              </div>
+                  <div style={{
+                    position: 'absolute', left: `${riseEndPct}%`, top: 0, bottom: 0,
+                    width: `${primeEndPct - riseEndPct}%`, background: PRIME_PHASE_COLORS.Prime
+                  }} />
+                  <div style={{
+                    position: 'absolute', left: `${primeEndPct}%`, top: 0, bottom: 0,
+                    width: `${cliffPct - primeEndPct}%`,
+                    background: 'linear-gradient(to right, #f87171, rgba(248,113,113,0.1))'
+                  }} />
+                </div>
 
-              <div style={{
-                width: '64px', flexShrink: 0, textAlign: 'right', fontSize: '12px',
-                fontWeight: 500, color: 'var(--text-secondary)', paddingLeft: '10px'
-              }}>
-                {parseInt(p['KTC Value']).toLocaleString()}
+                <div style={{
+                  width: '64px', flexShrink: 0, textAlign: 'right', fontSize: '12px',
+                  fontWeight: 500, color: 'var(--text-secondary)', paddingLeft: '10px'
+                }}>
+                  {parseInt(p['KTC Value']).toLocaleString()}
+                </div>
               </div>
-            </div>
-          )
-        })}
+            )
+          })}
 
-        <div style={{ display: 'flex', gap: '14px', marginTop: '12px' }}>
-          {Object.entries(PRIME_PHASE_COLORS).map(([label, color]) => (
-            <div key={label} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span style={{
-                width: '9px', height: '9px', borderRadius: '2px',
-                background: color, display: 'inline-block'
-              }} />
-              <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{label}</span>
-            </div>
-          ))}
+          {/* "Now" indicator — spans the full height of the chart area, on top of every row's bar */}
+          <div style={{
+            position: 'absolute', top: 0, bottom: 0, left: '210px', right: '64px',
+            pointerEvents: 'none', zIndex: 2
+          }}>
+            {displayPlayers.map(p => {
+              const nowPct = agePct(parseFloat(p.Age))
+              return (
+                <div key={p.Player} style={{
+                  position: 'absolute', left: `${nowPct}%`, top: 0, bottom: 0,
+                  width: '2px', background: '#fff', opacity: 0.6, transform: 'translateX(-1px)',
+                  boxShadow: '0 0 3px rgba(0,0,0,0.5)'
+                }}>
+                  <span style={{
+                    position: 'absolute', top: '-16px', left: '50%', transform: 'translateX(-50%)',
+                    fontSize: '9px', fontWeight: 700, color: '#fff', whiteSpace: 'nowrap',
+                    textShadow: '0 0 3px rgba(0,0,0,0.7), 0 0 1px rgba(0,0,0,0.7)'
+                  }}>Now</span>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+
+        <div style={{
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+          marginTop: '12px', flexWrap: 'wrap', gap: '12px'
+        }}>
+          <div style={{ display: 'flex', gap: '14px' }}>
+            {Object.entries(PRIME_PHASE_COLORS).map(([label, color]) => (
+              <div key={label} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{
+                  width: '9px', height: '9px', borderRadius: '2px',
+                  background: color, display: 'inline-block'
+                }} />
+                <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{label}</span>
+              </div>
+            ))}
+          </div>
+
+          {sortedPlayers.length > 12 && (
+            <button onClick={() => setShowAll(!showAll)} style={{
+              padding: '5px 12px', borderRadius: '6px', fontSize: '12px', fontWeight: 600,
+              border: '1px solid var(--card-border)', cursor: 'pointer',
+              background: 'var(--page-bg)', color: 'var(--text-secondary)',
+            }}>{showAll ? 'Show Less' : 'Show All'}</button>
+          )}
         </div>
       </div>
     </div>
