@@ -151,7 +151,39 @@ None currently. Both leagues are stable and auto-updating.
    - `dedupePicks()` (the synthetic-furthest-year dedup logic that previously only lived in the league page) is now shared, so Team Deep Dive's pick section is also deduped correctly.
    - Verified both pages end-to-end with a headless Playwright pass against the local dev server (ALL view, team-filtered view via the page's own owner dropdown — not the sidebar's separate "Viewing as" admin select — and the Team Deep Dive card for the logged-in/selected team).
    - **Wilson's only — not added to CLTC** (consistent with the recent feature pattern of client-side-only additions going to Wilson's first; CLTC parity not requested for this feature).
-8. **Power Rankings bar chart** alongside AI narratives.
+8. **Power Rankings bar chart** alongside AI narratives — ✅ Done.
+   - `notebooks/power_rankings.ipynb` cell 6 (prompt): added a `DYNASTYZE_REFERENCE` block listing
+     Dynastyze's current power rankings (team/owner/value), framed explicitly as a soft calibration
+     reference — "form your own independent ranking... but consider this calibration when teams are
+     close" — not something to copy. `SYSTEM_PROMPT` now also asks for a `power_score` (0-100,
+     holistic judgment, explicitly NOT derived from rank — "#1 does not automatically get 100") in
+     the JSON schema alongside the existing `rank`/`team_name`/`owner`/`outlook`/`blurb` fields.
+   - Cell 7 (parsing): clamps/coerces `power_score` to an int 0-100 defensively before writing
+     `power_rankings.json`, in case the model returns something malformed (string, out of range, etc).
+   - Re-ran the notebook locally — fresh `power_rankings.json` now includes `power_score` per team
+     (verified non-rank-derived: scores were 91/87/80/76/70/65/55/50/44/38, not an even 100→10 ramp).
+   - **React:** `src/pages/PowerRankings.js` — new `PowerScoreChart` (Recharts horizontal `BarChart`,
+     `layout='vertical'`) renders above the narrative cards in its own `card`/`card-header` with title
+     "Power Rankings" and subtext "AI-generated power score · 0–100 scale". One row per team sorted by
+     AI rank, bar length = `power_score` (domain `[0,100]`, X-axis hidden), Y-axis shows `#rank  Team
+     Name` via a custom tick renderer, `LabelList` shows the score on the bar's right end. Bar color
+     keys off outlook via a chart-specific `OUTLOOK_BAR_COLOR` map (Contender green `#38a169`, Window
+     Contender blue `#3182ce`, Reload amber `#d69e2e`, Rebuild red `#e53e3e`) — intentionally separate
+     from the existing `OUTLOOK_BADGE` class map used by the narrative cards, since the badge colors
+     don't match the spec'd chart palette (e.g. badge Window Contender is orange, chart is blue).
+     Only `CartesianGrid` `vertical` lines are shown (`horizontal={false}`), matching the "subtle
+     vertical gridline only, no X axis" spec.
+   - **Current-user highlight:** follows the existing `useAuth()` pattern from `TradeCalculator.js`/
+     `Blueprint.js` — `myOwner = viewAsOwner || userProfile?.rosterOwnerName`. The matching bar gets
+     full opacity + a bold Y-axis label (others render at `fillOpacity 0.65` / regular weight).
+     **Not visually verified with a real logged-in session** (no Firebase credentials available in
+     this session, same limitation noted on the Blueprint trade-targets work) — the next person to
+     touch this page should confirm the highlight while logged in as `ekleiner1123`.
+   - Verified end-to-end with a headless Playwright pass against the local dev server: chart renders
+     above the cards, bars sorted by rank, colors match outlook per team, score labels visible, no
+     console errors.
+   - **Wilson's only — not added to CLTC**, consistent with "CLTC does not have this feature" for
+     Power Rankings overall (see CLAUDE.md).
 9. **Blueprint trade targets visual upgrade** — ✅ Done. `src/pages/Blueprint.js`:
    - Removed the inline "Target Acquisitions" list from `TradeStrategySection` (which now renders only
      the outlook badge + description) and the "Buy Targets" half of the old `SuggestionsSection`.

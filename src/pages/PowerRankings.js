@@ -1,3 +1,9 @@
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Cell, LabelList,
+  Tooltip as RechartsTooltip, ResponsiveContainer,
+} from 'recharts'
+import { useAuth } from '../contexts/AuthContext'
+
 const OUTLOOK_BADGE = {
   'Contender':                    'badge-green',
   'Contender (needs production)': 'badge-green',
@@ -6,6 +12,101 @@ const OUTLOOK_BADGE = {
   'Reload (sell vets for youth)': 'badge-blue',
   'Rebuild':                      'badge-red',
   'Rebuild (future value)':       'badge-red',
+}
+
+// Bar chart coloring follows its own outlook→color mapping (green/blue/amber/red)
+// rather than reusing the badge classes above.
+const OUTLOOK_BAR_COLOR = {
+  'Contender':                    '#38a169',
+  'Contender (needs production)': '#38a169',
+  'Window Contender':             '#3182ce',
+  'Reload':                       '#d69e2e',
+  'Reload (sell vets for youth)': '#d69e2e',
+  'Rebuild':                      '#e53e3e',
+  'Rebuild (future value)':       '#e53e3e',
+}
+
+function PowerScoreTooltip({ active, payload }) {
+  if (!active || !payload || !payload.length) return null
+  const t = payload[0].payload
+  return (
+    <div style={{
+      background: 'var(--card-bg)', border: '1px solid var(--card-border)',
+      borderRadius: '8px', padding: '8px 10px', fontSize: '12px',
+    }}>
+      <div style={{ color: 'var(--text-primary)', fontWeight: 600, marginBottom: '2px' }}>
+        #{t.rank} {t.team_name}
+      </div>
+      <div style={{ color: 'var(--text-secondary)' }}>{t.outlook}</div>
+      <div style={{ color: 'var(--text-primary)', fontWeight: 600 }}>
+        Power Score: {t.power_score}
+      </div>
+    </div>
+  )
+}
+
+function PowerScoreYAxisTick({ x, y, payload, chartData }) {
+  const entry = chartData.find(d => d.label === payload.value)
+  const isMe  = entry?.isMe
+  return (
+    <text
+      x={x} y={y} dy={4} textAnchor='end'
+      fontSize={12}
+      fontWeight={isMe ? 700 : 400}
+      fill={isMe ? 'var(--text-primary)' : 'var(--text-secondary)'}
+    >
+      {payload.value}
+    </text>
+  )
+}
+
+function PowerScoreChart({ rankings, myOwner }) {
+  const chartData = rankings.map(team => ({
+    ...team,
+    label: `#${team.rank}  ${team.team_name}`,
+    isMe:  myOwner != null && team.owner === myOwner,
+  }))
+
+  return (
+    <div className='card'>
+      <div className='card-header'>
+        <div>
+          <h3>Power Rankings</h3>
+          <span>AI-generated power score · 0–100 scale</span>
+        </div>
+      </div>
+      <div style={{ padding: '1rem' }}>
+        <ResponsiveContainer width='100%' height={Math.max(280, chartData.length * 36)}>
+          <BarChart
+            data={chartData} layout='vertical'
+            margin={{ top: 4, right: 32, bottom: 0, left: 8 }}
+          >
+            <CartesianGrid stroke='var(--card-border)' horizontal={false} />
+            <XAxis type='number' domain={[0, 100]} hide />
+            <YAxis
+              type='category' dataKey='label' width={180}
+              axisLine={false} tickLine={false}
+              tick={props => <PowerScoreYAxisTick {...props} chartData={chartData} />}
+            />
+            <RechartsTooltip content={<PowerScoreTooltip />} cursor={{ fill: 'var(--card-border)', opacity: 0.3 }} />
+            <Bar dataKey='power_score' radius={[0, 4, 4, 0]} isAnimationActive={false}>
+              {chartData.map(entry => (
+                <Cell
+                  key={entry.owner}
+                  fill={OUTLOOK_BAR_COLOR[entry.outlook] || '#94a3b8'}
+                  fillOpacity={entry.isMe ? 1 : 0.65}
+                />
+              ))}
+              <LabelList
+                dataKey='power_score' position='right'
+                style={{ fontSize: 12, fontWeight: 600, fill: 'var(--text-primary)' }}
+              />
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
+  )
 }
 
 function rankColor(rank) {
@@ -28,6 +129,9 @@ function formatGeneratedAt(ts) {
 }
 
 export default function PowerRankings({ data }) {
+  const { userProfile, viewAsOwner } = useAuth()
+  const myOwner = viewAsOwner || userProfile?.rosterOwnerName || null
+
   const rankings    = (data?.powerRankings?.rankings || []).slice().sort((a, b) => a.rank - b.rank)
   const generatedAt = formatGeneratedAt(data?.powerRankings?.generated_at)
 
@@ -38,6 +142,12 @@ export default function PowerRankings({ data }) {
         AI-generated dynasty power rankings
         {generatedAt ? ` · Last updated ${generatedAt}` : ' · Not yet generated'}
       </div>
+
+      {rankings.length > 0 && rankings.every(t => typeof t.power_score === 'number') && (
+        <div style={{ marginBottom: '1.25rem' }}>
+          <PowerScoreChart rankings={rankings} myOwner={myOwner} />
+        </div>
+      )}
 
       {rankings.length === 0 ? (
         <div className='card' style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '14px' }}>
