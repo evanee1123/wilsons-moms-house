@@ -189,6 +189,12 @@ historyPlayerGames.json
 historyBrackets.json
 power_rankings.json       — AI-generated weekly power rankings (Wilson's only)
                             schema: { generated_at, rankings: [{ rank, team_name, owner, outlook, blurb }] }
+schedule.json             — real Sleeper matchup pairings per week for the current season (Wilson's only)
+                            schema: { season, weeks, source, scores_recorded, note, schedule: [{ week, matchups: [[owner, owner], ...] }] }
+playoffPicture.json       — Playoff Picture Monte Carlo simulation results (Wilson's only)
+                            schema: { generated_at, season, weeks_simulated, weeks_played, current_week, season_started,
+                                      playoff_spots, iterations, teams: [{ owner, team_name, playoff_pct, blended_ppg,
+                                      historical_ppg, roster_strength_score, current_wins, current_losses, outlook }] }
 ```
 
 ---
