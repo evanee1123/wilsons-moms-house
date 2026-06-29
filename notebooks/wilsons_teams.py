@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[1]:
+# In[ ]:
 
 
 # ============================================================
@@ -42,6 +42,11 @@ FLEX_SPOTS    = [
     {"name": "SFLX", "eligible": ["QB", "WR", "RB", "TE"], "count": 1},
 ]
 ROUNDS = [1, 2, 3, 4]
+
+# Playoff Picture simulation
+REGULAR_SEASON_WEEKS = 14
+PLAYOFF_SPOTS        = 6
+SIM_ITERATIONS       = 1000
 
 from datetime import datetime
 def get_current_season():
@@ -90,7 +95,7 @@ UNTOUCHABLE = [
 print("Config loaded ✅")
 
 
-# In[2]:
+# In[ ]:
 
 
 # ============================================================
@@ -137,7 +142,7 @@ league_df = pd.DataFrame(all_players)
 print(f"Rosters loaded: {len(rosters)} teams, {len(league_df)} skill position players ✅")
 
 
-# In[3]:
+# In[ ]:
 
 
 # ============================================================
@@ -320,7 +325,7 @@ print(f"   Pick range: {picks_ktc['KTC Value'].max():,} (highest) — {picks_ktc
 print(f"   Pick years present: {sorted(picks_ktc['Name'].str.extract(r'(\\d{4})')[0].dropna().unique().tolist())}")
 
 
-# In[4]:
+# In[ ]:
 
 
 # ============================================================
@@ -438,7 +443,7 @@ multi_year_prod["multi_year_prod_score"] = (
 print(f"Multi-year production calculated: {len(multi_year_prod)} players ✅")
 
 
-# In[5]:
+# In[ ]:
 
 
 # ============================================================
@@ -704,7 +709,7 @@ print(f"name_to_gsis built: {len(name_to_gsis)} players")
 print(f"Sample: {list(name_to_gsis.items())[:3]}")
 
 
-# In[6]:
+# In[ ]:
 
 
 # ============================================================
@@ -758,7 +763,7 @@ print(f"   Players with production history: {rankings_df['avg_ppg'].gt(0).sum()}
 print(f"   Players without history (rookies): {rankings_df['avg_ppg'].eq(0).sum()}")
 
 
-# In[7]:
+# In[ ]:
 
 
 # ============================================================
@@ -807,7 +812,7 @@ if not unmatched.empty:
     print(unmatched.to_string(index=False))
 
 
-# In[8]:
+# In[ ]:
 
 
 # ============================================================
@@ -940,7 +945,7 @@ if second_future:
     ].to_string(index=False))
 
 
-# In[9]:
+# In[ ]:
 
 
 # ============================================================
@@ -1131,7 +1136,7 @@ for name in check:
         print(f"    RZ carries:    {r['rz5_carries']:.0f}" if pd.notna(r['rz5_carries']) else "    RZ carries:    N/A")
 
 
-# In[10]:
+# In[ ]:
 
 
 # ============================================================
@@ -1267,7 +1272,7 @@ print(f"\nRB tier distribution:")
 print(merged_df[rb_mask]["rb_tier_new"].value_counts())
 
 
-# In[11]:
+# In[ ]:
 
 
 # ============================================================
@@ -1409,7 +1414,7 @@ print(f"\nWR tier distribution:")
 print(merged_df[wr_mask]["wr_tier_new"].value_counts())
 
 
-# In[12]:
+# In[ ]:
 
 
 # ============================================================
@@ -1548,7 +1553,7 @@ print(f"\nTE tier distribution:")
 print(merged_df[te_mask]["te_tier_new"].value_counts())
 
 
-# In[13]:
+# In[ ]:
 
 
 # ============================================================
@@ -1682,7 +1687,7 @@ print(f"\nQB tier distribution:")
 print(merged_df[qb_mask]["qb_tier_new"].value_counts())
 
 
-# In[14]:
+# In[ ]:
 
 
 # ============================================================
@@ -1750,7 +1755,7 @@ print(f"\nFinal tier distribution:")
 print(merged_df["tier"].value_counts())
 
 
-# In[15]:
+# In[ ]:
 
 
 # ============================================================
@@ -1987,7 +1992,7 @@ print(f"  WR: {len(wr_df)}")
 print(f"  TE: {len(te_df)}")
 
 
-# In[16]:
+# In[ ]:
 
 
 # ============================================================
@@ -2112,7 +2117,7 @@ team_summary["production_rank"] = team_summary["production_share"].rank(ascendin
 print("All analysis built ✅")
 
 
-# In[17]:
+# In[ ]:
 
 
 # ============================================================
@@ -2391,7 +2396,7 @@ print("Competitive Window calculated ✅")
 print(outlook_df[["owner","outlook","core_age","peak_year","peak_window","years_to_peak","peak_gain_pct"]].to_string(index=False))
 
 
-# In[18]:
+# In[ ]:
 
 
 # ============================================================
@@ -2478,7 +2483,7 @@ print(f"\nTop 10 buy targets:")
 print(top_buys[["name","position","age","KTC Value","tier","owner","buy_score"]].head(10).to_string(index=False))
 
 
-# In[19]:
+# In[ ]:
 
 
 # ============================================================
@@ -2566,7 +2571,7 @@ def print_trade_packages(target_name, target_ktc, packages, max_show=5):
 print("Trade package builder ready ✅")
 
 
-# In[20]:
+# In[ ]:
 
 
 # ============================================================
@@ -2678,7 +2683,7 @@ def evaluate_trade(giving, receiving):
 print("Trade evaluator ready ✅")
 
 
-# In[21]:
+# In[ ]:
 
 
 # Build all league IDs dynamically
@@ -2697,7 +2702,7 @@ all_league_ids = get_all_league_ids(LEAGUE_ID)
 print(f"League history: {[(s, lid[:8]+'...') for s, lid in all_league_ids]}")
 
 
-# In[22]:
+# In[ ]:
 
 
 # Pull all trades from all seasons
@@ -2724,7 +2729,7 @@ all_trades = get_all_trades(all_league_ids)
 print(f"Total trades: {len(all_trades)}")
 
 
-# In[23]:
+# In[ ]:
 
 
 # ============================================================
@@ -2991,7 +2996,7 @@ print(f"Trade history built: {len(trade_history_df)} trades")
 print("Trade Grades ready ✅")
 
 
-# In[24]:
+# In[ ]:
 
 
 # ============================================================
@@ -3284,7 +3289,7 @@ for pos in ['QB', 'RB', 'WR', 'TE']:
         print(f"  #{i+1} {g['name']} — {g['points']} pts ({g['label']}) [{g['owner']}] {g['started']}")
 
 
-# In[25]:
+# In[ ]:
 
 
 # ============================================================
@@ -3625,7 +3630,7 @@ push_json('standings.json', standings_data)
 print(f"\n✅ All JSON files pushed to {OUTPUT_DIR}")
 
 
-# In[26]:
+# In[ ]:
 
 
 # ============================================================
@@ -3663,11 +3668,193 @@ value_history.sort(key=lambda entry: entry["date"])
 push_json('valueHistory.json', value_history)
 
 
-# In[27]:
+# In[ ]:
 
 
 # ============================================================
-# 25. Export Data for Tableau
+# 25. Fetch 2026 Schedule
+# ============================================================
+
+print("Fetching schedule...")
+
+sim_season = int(CURRENT_DRAFT_YEAR)
+
+schedule_weeks = []
+any_real_scores = False
+
+for week in range(1, REGULAR_SEASON_WEEKS + 1):
+    week_matchups = requests.get(
+        f"https://api.sleeper.app/v1/league/{LEAGUE_ID}/matchups/{week}"
+    ).json()
+    pairs = []
+    if week_matchups:
+        matchup_map = {}
+        for team in week_matchups:
+            matchup_map.setdefault(team['matchup_id'], []).append(team)
+        for mid, teams in matchup_map.items():
+            if len(teams) != 2:
+                continue
+            a, b = teams
+            pairs.append([
+                roster_id_map.get(a['roster_id'], 'Unknown'),
+                roster_id_map.get(b['roster_id'], 'Unknown'),
+            ])
+            if (a.get('points') or 0) > 0 or (b.get('points') or 0) > 0:
+                any_real_scores = True
+    schedule_weeks.append({'week': week, 'matchups': pairs})
+    time.sleep(0.1)
+
+schedule_has_pairings = any(w['matchups'] for w in schedule_weeks)
+
+if schedule_has_pairings and not any_real_scores:
+    schedule_note = "Preseason \u2014 schedule pairings available from Sleeper, scores not yet recorded."
+elif any_real_scores:
+    schedule_note = "Live scores in progress."
+else:
+    schedule_note = "Sleeper has not generated matchups yet for this season."
+
+schedule_data = {
+    'season': sim_season,
+    'weeks': REGULAR_SEASON_WEEKS,
+    'source': 'sleeper' if schedule_has_pairings else 'unavailable',
+    'scores_recorded': any_real_scores,
+    'note': schedule_note,
+    'schedule': schedule_weeks,
+}
+push_json('schedule.json', schedule_data)
+
+
+# In[ ]:
+
+
+# ============================================================
+# 26. Playoff Picture Monte Carlo Simulation
+# ============================================================
+
+print("Running Playoff Picture simulation...")
+
+owners_list = list(to['Owner'])
+
+# Historical PPG (equal weight per season) + best score, from League History standings
+hist_ppg_by_owner  = standings_df.groupby('Owner')['PPG'].mean()
+hist_best_by_owner = standings_df.groupby('Owner')['Best Score'].max()
+hist_std_by_owner  = standings_df.groupby('Owner')['PPG'].std(ddof=1)
+
+# Roster strength: player-only KTC value normalized onto the PPG scale
+player_value_by_owner = to.set_index('Owner')['Player Value']
+league_avg_player_ktc = player_value_by_owner.mean()
+league_avg_ppg        = hist_ppg_by_owner.mean()
+
+team_sim_params = {}
+for owner in owners_list:
+    historical_ppg = float(hist_ppg_by_owner.get(owner, league_avg_ppg))
+    player_ktc     = float(player_value_by_owner.get(owner, league_avg_player_ktc))
+    roster_strength_score = (player_ktc / league_avg_player_ktc) * league_avg_ppg
+    blended_ppg = 0.6 * historical_ppg + 0.4 * roster_strength_score
+
+    best_score = float(hist_best_by_owner.get(owner, blended_ppg * 1.3))
+    std_dev    = hist_std_by_owner.get(owner, np.nan)
+    if pd.isna(std_dev) or std_dev <= 0:
+        std_dev = max(5.0, (best_score - blended_ppg) / 2.5)
+
+    team_sim_params[owner] = {
+        'historical_ppg':        round(historical_ppg, 2),
+        'roster_strength_score': round(roster_strength_score, 2),
+        'blended_ppg':           round(blended_ppg, 2),
+        'std_dev':               round(float(std_dev), 2),
+    }
+
+
+def build_round_robin(teams, n_weeks):
+    """Fallback schedule generator: standard circle method, repeating once the
+    single round-robin (n-1 rounds) is exhausted, for any week Sleeper hasn't
+    populated yet."""
+    teams = list(teams)
+    if len(teams) % 2 != 0:
+        teams.append(None)
+    n = len(teams)
+    rounds = []
+    rotation = teams[:]
+    for _ in range(n - 1):
+        round_pairs = []
+        for i in range(n // 2):
+            a, b = rotation[i], rotation[n - 1 - i]
+            if a is not None and b is not None:
+                round_pairs.append([a, b])
+        rounds.append(round_pairs)
+        rotation = [rotation[0]] + [rotation[-1]] + rotation[1:-1]
+    return [rounds[w % len(rounds)] for w in range(n_weeks)]
+
+
+round_robin_weeks = build_round_robin(owners_list, REGULAR_SEASON_WEEKS)
+
+sim_schedule = []
+for i, week_entry in enumerate(schedule_weeks):
+    sim_schedule.append(week_entry['matchups'] if week_entry['matchups'] else round_robin_weeks[i])
+
+# Monte Carlo simulation
+rng = np.random.default_rng()
+playoff_counts = {owner: 0 for owner in owners_list}
+
+for _ in range(SIM_ITERATIONS):
+    wins   = {owner: 0 for owner in owners_list}
+    points = {owner: 0.0 for owner in owners_list}
+
+    for week_pairs in sim_schedule:
+        for owner_a, owner_b in week_pairs:
+            params_a = team_sim_params[owner_a]
+            params_b = team_sim_params[owner_b]
+            score_a = max(50, rng.normal(params_a['blended_ppg'], params_a['std_dev']))
+            score_b = max(50, rng.normal(params_b['blended_ppg'], params_b['std_dev']))
+            points[owner_a] += score_a
+            points[owner_b] += score_b
+            if score_a > score_b:
+                wins[owner_a] += 1
+            else:
+                wins[owner_b] += 1
+
+    ranked = sorted(owners_list, key=lambda o: (-wins[o], -points[o]))
+    for owner in ranked[:PLAYOFF_SPOTS]:
+        playoff_counts[owner] += 1
+
+outlook_by_owner = to.set_index('Owner')['Outlook']
+team_name_map = {}
+for u in users:
+    display = u.get('display_name') or u.get('username', 'Unknown')
+    team    = (u.get('metadata') or {}).get('team_name') or display
+    team_name_map[display] = team
+
+playoff_teams_output = []
+for owner in owners_list:
+    params = team_sim_params[owner]
+    playoff_teams_output.append({
+        'owner':                 owner,
+        'team_name':             team_name_map.get(owner, owner),
+        'playoff_pct':           round(playoff_counts[owner] / SIM_ITERATIONS, 3),
+        'blended_ppg':           params['blended_ppg'],
+        'historical_ppg':        params['historical_ppg'],
+        'roster_strength_score': params['roster_strength_score'],
+        'outlook':               outlook_by_owner.get(owner, 'Unknown'),
+    })
+
+playoff_teams_output.sort(key=lambda t: t['playoff_pct'], reverse=True)
+
+playoff_picture_data = {
+    'generated_at':     datetime.utcnow().isoformat() + 'Z',
+    'season':           sim_season,
+    'weeks_simulated':  REGULAR_SEASON_WEEKS,
+    'playoff_spots':    PLAYOFF_SPOTS,
+    'iterations':       SIM_ITERATIONS,
+    'teams':            playoff_teams_output,
+}
+push_json('playoffPicture.json', playoff_picture_data)
+
+
+# In[ ]:
+
+
+# ============================================================
+# 27. Export Data for Tableau
 # ============================================================
 
 import os

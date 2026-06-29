@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useAuth } from '../contexts/AuthContext'
 
 const OUTLOOK_BADGE = {
   'Contender':                    'badge-green',
@@ -170,7 +171,110 @@ function PositionalRankings({ rosterGrades, label }) {
   )
 }
 
+function PlayoffBarRow({ team, isPlayoffSpot, isMe }) {
+  const [hovered, setHovered] = useState(false)
+  const pct      = Math.round(team.playoff_pct * 100)
+  const barColor = isPlayoffSpot ? '#38a169' : '#d69e2e'
+  const pctColor = team.playoff_pct > 0.5 ? '#38a169' : '#d69e2e'
+
+  return (
+    <div
+      style={{ position: 'relative', marginBottom: '10px' }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+        <span style={{
+          fontSize: '13px', fontWeight: isMe ? 700 : 500,
+          color: 'var(--text-primary)',
+        }}>
+          {team.team_name}
+        </span>
+        <span style={{ fontSize: '13px', fontWeight: 700, color: pctColor }}>
+          {pct}%
+        </span>
+      </div>
+      <div style={{
+        background: 'var(--card-border)', borderRadius: '4px',
+        height: '10px', overflow: 'hidden',
+      }}>
+        <div style={{
+          width: `${pct}%`, height: '100%', borderRadius: '4px',
+          background: barColor, opacity: isMe ? 1 : 0.7,
+        }} />
+      </div>
+      {hovered && (
+        <div style={{
+          position: 'absolute', top: '-4px', left: '50%',
+          transform: 'translate(-50%, -100%)',
+          background: 'var(--card-bg)', border: '1px solid var(--card-border)',
+          borderRadius: '8px', padding: '8px 10px', fontSize: '12px',
+          whiteSpace: 'nowrap', zIndex: 10, boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+        }}>
+          <div style={{ color: 'var(--text-secondary)' }}>
+            Blended PPG: <b style={{ color: 'var(--text-primary)' }}>{team.blended_ppg}</b>
+          </div>
+          <div style={{ color: 'var(--text-secondary)' }}>
+            Historical PPG: <b style={{ color: 'var(--text-primary)' }}>{team.historical_ppg}</b>
+          </div>
+          <div style={{ color: 'var(--text-secondary)' }}>
+            Roster Strength: <b style={{ color: 'var(--text-primary)' }}>{team.roster_strength_score}</b>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function PlayoffPictureSection({ playoffPicture, myOwner }) {
+  const teams = playoffPicture?.teams
+  const spots = playoffPicture?.playoff_spots || 6
+
+  return (
+    <div className='card'>
+      <div className='card-header'>
+        <div>
+          <h3>🏆 Playoff Picture</h3>
+          <span>
+            Top {spots} make it · Monte Carlo simulation
+            {teams?.length ? ` · ${playoffPicture.iterations} iterations` : ''}
+          </span>
+        </div>
+      </div>
+      {!teams?.length ? (
+        <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '14px' }}>
+          Simulation data not yet available — check back after the next scheduled update.
+        </div>
+      ) : (
+        <div style={{ padding: '1rem' }}>
+          {[...teams].sort((a, b) => b.playoff_pct - a.playoff_pct).map((team, i) => (
+            <div key={team.owner}>
+              <PlayoffBarRow
+                team={team}
+                isPlayoffSpot={i < spots}
+                isMe={myOwner != null && team.owner === myOwner}
+              />
+              {i === spots - 1 && i !== teams.length - 1 && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '2px 0 14px' }}>
+                  <div style={{ flex: 1, borderTop: '2px dashed #d69e2e' }} />
+                  <span style={{ fontSize: '10px', fontWeight: 700, color: '#d69e2e', letterSpacing: '0.5px' }}>
+                    PLAYOFF CUT
+                  </span>
+                  <div style={{ flex: 1, borderTop: '2px dashed #d69e2e' }} />
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function Home({ data, owner }) {
+  const { userProfile, viewAsOwner } = useAuth()
+  const myOwner = viewAsOwner || userProfile?.rosterOwnerName || null
+
   if (!data) return null
 
   const sorted = [...(data.teamOverview || [])].sort(
@@ -199,6 +303,10 @@ export default function Home({ data, owner }) {
 
       <PositionalRankings rosterGrades={data.rosterGrades} label='KTC' />
       <PositionalRankings rosterGrades={data.rosterGrades} label='Combined' />
+
+      <div style={{ marginTop: '1.25rem' }}>
+        <PlayoffPictureSection playoffPicture={data.playoffPicture} myOwner={myOwner} />
+      </div>
     </div>
   )
 }
