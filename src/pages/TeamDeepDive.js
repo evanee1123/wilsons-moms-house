@@ -487,8 +487,8 @@ function buildTeamTradePoints(tradeHistory, teamOwner) {
   return teamTrades.map(t => {
     const isTeamA  = t['Team A'] === teamOwner
     const net      = isTeamA
-      ? (t['Team A Face'] ?? 0) - (t['Team B Face'] ?? 0)
-      : (t['Team B Face'] ?? 0) - (t['Team A Face'] ?? 0)
+      ? (t['Team A Adjusted'] ?? 0) - (t['Team B Adjusted'] ?? 0)
+      : (t['Team B Adjusted'] ?? 0) - (t['Team A Adjusted'] ?? 0)
     const opponent = isTeamA ? t['Team B'] : t['Team A']
     cumulative += net
     return { date: t.Date, dateLabel: formatTradeDate(t.Date), opponent, net, cumulative }
