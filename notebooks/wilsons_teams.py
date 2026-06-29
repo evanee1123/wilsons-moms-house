@@ -3749,17 +3749,42 @@ player_value_by_owner = to.set_index('Owner')['Player Value']
 league_avg_player_ktc = player_value_by_owner.mean()
 league_avg_ppg        = hist_ppg_by_owner.mean()
 
-team_sim_params = {}
+raw_blended_ppg          = {}
+historical_ppg_by_owner  = {}
+roster_strength_by_owner = {}
 for owner in owners_list:
     historical_ppg = float(hist_ppg_by_owner.get(owner, league_avg_ppg))
     player_ktc     = float(player_value_by_owner.get(owner, league_avg_player_ktc))
     roster_strength_score = (player_ktc / league_avg_player_ktc) * league_avg_ppg
     blended_ppg = 0.4 * historical_ppg + 0.6 * roster_strength_score
 
+    historical_ppg_by_owner[owner]  = historical_ppg
+    roster_strength_by_owner[owner] = roster_strength_score
+    raw_blended_ppg[owner]          = blended_ppg
+
+# Compress blended PPG toward the league mean (+/-8.5%) so roster strength
+# alone can't push a team to a near-certain blended score relative to the
+# rest of the field — keeps the simulation spread realistic. A wider +/-20%
+# band still left the top team locked at 100% playoff odds over a full
+# 14-week season (season-long aggregation dampens weekly variance's effect
+# on top-6 inclusion much faster than it widens the score gap), so the band
+# was tightened until the top team landed in the 85-95% target range while
+# still keeping distinct playoff_pct values across the field via std_dev
+# differences even when blended_ppg ties at the clipped ceiling/floor.
+league_mean_blended = float(np.mean(list(raw_blended_ppg.values())))
+max_blended_ppg = league_mean_blended * 1.085
+min_blended_ppg = league_mean_blended * 0.915
+
+team_sim_params = {}
+for owner in owners_list:
+    historical_ppg        = historical_ppg_by_owner[owner]
+    roster_strength_score = roster_strength_by_owner[owner]
+    blended_ppg = min(max(raw_blended_ppg[owner], min_blended_ppg), max_blended_ppg)
+
     best_score = float(hist_best_by_owner.get(owner, blended_ppg * 1.3))
     std_dev    = hist_std_by_owner.get(owner, np.nan)
     if pd.isna(std_dev) or std_dev <= 0:
-        std_dev = max(5.0, (best_score - blended_ppg) / 2.5)
+        std_dev = max(5.0, (best_score - blended_ppg) / 1.5)
 
     team_sim_params[owner] = {
         'historical_ppg':        round(historical_ppg, 2),
@@ -3834,6 +3859,23 @@ for _ in range(SIM_ITERATIONS):
             params_b = team_sim_params[owner_b]
             score_a = max(50, rng.normal(params_a['blended_ppg'], params_a['std_dev']))
             score_b = max(50, rng.normal(params_b['blended_ppg'], params_b['std_dev']))
+
+            # Upset factor — 10% chance per team of a significantly off week
+            # (good or bad), independent of the bye-week proxy below
+            if rng.random() < 0.10:
+                upset_mult = rng.uniform(0.65, 0.85) if rng.random() < 0.5 else rng.uniform(1.15, 1.35)
+                score_a *= upset_mult
+            if rng.random() < 0.10:
+                upset_mult = rng.uniform(0.65, 0.85) if rng.random() < 0.5 else rng.uniform(1.15, 1.35)
+                score_b *= upset_mult
+
+            # Bye week proxy — 15% chance per team of a down week (bye,
+            # injury, etc); intentionally stacks with the upset factor above
+            if rng.random() < 0.15:
+                score_a *= rng.uniform(0.80, 0.92)
+            if rng.random() < 0.15:
+                score_b *= rng.uniform(0.80, 0.92)
+
             points[owner_a] += score_a
             points[owner_b] += score_b
             if score_a > score_b:
