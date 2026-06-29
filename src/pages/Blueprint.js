@@ -420,6 +420,44 @@ function computeBuySuggestions(myOwner, myOutlook, playerUniverse, outlookByOwne
     .slice(0, 4)
 }
 
+// Combines scored buy suggestions with outlook/weakest-position tier targets (previously
+// the separate "Target Acquisitions" list) into one deduped pool for the Trade Targets grid.
+function computeTradeTargets(myOwner, myOutlook, data, outlookByOwner, positionalRankings, gradesRow, dismissedSet) {
+  const buys = computeBuySuggestions(myOwner, myOutlook, data?.playerUniverse, outlookByOwner, positionalRankings, dismissedSet)
+  if (!gradesRow) return buys
+
+  const isContender = outlookIsContender(myOutlook) || myOutlook === 'Contender (needs production)'
+  const isRebuild    = outlookIsRebuild(myOutlook)
+  const positions    = ['QB', 'RB', 'WR', 'TE']
+  const weakestPos   = positions.reduce((worst, pos) =>
+    (gradesRow[`${pos} Grade`] || 0) < (gradesRow[`${worst} Grade`] || 0) ? pos : worst
+  , 'WR')
+  const targetTiers = isContender ? ['Cornerstone', 'Foundational']
+                    : isRebuild   ? ['Upside Premier', 'Upside Shot']
+                    :               ['Foundational']
+
+  const seenPlayers = new Set(buys.map(p => p.Player))
+  const tierTargets = (data?.playerUniverse || [])
+    .filter(p => {
+      if (!p['Dynasty Owner'] || p['Dynasty Owner'] === myOwner || seenPlayers.has(p.Player)) return false
+      if (dismissedSet.has(`${p.Player}:buy`)) return false
+      if (!targetTiers.includes(p.Tier || '')) return false
+      if ((isContender || isRebuild) && p.Position !== weakestPos) return false
+      return true
+    })
+    .map(p => ({ ...p, _reason: p.Tier }))
+    .sort((a, b) => {
+      const aOut  = outlookByOwner[a['Dynasty Owner']] || ''
+      const bOut  = outlookByOwner[b['Dynasty Owner']] || ''
+      const aSell = (outlookIsRebuild(aOut) || aOut.includes('Reload')) ? 1 : 0
+      const bSell = (outlookIsRebuild(bOut) || bOut.includes('Reload')) ? 1 : 0
+      if (bSell !== aSell) return bSell - aSell
+      return parseInt(b['KTC Value'] || 0) - parseInt(a['KTC Value'] || 0)
+    })
+
+  return [...buys, ...tierTargets].slice(0, 6)
+}
+
 function computeSellSuggestions(myOwner, myOutlook, playerUniverse, positionalRankings, dismissedSet) {
   const myRanks = positionalRankings[myOwner] || {}
   return (playerUniverse || [])
@@ -441,7 +479,7 @@ function computeSellSuggestions(myOwner, myOutlook, playerUniverse, positionalRa
       return reason ? { ...p, _reason: reason } : null
     })
     .filter(Boolean)
-    .slice(0, 4)
+    .slice(0, 6)
 }
 
 // ── Shared search dropdown ────────────────────────────────────────────────────
@@ -825,9 +863,8 @@ function RosterMakeupSection({ myOwner, data }) {
 }
 
 // ── Section 2.8: Trade Strategy ───────────────────────────────────────────────
-function TradeStrategySection({ myOwner, data, outlookByOwner }) {
+function TradeStrategySection({ myOwner, data }) {
   const overview  = useMemo(() => (data?.teamOverview || []).find(t => t.Owner === myOwner),  [data, myOwner])
-  const gradesRow = useMemo(() => (data?.rosterGrades  || []).find(r => r.Owner === myOwner), [data, myOwner])
 
   const strategyData = useMemo(() => {
     if (!overview) return null
@@ -861,50 +898,14 @@ function TradeStrategySection({ myOwner, data, outlookByOwner }) {
     return { label, desc, badgeColor, isContender, isRebuild }
   }, [overview, data, myOwner])
 
-  const targets = useMemo(() => {
-    if (!strategyData || !gradesRow) return []
-    const { isContender, isRebuild } = strategyData
-
-    const positions  = ['QB', 'RB', 'WR', 'TE']
-    const weakestPos = positions.reduce((worst, pos) =>
-      (gradesRow[`${pos} Grade`] || 0) < (gradesRow[`${worst} Grade`] || 0) ? pos : worst
-    , 'WR')
-
-    const targetTiers = isContender ? ['Cornerstone', 'Foundational']
-                      : isRebuild   ? ['Upside Premier', 'Upside Shot']
-                      :               ['Foundational']
-
-    return (data?.playerUniverse || [])
-      .filter(p => {
-        if (p['Dynasty Owner'] === myOwner) return false
-        if (!targetTiers.includes(p.Tier || '')) return false
-        if ((isContender || isRebuild) && p.Position !== weakestPos) return false
-        return true
-      })
-      .sort((a, b) => {
-        const aOut  = outlookByOwner[a['Dynasty Owner']] || ''
-        const bOut  = outlookByOwner[b['Dynasty Owner']] || ''
-        const aSell = (outlookIsRebuild(aOut) || aOut.includes('Reload')) ? 1 : 0
-        const bSell = (outlookIsRebuild(bOut) || bOut.includes('Reload')) ? 1 : 0
-        if (bSell !== aSell) return bSell - aSell
-        return parseInt(b['KTC Value'] || 0) - parseInt(a['KTC Value'] || 0)
-      })
-      .slice(0, 3)
-  }, [strategyData, gradesRow, data, myOwner, outlookByOwner])
-
   if (!strategyData) return null
   const { label, desc, badgeColor } = strategyData
-
-  const tierColor = (tier) => {
-    const g = TIER_GROUPS.find(tg => tg.key === tier)
-    return g ? { bg: g.bg, text: g.text } : { bg: 'var(--card-border)', text: 'var(--text-muted)' }
-  }
 
   return (
     <div className='card' style={{ marginBottom: '1.25rem' }}>
       <div className='card-header'><h3>Trade Strategy</h3></div>
       <div style={{ padding: '1rem' }}>
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', marginBottom: '1rem', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', flexWrap: 'wrap' }}>
           <div style={{
             background: badgeColor.bg, color: badgeColor.text,
             borderRadius: '99px', padding: '4px 12px',
@@ -915,32 +916,6 @@ function TradeStrategySection({ myOwner, data, outlookByOwner }) {
           </div>
           <span style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.5 }}>{desc}</span>
         </div>
-
-        {targets.length > 0 && <>
-          <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>
-            Target Acquisitions
-          </div>
-          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-            {targets.map(p => {
-              const tc = tierColor(p.Tier)
-              return (
-                <div key={p.Player} style={{
-                  padding: '8px 12px', borderRadius: '10px', flex: '1 1 130px', maxWidth: '200px',
-                  background: 'var(--page-bg)', border: '1px solid var(--card-border)',
-                  display: 'flex', flexDirection: 'column', gap: '4px',
-                }}>
-                  <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>{p.Player}</span>
-                  <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{p.Position} · {p['Dynasty Owner']}</span>
-                  <div style={{
-                    alignSelf: 'flex-start', borderRadius: '99px', padding: '2px 8px',
-                    background: tc.bg, color: tc.text,
-                    fontSize: '9px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.03em',
-                  }}>{p.Tier}</div>
-                </div>
-              )
-            })}
-          </div>
-        </>}
       </div>
     </div>
   )
@@ -1120,30 +1095,44 @@ function AverageStarterAgeSection({ myOwner, data }) {
   )
 }
 
-// ── Section 3: Trade Suggestions ──────────────────────────────────────────────
-function SuggestionRow({ player, type, isSaved, onDismiss, onSave, onUnsave }) {
+// ── Section 3: Trade Targets / Sell Candidates ───────────────────────────────
+function TradeCard({ player, type, accent, showOwner, isSaved, onDismiss, onSave, onUnsave }) {
+  const ktc    = parseInt(player['KTC Value'] || 0).toLocaleString()
+  const reason = player._reason || ''
   return (
-    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid var(--card-border)' }}>
-      <div style={{ flex: 1 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-          <span style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-primary)' }}>{player.Player}</span>
-          <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{player.Position} · Age {player.Age}</span>
-          <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>KTC {parseInt(player['KTC Value'] || 0).toLocaleString()}</span>
-          {isSaved && <span style={{ fontSize: '10px', padding: '1px 6px', borderRadius: '99px', background: 'var(--blue-bg)', color: 'var(--blue)', fontWeight: 600 }}>Saved</span>}
+    <div style={{
+      padding: '14px', borderRadius: '10px', background: 'var(--card-bg)',
+      border: '1px solid var(--card-border)', borderTop: `3px solid ${accent}`,
+      display: 'flex', flexDirection: 'column', gap: '6px',
+    }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px' }}>
+        <span style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)' }}>{player.Player}</span>
+        <div style={{ display: 'flex', gap: '4px', flexShrink: 0 }}>
+          <button onClick={() => isSaved ? onUnsave(player.Player, type) : onSave(player, type)}
+            style={{ ...actionBtn, color: isSaved ? 'var(--blue)' : 'var(--text-muted)' }}
+            title={isSaved ? 'Unsave' : 'Save'}>{isSaved ? '★' : '☆'}</button>
+          <button onClick={() => onDismiss(player.Player, type)} style={actionBtn} title='Dismiss'>×</button>
         </div>
-        <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>{player._reason}</div>
       </div>
-      <div style={{ display: 'flex', gap: '4px', flexShrink: 0, marginLeft: '8px' }}>
-        <button onClick={() => isSaved ? onUnsave(player.Player, type) : onSave(player, type)}
-          style={{ ...actionBtn, color: isSaved ? 'var(--blue)' : 'var(--text-muted)' }}
-          title={isSaved ? 'Unsave' : 'Save'}>{isSaved ? '★' : '☆'}</button>
-        <button onClick={() => onDismiss(player.Player, type)} style={actionBtn} title='Dismiss'>×</button>
+      <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+        {player.Position} · Age {player.Age} · {ktc} KTC
       </div>
+      {showOwner && <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>on {player['Dynasty Owner']}</div>}
+      {reason && (
+        <div style={{
+          alignSelf: 'flex-start', marginTop: '2px', fontSize: '11px', fontWeight: 600,
+          padding: '3px 9px', borderRadius: '99px',
+          background: accent === 'var(--green)' ? 'var(--green-bg)' : 'var(--red-bg)',
+          color: accent,
+        }}>
+          {reason}
+        </div>
+      )}
     </div>
   )
 }
 
-function SuggestionsSection({ uid, myOwner, myOutlook, data, outlookByOwner, positionalRankings }) {
+function TradeTargetsSection({ uid, myOwner, myOutlook, data, outlookByOwner, positionalRankings }) {
   const [dismissed, setDismissed] = useState([])
   const [saved,     setSaved]     = useState([])
   const [loading,   setLoading]   = useState(true)
@@ -1157,9 +1146,12 @@ function SuggestionsSection({ uid, myOwner, myOutlook, data, outlookByOwner, pos
 
   const dismissedSet = useMemo(() => new Set(dismissed.map(d => `${d.playerName}:${d.type}`)), [dismissed])
   const savedSet     = useMemo(() => new Set(saved.map(s => `${s.playerName}:${s.type}`)), [saved])
+  const gradesRow    = useMemo(() => (data?.rosterGrades || []).find(r => r.Owner === myOwner), [data, myOwner])
 
-  const buys  = useMemo(() => computeBuySuggestions(myOwner, myOutlook, data?.playerUniverse, outlookByOwner, positionalRankings, dismissedSet),  [myOwner, myOutlook, data, outlookByOwner, positionalRankings, dismissedSet])
-  const sells = useMemo(() => computeSellSuggestions(myOwner, myOutlook, data?.playerUniverse, positionalRankings, dismissedSet), [myOwner, myOutlook, data, positionalRankings, dismissedSet])
+  const targets = useMemo(
+    () => computeTradeTargets(myOwner, myOutlook, data, outlookByOwner, positionalRankings, gradesRow, dismissedSet),
+    [myOwner, myOutlook, data, outlookByOwner, positionalRankings, gradesRow, dismissedSet]
+  )
 
   async function handleDismiss(playerName, type) {
     setDismissed(prev => [...prev, { playerName, type }])
@@ -1178,20 +1170,74 @@ function SuggestionsSection({ uid, myOwner, myOutlook, data, outlookByOwner, pos
 
   return (
     <div className='card' style={{ marginBottom: '1.25rem' }}>
-      <div className='card-header'><h3>Personalized Trade Suggestions</h3></div>
+      <div className='card-header'><h3>Trade Targets</h3></div>
       <div style={{ padding: '1rem' }}>
-        {loading ? <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>Loading...</div> : <>
-          <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--green)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>Buy Targets</div>
-          {buys.length === 0
-            ? <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '12px' }}>No buy suggestions right now.</div>
-            : buys.map((p, i) => <SuggestionRow key={i} player={p} type='buy' isSaved={savedSet.has(`${p.Player}:buy`)} onDismiss={handleDismiss} onSave={handleSave} onUnsave={handleUnsave} />)
-          }
-          <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--red)', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '12px 0 8px' }}>Sell Candidates</div>
-          {sells.length === 0
-            ? <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>No sell suggestions right now.</div>
-            : sells.map((p, i) => <SuggestionRow key={i} player={p} type='sell' isSaved={savedSet.has(`${p.Player}:sell`)} onDismiss={handleDismiss} onSave={handleSave} onUnsave={handleUnsave} />)
-          }
-        </>}
+        {loading
+          ? <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>Loading...</div>
+          : targets.length === 0
+          ? <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>No trade targets right now.</div>
+          : <div className='trade-card-grid'>
+              {targets.map((p, i) => (
+                <TradeCard key={i} player={p} type='buy' accent='var(--green)' showOwner
+                  isSaved={savedSet.has(`${p.Player}:buy`)} onDismiss={handleDismiss} onSave={handleSave} onUnsave={handleUnsave} />
+              ))}
+            </div>
+        }
+      </div>
+    </div>
+  )
+}
+
+function SellCandidatesSection({ uid, myOwner, myOutlook, data, positionalRankings }) {
+  const [dismissed, setDismissed] = useState([])
+  const [saved,     setSaved]     = useState([])
+  const [loading,   setLoading]   = useState(true)
+
+  useEffect(() => {
+    if (!uid) return
+    Promise.all([loadDismissed(uid), loadSaved(uid)]).then(([d, s]) => {
+      setDismissed(d); setSaved(s); setLoading(false)
+    })
+  }, [uid])
+
+  const dismissedSet = useMemo(() => new Set(dismissed.map(d => `${d.playerName}:${d.type}`)), [dismissed])
+  const savedSet     = useMemo(() => new Set(saved.map(s => `${s.playerName}:${s.type}`)), [saved])
+
+  const sells = useMemo(
+    () => computeSellSuggestions(myOwner, myOutlook, data?.playerUniverse, positionalRankings, dismissedSet),
+    [myOwner, myOutlook, data, positionalRankings, dismissedSet]
+  )
+
+  async function handleDismiss(playerName, type) {
+    setDismissed(prev => [...prev, { playerName, type }])
+    await dismissSuggestion(uid, playerName, type)
+  }
+  async function handleSave(player, type) {
+    const s = await saveSuggestion(uid, { playerName: player.Player, type, reason: player._reason, ktc: player['KTC Value'] })
+    setSaved(prev => [...prev, s])
+  }
+  async function handleUnsave(playerName, type) {
+    const match = saved.find(s => s.playerName === playerName && s.type === type)
+    if (!match) return
+    setSaved(prev => prev.filter(s => s.id !== match.id))
+    await removeSavedSuggestion(uid, match.id)
+  }
+
+  return (
+    <div className='card' style={{ marginBottom: '1.25rem' }}>
+      <div className='card-header'><h3>Sell Candidates</h3></div>
+      <div style={{ padding: '1rem' }}>
+        {loading
+          ? <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>Loading...</div>
+          : sells.length === 0
+          ? <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>No sell suggestions right now.</div>
+          : <div className='trade-card-grid'>
+              {sells.map((p, i) => (
+                <TradeCard key={i} player={p} type='sell' accent='var(--red)'
+                  isSaved={savedSet.has(`${p.Player}:sell`)} onDismiss={handleDismiss} onSave={handleSave} onUnsave={handleUnsave} />
+              ))}
+            </div>
+        }
       </div>
     </div>
   )
@@ -1365,9 +1411,10 @@ export default function Blueprint({ data, setPage }) {
       <GoalsSection uid={uid} myOwner={personalOwner} myOutlook={personalOutlook} positionalRankings={positionalRankings} pickYears={pickYears} />
       <WatchlistSection uid={uid} data={data} allAssets={allAssets} outlookByOwner={outlookByOwner} />
       <ValueProportionSection myOwner={myOwner} data={data} />
-      <TradeStrategySection myOwner={myOwner} data={data} outlookByOwner={outlookByOwner} />
+      <TradeStrategySection myOwner={myOwner} data={data} />
+      <TradeTargetsSection uid={uid} myOwner={myOwner} myOutlook={myOutlook} data={data} outlookByOwner={outlookByOwner} positionalRankings={positionalRankings} />
       <TopPrioritiesSection myOwner={myOwner} data={data} />
-      <SuggestionsSection uid={uid} myOwner={myOwner} myOutlook={myOutlook} data={data} outlookByOwner={outlookByOwner} positionalRankings={positionalRankings} />
+      <SellCandidatesSection uid={uid} myOwner={myOwner} myOutlook={myOutlook} data={data} positionalRankings={positionalRankings} />
       <TradeFinderSection myOwner={myOwner} myOutlook={myOutlook} data={data} allAssets={allAssets} outlookByOwner={outlookByOwner} positionalRankings={positionalRankings} adjustYears={adjustYears} />
     </div>
   )

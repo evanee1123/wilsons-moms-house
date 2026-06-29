@@ -152,7 +152,34 @@ None currently. Both leagues are stable and auto-updating.
    - Verified both pages end-to-end with a headless Playwright pass against the local dev server (ALL view, team-filtered view via the page's own owner dropdown — not the sidebar's separate "Viewing as" admin select — and the Team Deep Dive card for the logged-in/selected team).
    - **Wilson's only — not added to CLTC** (consistent with the recent feature pattern of client-side-only additions going to Wilson's first; CLTC parity not requested for this feature).
 8. **Power Rankings bar chart** alongside AI narratives.
-9. **Blueprint trade targets visual upgrade**.
+9. **Blueprint trade targets visual upgrade** — ✅ Done. `src/pages/Blueprint.js`:
+   - Removed the inline "Target Acquisitions" list from `TradeStrategySection` (which now renders only
+     the outlook badge + description) and the "Buy Targets" half of the old `SuggestionsSection`.
+   - New `computeTradeTargets()` merges the two prior data sources into one pool: scored buy
+     suggestions (`computeBuySuggestions`, need/age/sell-signal driven, carries a sentence `_reason`)
+     plus weakest-position tier matches (the old Target Acquisitions filter — outlook-appropriate
+     tiers × weakest graded position, sell-likely owners floated first), deduped by player name,
+     capped at 6. Tier-only entries fall back to the tier name itself (e.g. "Foundational") as their
+     `_reason` so every card has a concise reason tag even without a sell signal.
+   - New `TradeTargetsSection` (green top-border cards) renders the merged pool in a `.trade-card-grid`
+     — explicit 3/2/1-column breakpoints added to `App.css` (1100px/768px) rather than relying on
+     `auto-fit`, since the spec called for exact column counts rather than a flowing grid.
+   - New `SellCandidatesSection` is the sell half of the old `SuggestionsSection`, restyled with the
+     same `TradeCard`/grid (red top-border, no owner line, `computeSellSuggestions` cap bumped 4→6 to
+     fill rows evenly) — kept in its original page position (after Top Priorities), so only
+     `TradeTargetsSection` moved up to sit directly under the Trade Strategy badge.
+   - Shared `TradeCard` component handles both: name, position/age/KTC line, optional "on {owner}"
+     line, reason tag, save (★) and dismiss (×) buttons — same Firestore-backed dismiss/save plumbing
+     as before (`dismissedSuggestions`/`savedSuggestions`, type `'buy'`/`'sell'`), just two independent
+     loaders now instead of one shared one.
+   - Verified: production build (`CI=true npx react-scripts build`) compiles clean; headless Playwright
+     pass against the local dev server confirmed no console errors on load and that the `/blueprint`
+     auth gate (`ProtectedRoute`) still renders Login correctly for a logged-out session. Did **not**
+     visually verify the logged-in card grid itself — that requires real Firebase login credentials
+     not available in this session; the next person to touch this page should eyeball it logged in
+     as `ekleiner1123` before considering it fully verified.
+   - **Wilson's only — not added to CLTC**, consistent with the established pattern for this kind of
+     client-side-only visual feature (see Pick Portfolio cards, #7 above).
 
 ### Phase 3 — Future
 10. **Multi-league / Sleeper username input** — full architectural rework to support any user entering their Sleeper league ID and pulling their own league data dynamically.
