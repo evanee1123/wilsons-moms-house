@@ -760,8 +760,9 @@ function PrimeWindowsChart({ players }) {
                     background: 'linear-gradient(to right, #f87171, rgba(248,113,113,0.1))'
                   }} />
                   <div style={{
-                    position: 'absolute', left: `${agePct(age)}%`, top: 0, bottom: 0,
-                    width: '2px', background: '#fff', opacity: 0.6, transform: 'translateX(-1px)',
+                    position: 'absolute', left: `${agePct(age)}%`, top: '-3px', bottom: '-3px',
+                    width: '3px', background: '#ffffff', opacity: 1,
+                    boxShadow: '0 0 4px 2px rgba(0,0,0,0.8)', transform: 'translateX(-1.5px)',
                     pointerEvents: 'none', zIndex: 2
                   }} />
                 </div>
