@@ -602,6 +602,176 @@ function DynastyMatrix({ players }) {
   )
 }
 
+const AGE_BUCKETS = ['Under 23', '23-26', '27-30', '31+']
+const AGE_BUCKET_COLORS = {
+  'Under 23': '#4ade80',
+  '23-26':    '#60a5fa',
+  '27-30':    '#fbbf24',
+  '31+':      '#f87171',
+}
+
+function getAgeBucket(age) {
+  if (age == null || isNaN(age)) return null
+  if (age < 23) return 'Under 23'
+  if (age <= 26) return '23-26'
+  if (age <= 30) return '27-30'
+  return '31+'
+}
+
+function PositionDistribution({ players }) {
+  const positions = ['QB', 'RB', 'WR', 'TE']
+  const [activeCell, setActiveCell] = useState(null)
+
+  const buckets = {}
+  AGE_BUCKETS.forEach(bucket => {
+    buckets[bucket] = {}
+    positions.forEach(pos => { buckets[bucket][pos] = [] })
+  })
+
+  players
+    .filter(p => positions.includes(p.Position))
+    .forEach(p => {
+      const bucket = getAgeBucket(parseFloat(p.Age))
+      if (bucket) buckets[bucket][p.Position].push(p)
+    })
+
+  const hasAnyData = AGE_BUCKETS.some(bucket =>
+    positions.some(pos => buckets[bucket][pos].length > 0)
+  )
+  if (!hasAnyData) return null
+
+  function cellValue(bucket, pos) {
+    const list = buckets[bucket][pos]
+    return { count: list.length, value: list.reduce((sum, p) => sum + (parseFloat(p['KTC Value']) || 0), 0) }
+  }
+
+  function positionTotal(pos) {
+    const list = AGE_BUCKETS.flatMap(bucket => buckets[bucket][pos])
+    return { count: list.length, value: list.reduce((sum, p) => sum + (parseFloat(p['KTC Value']) || 0), 0) }
+  }
+
+  const activePlayers = activeCell ? buckets[activeCell.bucket][activeCell.pos] : null
+
+  return (
+    <div className='card'>
+      <div className='card-header'>
+        <h3>▤ Position Distribution</h3>
+        <span>Player count and value by age bucket</span>
+      </div>
+      <div style={{ padding: '1rem' }}>
+        <div className='table-scroll'>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+            <thead>
+              <tr>
+                <th style={{ textAlign: 'left', padding: '6px 10px', fontSize: '11px',
+                             color: 'var(--text-muted)', borderBottom: '1px solid var(--card-border)' }}>
+                  Age
+                </th>
+                {positions.map(pos => (
+                  <th key={pos} style={{ textAlign: 'center', padding: '6px 10px', fontSize: '11px',
+                               color: 'var(--text-muted)', borderBottom: '1px solid var(--card-border)' }}>
+                    {pos}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {AGE_BUCKETS.map(bucket => (
+                <tr key={bucket}>
+                  <td style={{ padding: '7px 10px', fontWeight: 700,
+                               color: 'var(--text-primary)', borderBottom: '1px solid var(--card-border)' }}>
+                    {bucket}
+                  </td>
+                  {positions.map(pos => {
+                    const { count, value } = cellValue(bucket, pos)
+                    const isActive = activeCell?.bucket === bucket && activeCell?.pos === pos
+                    return (
+                      <td
+                        key={pos}
+                        onClick={() => setActiveCell(isActive ? null : (count > 0 ? { bucket, pos } : null))}
+                        style={{
+                          padding: '7px 10px', textAlign: 'center',
+                          borderBottom: '1px solid var(--card-border)',
+                          cursor: count > 0 ? 'pointer' : 'default',
+                          background: isActive ? 'var(--page-bg)' : 'transparent',
+                        }}
+                      >
+                        {count > 0 ? (
+                          <div>
+                            <div style={{ fontWeight: 700, color: AGE_BUCKET_COLORS[bucket] }}>
+                              {count} {count === 1 ? 'player' : 'players'}
+                            </div>
+                            <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                              {Math.round(value).toLocaleString()}
+                            </div>
+                          </div>
+                        ) : (
+                          <span style={{ color: 'var(--text-muted)' }}>—</span>
+                        )}
+                      </td>
+                    )
+                  })}
+                </tr>
+              ))}
+              <tr>
+                <td style={{ padding: '7px 10px', fontWeight: 700, color: 'var(--text-primary)' }}>
+                  Roster Total
+                </td>
+                {positions.map(pos => {
+                  const { count, value } = positionTotal(pos)
+                  return (
+                    <td key={pos} style={{ padding: '7px 10px', textAlign: 'center' }}>
+                      {count > 0 ? (
+                        <div>
+                          <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>
+                            {count} {count === 1 ? 'player' : 'players'}
+                          </div>
+                          <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                            {Math.round(value).toLocaleString()}
+                          </div>
+                        </div>
+                      ) : (
+                        <span style={{ color: 'var(--text-muted)' }}>—</span>
+                      )}
+                    </td>
+                  )
+                })}
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        {activeCell && activePlayers && activePlayers.length > 0 && (
+          <div style={{ marginTop: '1rem' }}>
+            <div style={{
+              fontSize: '11px', fontWeight: 700, color: 'var(--text-secondary)',
+              textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '8px'
+            }}>
+              {activeCell.pos} · {activeCell.bucket}
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+              {[...activePlayers]
+                .sort((a, b) => parseFloat(b['KTC Value']) - parseFloat(a['KTC Value']))
+                .map(p => (
+                  <div key={p.Player} style={{
+                    background: 'var(--page-bg)', borderRadius: '8px',
+                    padding: '8px 12px', fontSize: '12px',
+                    border: `1px solid ${AGE_BUCKET_COLORS[activeCell.bucket]}33`
+                  }}>
+                    <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{p.Player}</div>
+                    <div style={{ color: 'var(--text-secondary)', marginTop: '2px' }}>
+                      Age {parseFloat(p.Age)} · {parseInt(p['KTC Value']).toLocaleString()} KTC
+                    </div>
+                  </div>
+                ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 // riseEnd = last age of Rising, primeEnd = last age of Prime, cliff = age where the bar ends entirely
 // (cliff is always primeEnd + 6, i.e. a 5-year fade through Declining starting at primeEnd + 1)
 const PRIME_WINDOW_CUTOFFS = {
@@ -1068,6 +1238,7 @@ export default function TeamDeepDive({ data, owner }) {
       <DynastyHealth teamData={teamOverview} />
       <CompetitiveWindow teamData={teamOverview} />
       <DynastyMatrix players={teamPlayers} />
+      <PositionDistribution players={teamPlayers} />
       <PrimeWindowsChart players={teamPlayers} />
       <PositionalGrades rosterGrades={data?.rosterGrades} teamOwner={teamOwner} />
       <TradeTargets
