@@ -1475,8 +1475,7 @@ export default function TeamDeepDive({ data, owner }) {
         </select>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 220px',
-                    gap: '1.25rem', alignItems: 'start' }}>
+      <div className='roster-schedule-grid'>
         <div>
           <div className='card' style={{ padding: '1rem', overflow: 'visible' }}>
             {['QB', 'RB', 'WR', 'TE'].map(pos => (

@@ -209,3 +209,41 @@ tr:hover td { background: var(--page-bg); }
     grid-template-columns: 1fr;
   }
 }
+
+/* Fix 1 — Roster + Schedule side-by-side grid (Team Deep Dive) */
+.roster-schedule-grid {
+  display: grid;
+  grid-template-columns: 1fr 220px;
+  gap: 1.25rem;
+  align-items: start;
+}
+
+@media (max-width: 768px) {
+  .roster-schedule-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Fix 2 — Value Proportion three-panel flex (Blueprint) */
+.value-proportion-body {
+  padding: 1rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 1.5rem;
+}
+
+.value-proportion-pie {
+  width: 200px;
+  flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+  .value-proportion-body {
+    flex-direction: column;
+  }
+  .value-proportion-pie {
+    width: 100%;
+    max-width: 220px;
+    align-self: center;
+  }
+}

@@ -749,8 +749,8 @@ function ValueProportionSection({ myOwner, data }) {
   return (
     <div className='card' style={{ marginBottom: '1.25rem' }}>
       <div className='card-header'><h3>Value Proportion</h3></div>
-      <div style={{ padding: '1rem', display: 'flex', alignItems: 'flex-start', gap: '1.5rem' }}>
-        <div style={{ width: '200px', flexShrink: 0 }}>
+      <div className='value-proportion-body'>
+        <div className='value-proportion-pie'>
         <svg width="100%" viewBox="0 0 200 200" style={{ display: 'block' }}>
           {slices.map(s => (
             <path key={s.pos} d={s.d} fill={POS_COLORS[s.pos]} />
