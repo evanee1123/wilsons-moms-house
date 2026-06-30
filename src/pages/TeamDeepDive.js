@@ -118,7 +118,7 @@ function RosterSection({ players, position, onPlayerClick }) {
                            color: 'var(--text-muted)', borderBottom: '1px solid var(--card-border)' }}>
                 KTC
               </th>
-              <th style={{ textAlign: 'center', padding: '6px 10px', fontSize: '11px',
+              <th className='roster-tbl-combined' style={{ textAlign: 'center', padding: '6px 10px', fontSize: '11px',
                            color: 'var(--text-muted)', borderBottom: '1px solid var(--card-border)',
                            whiteSpace: 'nowrap' }}>
                 Combined <Tooltip text="Blends KTC market value (60%) with multi-year fantasy production (40%), normalized within each position. Higher = more valuable overall." />
@@ -154,7 +154,7 @@ function RosterSection({ players, position, onPlayerClick }) {
                              color: 'var(--text-primary)', fontWeight: 500 }}>
                   {parseInt(p['KTC Value']).toLocaleString()}
                 </td>
-                <td style={{ padding: '7px 10px', textAlign: 'center',
+                <td className='roster-tbl-combined' style={{ padding: '7px 10px', textAlign: 'center',
                              borderBottom: '1px solid var(--card-border)',
                              color: 'var(--text-secondary)' }}>
                   {parseInt(p['Combined Score']).toLocaleString()}
@@ -1452,7 +1452,7 @@ export default function TeamDeepDive({ data, owner }) {
   const [selectedPlayer, setSelectedPlayer] = useState(null)
 
   return (
-    <div className='page'>
+    <div className='page' style={{ overflowX: 'hidden' }}>
       <div style={{ display: 'flex', alignItems: 'center',
                     justifyContent: 'space-between', marginBottom: '1.25rem' }}>
         <div>

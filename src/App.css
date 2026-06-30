@@ -247,3 +247,10 @@ tr:hover td { background: var(--page-bg); }
     align-self: center;
   }
 }
+
+/* Mobile: hide Combined column in roster table so table fits without page overflow */
+@media (max-width: 768px) {
+  .roster-tbl-combined {
+    display: none;
+  }
+}
