@@ -3756,7 +3756,7 @@ for owner in owners_list:
     historical_ppg = float(hist_ppg_by_owner.get(owner, league_avg_ppg))
     player_ktc     = float(player_value_by_owner.get(owner, league_avg_player_ktc))
     roster_strength_score = (player_ktc / league_avg_player_ktc) * league_avg_ppg
-    blended_ppg = 0.4 * historical_ppg + 0.6 * roster_strength_score
+    blended_ppg = 0.25 * historical_ppg + 0.75 * roster_strength_score
 
     historical_ppg_by_owner[owner]  = historical_ppg
     roster_strength_by_owner[owner] = roster_strength_score
