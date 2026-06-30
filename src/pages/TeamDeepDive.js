@@ -110,7 +110,7 @@ function RosterSection({ players, position, onPlayerClick }) {
                            color: 'var(--text-muted)', borderBottom: '1px solid var(--card-border)' }}>
                 Player
               </th>
-              <th style={{ textAlign: 'left', padding: '6px 10px', fontSize: '11px',
+              <th className='roster-tbl-tier' style={{ textAlign: 'left', padding: '6px 10px', fontSize: '11px',
                            color: 'var(--text-muted)', borderBottom: '1px solid var(--card-border)' }}>
                 Tier
               </th>
@@ -145,8 +145,9 @@ function RosterSection({ players, position, onPlayerClick }) {
                     <span style={{ fontSize: '10px', color: 'var(--text-muted)',
                                    marginLeft: '6px' }}>TAXI</span>
                   )}
+                  <div className='roster-tier-mobile'><TierBadge tier={p.Tier} /></div>
                 </td>
-                <td style={{ padding: '7px 10px', borderBottom: '1px solid var(--card-border)' }}>
+                <td className='roster-tbl-tier' style={{ padding: '7px 10px', borderBottom: '1px solid var(--card-border)' }}>
                   <TierBadge tier={p.Tier} />
                 </td>
                 <td style={{ padding: '7px 10px', textAlign: 'right',

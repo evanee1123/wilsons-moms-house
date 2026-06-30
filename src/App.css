@@ -248,9 +248,25 @@ tr:hover td { background: var(--page-bg); }
   }
 }
 
-/* Mobile: hide Combined column in roster table so table fits without page overflow */
+/* Mobile: hide Combined + Tier columns; show tier badge inline under player name */
 @media (max-width: 768px) {
-  .roster-tbl-combined {
+  .roster-tbl-combined,
+  .roster-tbl-tier {
+    display: none;
+  }
+  .roster-tier-mobile {
+    margin-top: 3px;
+  }
+  /* Tighten cell padding so PLAYER / KTC / AVG PPG fit at ~390px */
+  .table-scroll th,
+  .table-scroll td {
+    padding: 5px 6px !important;
+  }
+}
+
+/* Desktop: hide the mobile-only tier badge */
+@media (min-width: 769px) {
+  .roster-tier-mobile {
     display: none;
   }
 }
