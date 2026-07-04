@@ -6,7 +6,6 @@ KTC values are served from cron-written static files — never re-scraped on dem
 """
 
 import json
-import os
 import time
 import traceback
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -16,10 +15,7 @@ from http.server import BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
 from urllib.request import urlopen
 
-_SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-_DATA_DIR = os.path.join(_SCRIPT_DIR, "..", "public", "data")
-_KTC_RANKINGS_PATH = os.path.join(_DATA_DIR, "ktcRankings.json")
-_PICK_VALUES_PATH = os.path.join(_DATA_DIR, "pickValues.json")
+import requests
 
 # Name corrections to improve difflib matching — mirrors wilsons_teams.py
 _NAME_FIXES = {
@@ -92,21 +88,19 @@ class handler(BaseHTTPRequestHandler):
             return self._respond(400, {"error": "league_id is required"})
         league_id = league_id_values[0]
 
-        # Load static KTC files — serve from cron-written files, never re-scrape
+        # Fetch KTC data from /api/ktc — avoids direct file access in serverless
         try:
-            with open(_KTC_RANKINGS_PATH) as f:
-                ktc_rankings = json.load(f)
+            ktc_resp = requests.get(
+                "https://wilsons-moms-house.vercel.app/api/ktc", timeout=20
+            )
+            ktc_resp.raise_for_status()
+            ktc_data = ktc_resp.json()
         except Exception as e:
-            return self._respond(500, {"error": f"Failed to read ktcRankings.json: {e}"})
-        try:
-            with open(_PICK_VALUES_PATH) as f:
-                ktc_picks_raw = json.load(f)
-        except Exception as e:
-            return self._respond(500, {"error": f"Failed to read pickValues.json: {e}"})
+            return self._respond(500, {"error": f"Failed to fetch KTC data: {e}"})
 
-        ktc_name_to_value = {p["Player / Pick"]: p["KTC Value"] for p in ktc_rankings}
+        ktc_name_to_value = {p["Player / Pick"]: p["KTC Value"] for p in ktc_data["players"]}
         ktc_names = list(ktc_name_to_value.keys())
-        ktc_pick_lookup = {p["Pick Name"]: p["KTC Value"] for p in ktc_picks_raw}
+        ktc_pick_lookup = {p["Pick Name"]: p["KTC Value"] for p in ktc_data["picks"]}
 
         # Fetch all Sleeper endpoints in parallel
         sleeper_urls = {
