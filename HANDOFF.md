@@ -309,6 +309,24 @@ None currently. Both leagues are stable and auto-updating.
 
 ---
 
+## KTC Cache API Endpoint (Phase A Step 1 — Complete)
+
+`/api/ktc.js` is a Vercel serverless function that serves KTC data from the cron-written static files.
+
+- **Route:** `/api/ktc` (auto-routed by Vercel from the `/api/` directory convention — no `vercel.json` needed)
+- **Returns:** `{ "players": [...], "picks": [...] }` where:
+  - `players` — contents of `public/data/ktcRankings.json` (list of `{ Rank, "Player / Pick", "KTC Value", "Multi-Year Prod Score", "Combined Score" }`)
+  - `picks` — contents of `public/data/pickValues.json` (list of `{ "Pick Name", "KTC Value" }`)
+- **Cache-Control:** `s-maxage=3600, stale-while-revalidate` — CDN-cached for 1 hour, matching the Sun/Thu cron cadence
+- **Error handling:** returns HTTP 500 with `{ "error": "..." }` if either file cannot be read
+- **IMPORTANT:** KTC values are always served from cron-written static files. Do NOT re-scrape KTC on demand via this endpoint or any future endpoint — the scraper runs on the Sun/Thu GitHub Actions cron only.
+
+`wilsons_teams.py` also has a canary check immediately after writing `ktcRankings.json` that reads it back and prints a `WARNING:` to stdout if it contains fewer than 200 players. This is a silent failure detector for KTC scraper regressions.
+
+**Deployed endpoint:** https://wilsons-moms-house.vercel.app/api/ktc
+
+---
+
 ## Next Steps
 
 No outstanding work. Next changes will be feature additions or bug fixes as they arise.

@@ -3447,6 +3447,16 @@ ktc_combined.columns = ["Rank","Player / Pick","KTC Value","Multi-Year Prod Scor
 ktc_combined = ktc_combined.drop(columns=["Type"])
 push_json('ktcRankings.json', df_to_records(ktc_combined))
 
+# Canary: warn if the KTC rankings file looks suspiciously small (scraper regression detector)
+_ktc_path = os.path.join(OUTPUT_DIR, 'ktcRankings.json')
+try:
+    with open(_ktc_path) as _f:
+        _ktc_count = len(json.load(_f))
+    if _ktc_count < 200:
+        print(f"WARNING: ktcRankings.json contains only {_ktc_count} players — expected 200+. Possible KTC scraper regression.")
+except Exception as _e:
+    print(f"WARNING: Could not read back ktcRankings.json for canary check: {_e}")
+
 # Pick Portfolio
 print("Pushing Pick Portfolio...")
 pk = picks_master_df[[
