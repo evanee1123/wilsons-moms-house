@@ -280,8 +280,8 @@ export default function Home({ data, owner }) {
   const { userProfile, viewAsOwner } = useAuth()
   const { leagueId } = useLeague()
   const myOwner = viewAsOwner || userProfile?.rosterOwnerName || null
-
-  console.log('Active league ID:', leagueId)
+  // eslint-disable-next-line no-unused-vars
+  const isWilsonsLeague = leagueId === '1312130103358021632'
 
   if (!data) return null
 

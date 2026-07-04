@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react'
+import { useLeague } from '../contexts/LeagueContext'
 
 // ─── Layout constants ──────────────────────────────────────────────
 const CARD_W   = 210
@@ -542,6 +543,9 @@ function AllTimeStandings({ data }) {
 
 // ─── Main page ─────────────────────────────────────────────────────
 export default function LeagueHistory({ data }) {
+  const { leagueId } = useLeague()
+  // eslint-disable-next-line no-unused-vars
+  const isWilsonsLeague = leagueId === '1312130103358021632'
   const [selectedSeason, setSelectedSeason] = useState(null)
 
   const seasons = useMemo(() => {

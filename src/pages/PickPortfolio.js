@@ -1,7 +1,11 @@
 import { useState, useMemo } from 'react'
+import { useLeague } from '../contexts/LeagueContext'
 import { PickYearGroup, dedupePicks, buildTeamColorMap } from '../components/PickPortfolioCards'
 
 export default function PickPortfolio({ data }) {
+  const { leagueId } = useLeague()
+  // eslint-disable-next-line no-unused-vars
+  const isWilsonsLeague = leagueId === '1312130103358021632'
   const [ownerFilter, setOwnerFilter] = useState('ALL')
   const [yearFilter,  setYearFilter]  = useState('ALL')
 

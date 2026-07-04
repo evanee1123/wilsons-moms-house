@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useData } from './hooks/useData'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
-import { LeagueProvider } from './contexts/LeagueContext'
+import { LeagueProvider, useLeague } from './contexts/LeagueContext'
 import Sidebar from './components/Sidebar'
 import Home from './pages/Home'
 import TeamDeepDive from './pages/TeamDeepDive'
@@ -23,6 +23,12 @@ function AppInner() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const { data, loading, error, refresh } = useData()
   const { userProfile } = useAuth()
+  const { leagueId } = useLeague()
+
+  // Reset selected owner when the active league changes
+  useEffect(() => {
+    setOwner('')
+  }, [leagueId])
 
   // Auto-select logged-in user's team in the public team selector
   useEffect(() => {

@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useAuth } from '../contexts/AuthContext'
+import { useLeague } from '../contexts/LeagueContext'
 import {
   loadGoals, saveGoal, updateGoalStatus, deleteGoal,
   loadWatchlist, addToWatchlist, removeFromWatchlist,
@@ -1343,6 +1344,9 @@ function TradeFinderSection({ myOwner, myOutlook, data, allAssets, outlookByOwne
 // ── Main export ───────────────────────────────────────────────────────────────
 export default function Blueprint({ data, setPage }) {
   const { currentUser, userProfile, viewAsOwner } = useAuth()
+  const { leagueId } = useLeague()
+  // eslint-disable-next-line no-unused-vars
+  const isWilsonsLeague = leagueId === '1312130103358021632'
   const myOwner = viewAsOwner || userProfile?.rosterOwnerName
   // uid is always the real logged-in user — never swapped by viewAsOwner
   const uid           = currentUser?.uid

@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
+import { useLeague } from '../contexts/LeagueContext'
 import PlayerDetailModal from '../components/PlayerDetailModal'
 import { calcAdjusted, computeQbNeed, computeStudTax, UPSIDE_TIERS, SKILL_POS } from '../utils/tradeLogic'
 
@@ -275,6 +276,9 @@ function ValueBar({ giveCombined, receiveCombined, giveAdj, receiveAdj }) {
 // ── Main component ────────────────────────────────────────────────────────────
 export default function TradeCalculator({ data }) {
   const { userProfile } = useAuth()
+  const { leagueId } = useLeague()
+  // eslint-disable-next-line no-unused-vars
+  const isWilsonsLeague = leagueId === '1312130103358021632'
   const userOwner = userProfile?.rosterOwnerName || null
 
   const [giveAssets,     setGiveAssets]     = useState([])

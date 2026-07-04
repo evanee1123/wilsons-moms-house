@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react'
 import PlayerDetailModal from '../components/PlayerDetailModal'
 import { findPlayerByName } from '../utils/playerUtils'
+import { useLeague } from '../contexts/LeagueContext'
 
 const VERDICT_COLORS = {
   win:  { bg: '#c6f6d5', color: '#276749', label: 'WIN' },
@@ -15,6 +16,9 @@ function getVerdict(surplus) {
 }
 
 export default function TradeHistory({ data, owner }) {
+  const { leagueId } = useLeague()
+  // eslint-disable-next-line no-unused-vars
+  const isWilsonsLeague = leagueId === '1312130103358021632'
   const [ownerFilter,  setOwnerFilter]  = useState('ALL')
   const [seasonFilter, setSeasonFilter] = useState('ALL')
   const [selectedPlayer, setSelectedPlayer] = useState(null)

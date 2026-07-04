@@ -1,4 +1,5 @@
 import { useState, useMemo, Fragment } from 'react'
+import { useLeague } from '../contexts/LeagueContext'
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, ReferenceLine,
   Tooltip as RechartsTooltip, ResponsiveContainer,
@@ -1443,6 +1444,9 @@ function TradeTargets({ tradeTargets, owner, selectedOwner }) {
 }
 
 export default function TeamDeepDive({ data, owner }) {
+  const { leagueId } = useLeague()
+  // eslint-disable-next-line no-unused-vars
+  const isWilsonsLeague = leagueId === '1312130103358021632'
   const owners = [...new Set(data?.leagueRosters?.map(p => p.Owner) || [])]
   const [selectedTeam, setSelectedTeam] = useState('')
 

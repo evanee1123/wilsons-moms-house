@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-
+import { useLeague } from '../contexts/LeagueContext'
 import PlayerDetailModal from '../components/PlayerDetailModal'
 
 const positions = ['QB', 'RB', 'WR', 'TE']
@@ -184,6 +184,9 @@ function FilterPanel({ filters, setFilters, onClose, owners }) {
 }
  
 export default function PlayerRankings({ data }) {
+  const { leagueId } = useLeague()
+  // eslint-disable-next-line no-unused-vars
+  const isWilsonsLeague = leagueId === '1312130103358021632'
   const [search,         setSearch]         = useState('')
   const [showAll,        setShowAll]        = useState(false)
   const [sortBy,         setSortBy]         = useState('KTC Value')

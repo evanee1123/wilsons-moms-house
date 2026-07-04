@@ -3,6 +3,7 @@ import {
   Tooltip as RechartsTooltip, ResponsiveContainer,
 } from 'recharts'
 import { useAuth } from '../contexts/AuthContext'
+import { useLeague } from '../contexts/LeagueContext'
 
 const OUTLOOK_BADGE = {
   'Contender':                    'badge-green',
@@ -130,6 +131,9 @@ function formatGeneratedAt(ts) {
 
 export default function PowerRankings({ data }) {
   const { userProfile, viewAsOwner } = useAuth()
+  const { leagueId } = useLeague()
+  // eslint-disable-next-line no-unused-vars
+  const isWilsonsLeague = leagueId === '1312130103358021632'
   const myOwner = viewAsOwner || userProfile?.rosterOwnerName || null
 
   const rankings    = (data?.powerRankings?.rankings || []).slice().sort((a, b) => a.rank - b.rank)
