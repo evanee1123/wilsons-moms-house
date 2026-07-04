@@ -386,9 +386,55 @@ Step 4 will wire all pages to read from `leagueId` (via `useLeague()`) instead o
 
 ---
 
+## Phase A Step 4 — Wire All Pages to /api/league and /api/ktc (Complete)
+
+### Architecture
+All data loads centrally through `useData()` → `dataService.js::loadAllData(leagueId)` → `data` prop passed to every page from App.js. Pages do not fetch their own data; the league switch triggers a full re-fetch at the hook level.
+
+### Page Buckets
+
+**Bucket A** — Data served from /api/league for any league (these pages work for external leagues):
+- **Home** — teamOverview (basic), rosterGrades (derived from positional KTC sums), standings (Sleeper API)
+- **TeamDeepDive** — leagueRosters, pickPortfolio derived from /api/league rosters
+- **PlayerRankings** — playerUniverse from /api/league; ktcRankings from /api/ktc
+- **PickPortfolio** — pickPortfolio derived from /api/league picks (pick_name parsed to Year/Round/Tier)
+- **TradeCalculator** — players + picks from /api/league; pickValues from /api/ktc
+
+**Bucket B** — Wilson's-only computed/historical data (static reads unchanged; Step 5 will add "not available" placeholder UI):
+- **TradeHistory** — reads tradeHistory.json (Wilson's cron-computed grades)
+- **LeagueHistory** — reads history*.json (Wilson's historical data)
+- **PowerRankings** — reads power_rankings.json (Wilson's AI-generated)
+- **Blueprint** — reads nearly all computed files + Firestore (auth-required)
+
+**Bucket C** — KTC universe from /api/ktc (not league-specific):
+- **PlayerRankings** also reads ktcRankings from /api/ktc (for unrostered player lookup)
+
+### Key changes
+- `src/hooks/useData.js` — imports `useLeague`, reads `leagueId`, passes it to `loadAllData`, re-fetches when leagueId changes
+- `src/services/dataService.js` — `loadAllData(leagueId)` branches:
+  - Wilson's ID (`1312130103358021632`): existing static file + Sleeper API behavior (unchanged)
+  - External: fetches `/api/league?league_id={leagueId}` + `/api/ktc` + Sleeper standings, maps response to the same data shape all pages expect. Null/empty for Wilson's-only fields (tradeHistory, powerRankings, playoffPicture, etc.)
+- `src/App.js` — adds `useLeague`, resets `owner` state when leagueId changes (prevents stale team selection)
+- All 9 pages — `useLeague()` imported; `const isWilsonsLeague = leagueId === '1312130103358021632'` added (eslint-disable comment; will be used in Step 5 for placeholder UI)
+- `src/pages/Home.js` — Step 3 `console.log` removed
+
+### External league data mapping (dataService.js::loadExternalLeagueData)
+- `teamOverview`: derived from `rosters[].total_ktc` → Value Rank; no Outlook/C+F (null)
+- `playerUniverse`: flattened from `rosters[].players`; no Tier/Age/production (null/0)
+- `leagueRosters`: same source as playerUniverse
+- `pickPortfolio`: `rosters[].picks` → Year/Round/Tier parsed from pick_name (e.g. "2028 Mid 1st")
+- `rosterGrades`: summed player KTC by position per team; `QB Starter Val` and `QB Grade` both set to the sum (positional ranking still works)
+- `ktcRankings` + `pickValues`: from /api/ktc (same for all leagues)
+- Wilson's-only fields: `tradeHistory`, `powerRankings`, `playoffPicture`, `historyStandings` etc. → `[]` or `null`
+
+### Important note for Step 5
+The `/api/league` and `/api/ktc` endpoints are Vercel Python/JS serverless functions. They are **not** available in `react-scripts start` dev mode — only on the deployed Vercel app (or via `vercel dev` locally). Wilson's Moms House dev testing continues to use static files as before.
+
+---
+
 ## Next Steps
 
-No outstanding work beyond Phase A Step 4 (wire all pages to use leagueId from context).
+Phase A Step 5 — Add "not available for external leagues" placeholder UI to all Bucket B pages. Each Bucket B page already has `isWilsonsLeague` wired in. Step 5 conditionally renders a placeholder card when `!isWilsonsLeague` instead of the Wilson's-only section.
 
 When adding features, apply changes to **both** leagues:
 - Wilson's: `src/`
