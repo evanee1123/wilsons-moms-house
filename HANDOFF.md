@@ -427,6 +427,9 @@ All data loads centrally through `useData()` → `dataService.js::loadAllData(le
 - `ktcRankings` + `pickValues`: from /api/ktc (same for all leagues)
 - Wilson's-only fields: `tradeHistory`, `powerRankings`, `playoffPicture`, `historyStandings` etc. → `[]` or `null`
 
+### Known limitation: standings Val Rank mismatch for external leagues
+In `StandingsTable` (Home.js), `standings[].owner` = Sleeper `display_name` (e.g. "jsinykin") and `teamOverview[].Owner` = `/api/league` `team_name` (e.g. "Drake > Josh"). These match for Wilson's (static data uses display_name) but not for leagues with custom team names. Result: Val Rank shows `#-` for all teams in leagues with custom names. Fix in Step 5 (or later): `/api/league` should also return `display_name` alongside `team_name`, and `dataService.js` should set `Owner` = `display_name` for the standings merge.
+
 ### Important note for Step 5
 The `/api/league` and `/api/ktc` endpoints are Vercel Python/JS serverless functions. They are **not** available in `react-scripts start` dev mode — only on the deployed Vercel app (or via `vercel dev` locally). Wilson's Moms House dev testing continues to use static files as before.
 
