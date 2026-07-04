@@ -1,0 +1,279 @@
+"""
+Vercel Python serverless function: GET /api/league?league_id=<id>
+
+Returns structured per-roster KTC data for any Sleeper dynasty league.
+KTC values are served from cron-written static files — never re-scraped on demand.
+"""
+
+import json
+import os
+import time
+import traceback
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from datetime import datetime
+from difflib import get_close_matches
+from http.server import BaseHTTPRequestHandler
+from urllib.parse import urlparse, parse_qs
+from urllib.request import urlopen
+
+_SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+_DATA_DIR = os.path.join(_SCRIPT_DIR, "..", "public", "data")
+_KTC_RANKINGS_PATH = os.path.join(_DATA_DIR, "ktcRankings.json")
+_PICK_VALUES_PATH = os.path.join(_DATA_DIR, "pickValues.json")
+
+# Name corrections to improve difflib matching — mirrors wilsons_teams.py
+_NAME_FIXES = {
+    "Chig Okonkwo": "Chigoziem Okonkwo",
+}
+
+SKILL_POSITIONS = {"QB", "RB", "WR", "TE"}
+ROUNDS = [1, 2, 3, 4]
+
+
+def _get_current_season():
+    """Returns the current NFL season year — same logic as wilsons_teams.py."""
+    now = datetime.now()
+    return now.year if now.month >= 7 else now.year - 1
+
+
+def _pick_tier_current(slot, n_teams):
+    """Early/Mid/Late tier for a known draft slot — mirrors wilsons_teams.py."""
+    equivalent_slot = round(slot * 12 / n_teams)
+    if equivalent_slot <= 4:
+        return "Early"
+    elif equivalent_slot <= 8:
+        return "Mid"
+    return "Late"
+
+
+def _default_future_tier(round_num):
+    """Default tier for future-year picks where slot is unknown — mirrors wilsons_teams.py."""
+    return "Mid" if round_num in (1, 2) else "Early"
+
+
+def _pick_ktc_name(year, round_num, tier):
+    """
+    Constructs the KTC lookup name for a pick — mirrors pick_ktc_name in wilsons_teams.py.
+    Round 4 maps to 'Late 3rd' (KTC doesn't price 4th-rounders separately).
+    """
+    if round_num == 4:
+        return f"{year} Late 3rd"
+    round_str = {1: "1st", 2: "2nd", 3: "3rd"}.get(round_num, f"{round_num}th")
+    return f"{year} {tier} {round_str}"
+
+
+def _fetch_json(url):
+    with urlopen(url, timeout=20) as r:
+        return json.loads(r.read())
+
+
+class handler(BaseHTTPRequestHandler):
+
+    def do_GET(self):
+        start_time = time.time()
+        try:
+            self._handle(start_time)
+        except Exception:
+            tb = traceback.format_exc()
+            print(f"league.py unhandled error:\n{tb}")
+            last_line = tb.strip().splitlines()[-1]
+            self._respond(500, {"error": f"Internal server error: {last_line}"})
+        finally:
+            elapsed = time.time() - start_time
+            print(f"league.py execution time: {elapsed:.2f}s")
+            if elapsed > 8:
+                print("WARNING: approaching Vercel 10s function limit")
+
+    def _handle(self, start_time):
+        parsed = urlparse(self.path)
+        params = parse_qs(parsed.query)
+        league_id_values = params.get("league_id", [])
+        if not league_id_values:
+            return self._respond(400, {"error": "league_id is required"})
+        league_id = league_id_values[0]
+
+        # Load static KTC files — serve from cron-written files, never re-scrape
+        try:
+            with open(_KTC_RANKINGS_PATH) as f:
+                ktc_rankings = json.load(f)
+        except Exception as e:
+            return self._respond(500, {"error": f"Failed to read ktcRankings.json: {e}"})
+        try:
+            with open(_PICK_VALUES_PATH) as f:
+                ktc_picks_raw = json.load(f)
+        except Exception as e:
+            return self._respond(500, {"error": f"Failed to read pickValues.json: {e}"})
+
+        ktc_name_to_value = {p["Player / Pick"]: p["KTC Value"] for p in ktc_rankings}
+        ktc_names = list(ktc_name_to_value.keys())
+        ktc_pick_lookup = {p["Pick Name"]: p["KTC Value"] for p in ktc_picks_raw}
+
+        # Fetch all Sleeper endpoints in parallel
+        sleeper_urls = {
+            "league_info":   f"https://api.sleeper.app/v1/league/{league_id}",
+            "rosters":       f"https://api.sleeper.app/v1/league/{league_id}/rosters",
+            "users":         f"https://api.sleeper.app/v1/league/{league_id}/users",
+            "players_db":    "https://api.sleeper.app/v1/players/nfl",
+            "traded_picks":  f"https://api.sleeper.app/v1/league/{league_id}/traded_picks",
+            "drafts":        f"https://api.sleeper.app/v1/league/{league_id}/drafts",
+        }
+        sleeper_data = {}
+        with ThreadPoolExecutor(max_workers=6) as executor:
+            future_to_key = {executor.submit(_fetch_json, url): key
+                             for key, url in sleeper_urls.items()}
+            for future in as_completed(future_to_key):
+                key = future_to_key[future]
+                try:
+                    sleeper_data[key] = future.result()
+                except Exception as e:
+                    raise RuntimeError(f"Sleeper API fetch failed for {key}: {e}")
+
+        league_info  = sleeper_data["league_info"]
+        rosters      = sleeper_data["rosters"]
+        users        = sleeper_data["users"]
+        players_db   = sleeper_data["players_db"]
+        traded_picks = sleeper_data["traded_picks"]
+        drafts       = sleeper_data["drafts"]
+
+        # user_id → display_name + team_name (from metadata.team_name when set)
+        user_map = {}
+        for u in users:
+            meta = u.get("metadata") or {}
+            display = u.get("display_name") or u.get("username") or "Unknown"
+            user_map[u["user_id"]] = {
+                "display_name": display,
+                "team_name": meta.get("team_name") or display,
+            }
+
+        # roster_id → display_name (for traded_picks ownership resolution)
+        roster_id_map = {
+            r["roster_id"]: user_map.get(r["owner_id"], {}).get("display_name", "Unknown")
+            for r in rosters
+        }
+
+        # ── Pick portfolio — mirrors wilsons_teams.py cell 8 logic ──
+        current_season    = _get_current_season()
+        CURRENT_DRAFT_YEAR = str(current_season + 1)
+        YEARS = [str(current_season + i) for i in range(1, 5)]
+        n_teams = len(rosters)
+
+        upcoming_draft = next(
+            (d for d in drafts if d["status"] in ("pre_draft", "drafting")),
+            drafts[0] if drafts else None,
+        )
+
+        all_league_picks = []
+
+        if upcoming_draft and upcoming_draft["status"] not in ("complete",):
+            draft_details = _fetch_json(
+                f"https://api.sleeper.app/v1/draft/{upcoming_draft['draft_id']}"
+            )
+            slot_to_roster = draft_details.get("slot_to_roster_id", {})
+            for slot_str, roster_id in slot_to_roster.items():
+                slot = int(slot_str)
+                for rnd in ROUNDS:
+                    all_league_picks.append({
+                        "year":           CURRENT_DRAFT_YEAR,
+                        "round":          rnd,
+                        "slot":           slot,
+                        "tier":           _pick_tier_current(slot, n_teams),
+                        "original_owner": roster_id,
+                        "current_owner":  roster_id,
+                    })
+
+        for year in YEARS[1:]:
+            for roster in rosters:
+                for rnd in ROUNDS:
+                    all_league_picks.append({
+                        "year":           year,
+                        "round":          rnd,
+                        "slot":           None,
+                        "tier":           _default_future_tier(rnd),
+                        "original_owner": roster["roster_id"],
+                        "current_owner":  roster["roster_id"],
+                    })
+
+        # Apply traded picks — mirrors wilsons_teams.py trade application loop
+        for tp in traded_picks:
+            orig      = tp["roster_id"]
+            new_owner = tp["owner_id"]
+            year      = str(tp["season"])
+            rnd       = tp["round"]
+            for pick in all_league_picks:
+                if (pick["original_owner"] == orig
+                        and pick["year"] == year
+                        and pick["round"] == rnd
+                        and pick["current_owner"] == orig):
+                    pick["current_owner"] = new_owner
+                    break
+
+        # Group picks by current owner (roster_id)
+        picks_by_roster = {}
+        for pick in all_league_picks:
+            rid        = pick["current_owner"]
+            ktc_lookup = _pick_ktc_name(pick["year"], pick["round"], pick["tier"])
+            picks_by_roster.setdefault(rid, []).append({
+                "pick_name": ktc_lookup,
+                "ktc_value": int(ktc_pick_lookup.get(ktc_lookup, 0)),
+            })
+
+        # ── Per-roster output ──
+        result_rosters = []
+        for roster in rosters:
+            owner_id  = roster["owner_id"]
+            roster_id = roster["roster_id"]
+            user_info = user_map.get(owner_id, {})
+            team_name = user_info.get("team_name") or user_info.get("display_name") or "Unknown"
+
+            players_list = []
+            for pid in (roster.get("players") or []):
+                p        = players_db.get(pid, {})
+                position = p.get("position", "")
+                if position not in SKILL_POSITIONS:
+                    continue
+                raw_name = f"{p.get('first_name', '')} {p.get('last_name', '')}".strip()
+                name     = _NAME_FIXES.get(raw_name, raw_name)
+                matches  = get_close_matches(name, ktc_names, n=1, cutoff=0.85)
+                ktc_val  = int(ktc_name_to_value[matches[0]]) if matches else 0
+                players_list.append({
+                    "sleeper_id": pid,
+                    "name":       raw_name,
+                    "ktc_value":  ktc_val,
+                    "position":   position,
+                })
+
+            roster_picks = picks_by_roster.get(roster_id, [])
+            total_ktc    = (
+                sum(p["ktc_value"] for p in players_list)
+                + sum(p["ktc_value"] for p in roster_picks)
+            )
+
+            result_rosters.append({
+                "owner_id":  owner_id,
+                "team_name": team_name,
+                "players":   sorted(players_list, key=lambda x: -x["ktc_value"]),
+                "picks":     sorted(roster_picks, key=lambda x: -x["ktc_value"]),
+                "total_ktc": int(total_ktc),
+            })
+
+        result_rosters.sort(key=lambda x: -x["total_ktc"])
+
+        self._respond(200, {
+            "league_id":   league_id,
+            "league_name": league_info.get("name", ""),
+            "season":      league_info.get("season", ""),
+            "rosters":     result_rosters,
+        })
+
+    def _respond(self, status, body):
+        payload = json.dumps(body).encode("utf-8")
+        self.send_response(status)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Cache-Control", "s-maxage=3600, stale-while-revalidate")
+        self.send_header("Content-Length", str(len(payload)))
+        self.end_headers()
+        self.wfile.write(payload)
+
+    def log_message(self, format, *args):
+        # Suppress BaseHTTPRequestHandler's default access log noise
+        pass

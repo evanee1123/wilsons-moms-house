@@ -309,6 +309,43 @@ None currently. Both leagues are stable and auto-updating.
 
 ---
 
+## League Roster API Endpoint (Phase A Step 2 — Complete)
+
+`/api/league.py` is a Vercel Python serverless function that accepts any Sleeper dynasty league ID and returns structured roster + KTC data.
+
+- **Route:** `GET /api/league?league_id=<sleeper_league_id>`
+- **Missing `league_id`:** returns HTTP 400 `{ "error": "league_id is required" }`
+- **Response shape:**
+  ```json
+  {
+    "league_id": "...",
+    "league_name": "...",
+    "season": "...",
+    "rosters": [
+      {
+        "owner_id": "...",
+        "team_name": "...",
+        "players": [{ "sleeper_id": "...", "name": "...", "ktc_value": 0, "position": "..." }],
+        "picks": [{ "pick_name": "2028 Mid 1st", "ktc_value": 0 }],
+        "total_ktc": 0
+      }
+    ]
+  }
+  ```
+- **Rosters sorted** by `total_ktc` descending. Players sorted by KTC descending within each roster.
+- **Player matching:** uses `difflib.get_close_matches` (cutoff 0.85) against KTC player names — same logic as `wilsons_teams.py`. `_NAME_FIXES` dict corrects known Sleeper/KTC name mismatches (e.g. Chig Okonkwo).
+- **Pick portfolio:** mirrors `wilsons_teams.py` cell 8 — generates picks for future years (YEARS[1:]), applies traded picks from Sleeper's `/traded_picks` endpoint. If the upcoming draft is still pre_draft/drafting, also generates current-year picks from slot_to_roster_id. Round 4 picks map to "Late 3rd" (KTC doesn't price 4th-rounders separately).
+- **Sleeper API calls** (parallel via ThreadPoolExecutor): league info, rosters, users, players/nfl, traded_picks, drafts — then draft_details only if current draft is not complete.
+- **`players/nfl` endpoint** is fetched uncached on every request (~5MB response, the dominant latency source). Caching this will be addressed in a later step.
+- **Execution time:** logged to stdout as `league.py execution time: X.XXs`. Also logs `WARNING: approaching Vercel 10s function limit` if elapsed > 8s.
+- **Cache-Control:** `s-maxage=3600, stale-while-revalidate` — CDN caches the response for 1 hour.
+- **Vercel config:** `vercel.json` created at repo root to pin `api/league.py` to `python3.9` runtime. `api/ktc.js` and the React build are unaffected.
+- **IMPORTANT:** KTC values come from cron-written static files (`ktcRankings.json`, `pickValues.json`). Do NOT re-scrape KTC on demand.
+
+**Deployed endpoint (Wilson's):** `https://wilsons-moms-house.vercel.app/api/league?league_id=1312130103358021632`
+
+---
+
 ## KTC Cache API Endpoint (Phase A Step 1 — Complete)
 
 `/api/ktc.js` is a Vercel serverless function that serves KTC data from the cron-written static files.
