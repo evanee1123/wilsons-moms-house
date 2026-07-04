@@ -1,4 +1,7 @@
+import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useLeague } from '../contexts/LeagueContext';
+import LeagueSwitcher from './LeagueSwitcher';
 
 const ALL_OWNERS = [
   'ekleiner1123', 'Herschey6153', 'jsinykin', 'SvenMoney34', 'Akracoon',
@@ -9,6 +12,8 @@ export default function Sidebar({ page, setPage, owner, setOwner,
                                    lastUpdated, refresh, owners,
                                    sidebarOpen, setSidebarOpen }) {
   const { currentUser, userProfile, viewAsOwner, setViewAsOwner, logout } = useAuth();
+  const { leagueName } = useLeague();
+  const [switcherOpen, setSwitcherOpen] = useState(false);
   const isAdmin = userProfile?.sleeperUsername === 'ekleiner1123';
 
   const navItems = [
@@ -35,36 +40,57 @@ export default function Sidebar({ page, setPage, owner, setOwner,
   }
 
   return (
-    <aside
-      className={sidebarOpen ? 'open' : ''}
-      style={{
-        width: '220px', minHeight: '100vh', background: '#1a1f2e',
-        display: 'flex', flexDirection: 'column', flexShrink: 0,
-        borderRight: '1px solid rgba(255,255,255,0.06)',
-        position: 'relative'
-      }}
-    >
-      {/* Header */}
-      <div style={{ padding: '1.25rem 1rem', borderBottom: '1px solid rgba(255,255,255,0.06)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div>
-          <div style={{ fontSize: '13px', fontWeight: 700, color: '#fff', lineHeight: 1.3 }}>
-            Wilson's Moms House
+    <>
+      {switcherOpen && <LeagueSwitcher onClose={() => setSwitcherOpen(false)} />}
+      <aside
+        className={sidebarOpen ? 'open' : ''}
+        style={{
+          width: '220px', minHeight: '100vh', background: '#1a1f2e',
+          display: 'flex', flexDirection: 'column', flexShrink: 0,
+          borderRight: '1px solid rgba(255,255,255,0.06)',
+          position: 'relative'
+        }}
+      >
+        {/* Header */}
+        <div style={{ padding: '1.25rem 1rem', borderBottom: '1px solid rgba(255,255,255,0.06)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <div style={{ fontSize: '13px', fontWeight: 700, color: '#fff', lineHeight: 1.3 }}>
+              Wilson's Moms House
+            </div>
+            {/* League indicator pill */}
+            <button
+              onClick={() => setSwitcherOpen(true)}
+              title="Switch league"
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: '4px',
+                marginTop: '5px', padding: '2px 8px',
+                background: 'rgba(49,130,206,0.18)',
+                border: '1px solid rgba(49,130,206,0.35)',
+                borderRadius: '99px', cursor: 'pointer',
+                color: '#63b3ed', fontSize: '10px', fontWeight: 600,
+                maxWidth: '100%', overflow: 'hidden',
+                transition: 'background 0.15s, border-color 0.15s',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(49,130,206,0.3)'; e.currentTarget.style.borderColor = 'rgba(49,130,206,0.6)'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'rgba(49,130,206,0.18)'; e.currentTarget.style.borderColor = 'rgba(49,130,206,0.35)'; }}
+            >
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {leagueName}
+              </span>
+              <span style={{ opacity: 0.7, flexShrink: 0 }}>⇄</span>
+            </button>
           </div>
-          <div style={{ fontSize: '11px', color: '#718096', marginTop: '2px' }}>
-            Dynasty League
-          </div>
+          <button
+            onClick={() => setSidebarOpen(false)}
+            style={{
+              display: 'none', background: 'none', border: 'none',
+              color: '#718096', fontSize: '20px', cursor: 'pointer',
+              padding: '2px 6px', lineHeight: 1
+            }}
+            className='mobile-close-btn'
+          >×</button>
         </div>
-        <button
-          onClick={() => setSidebarOpen(false)}
-          style={{
-            display: 'none', background: 'none', border: 'none',
-            color: '#718096', fontSize: '20px', cursor: 'pointer',
-            padding: '2px 6px', lineHeight: 1
-          }}
-          className='mobile-close-btn'
-        >×</button>
-      </div>
 
       {/* Nav */}
       <nav style={{ flex: 1, padding: '0.5rem 0' }}>
@@ -176,6 +202,7 @@ export default function Sidebar({ page, setPage, owner, setOwner,
         </button>
       </div>
     </aside>
+    </>
   )
 }
 

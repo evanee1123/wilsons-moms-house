@@ -364,9 +364,31 @@ None currently. Both leagues are stable and auto-updating.
 
 ---
 
+## Phase A Step 3 — LeagueContext + LeagueSwitcher UI (Complete)
+
+### localStorage keys
+- `wmh_league_id` — active Sleeper league ID string
+- `wmh_league_name` — active league display name string
+- On first visit, both are written to localStorage with Wilson's Moms House defaults (ID `1312130103358021632`)
+
+### New files
+- `src/contexts/LeagueContext.js` — `LeagueProvider` + `useLeague()` hook. Exposes `leagueId`, `leagueName`, `setLeague(id, name)`. Initializes from localStorage, falls back to WMH defaults. Wrapped around `<AuthProvider>` in `App.js`.
+- `src/components/LeagueSwitcher.jsx` — modal/drawer UI. Handles username lookup (→ league list picker) and direct league ID entry. Has "Use Wilson's Moms House (Demo)" reset button. Matches site's existing inline-style + CSS-var pattern.
+
+### Changed files
+- `src/App.js` — wraps with `<LeagueProvider>` outside `<AuthProvider>`
+- `src/components/Sidebar.js` — imports `useLeague` + `LeagueSwitcher`; adds a blue pill in the header showing `leagueName`, clicking it opens the switcher modal
+- `src/pages/Home.js` — imports `useLeague`, adds `console.log('Active league ID:', leagueId)` as Step 3 proof-of-concept
+- `src/App.css` — adds `@keyframes ls-spin` for the switcher's loading spinner
+
+### Step 4 notes
+Step 4 will wire all pages to read from `leagueId` (via `useLeague()`) instead of static JSON files. The `console.log` in `Home.js` should be removed in Step 4 once real data fetching replaces it. The `/api/league?league_id=` endpoint (built in Phase A Step 2) is what Step 4 should call.
+
+---
+
 ## Next Steps
 
-No outstanding work. Next changes will be feature additions or bug fixes as they arise.
+No outstanding work beyond Phase A Step 4 (wire all pages to use leagueId from context).
 
 When adding features, apply changes to **both** leagues:
 - Wilson's: `src/`

@@ -270,3 +270,7 @@ tr:hover td { background: var(--page-bg); }
     display: none;
   }
 }
+
+@keyframes ls-spin {
+  to { transform: rotate(360deg); }
+}

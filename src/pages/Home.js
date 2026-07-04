@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useAuth } from '../contexts/AuthContext'
+import { useLeague } from '../contexts/LeagueContext'
 
 const OUTLOOK_BADGE = {
   'Contender':                    'badge-green',
@@ -277,7 +278,10 @@ function PlayoffPictureSection({ playoffPicture, myOwner }) {
 
 export default function Home({ data, owner }) {
   const { userProfile, viewAsOwner } = useAuth()
+  const { leagueId } = useLeague()
   const myOwner = viewAsOwner || userProfile?.rosterOwnerName || null
+
+  console.log('Active league ID:', leagueId)
 
   if (!data) return null
 

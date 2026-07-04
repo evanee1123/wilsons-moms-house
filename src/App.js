@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useData } from './hooks/useData'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
+import { LeagueProvider } from './contexts/LeagueContext'
 import Sidebar from './components/Sidebar'
 import Home from './pages/Home'
 import TeamDeepDive from './pages/TeamDeepDive'
@@ -114,8 +115,10 @@ function AppInner() {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <AppInner />
-    </AuthProvider>
+    <LeagueProvider>
+      <AuthProvider>
+        <AppInner />
+      </AuthProvider>
+    </LeagueProvider>
   )
 }
