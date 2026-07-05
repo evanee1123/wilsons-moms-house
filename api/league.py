@@ -243,11 +243,12 @@ class handler(BaseHTTPRequestHandler):
             )
 
             result_rosters.append({
-                "owner_id":  owner_id,
-                "team_name": team_name,
-                "players":   sorted(players_list, key=lambda x: -x["ktc_value"]),
-                "picks":     sorted(roster_picks, key=lambda x: -x["ktc_value"]),
-                "total_ktc": int(total_ktc),
+                "owner_id":    owner_id,
+                "display_name": user_info.get("display_name") or "Unknown",
+                "team_name":   team_name,
+                "players":     sorted(players_list, key=lambda x: -x["ktc_value"]),
+                "picks":       sorted(roster_picks, key=lambda x: -x["ktc_value"]),
+                "total_ktc":   int(total_ktc),
             })
 
         result_rosters.sort(key=lambda x: -x["total_ktc"])

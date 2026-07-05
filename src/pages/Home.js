@@ -53,7 +53,10 @@ function StandingsTable({ standings, teamOverview, owner }) {
   const [sortDir, setSortDir] = useState('desc')
 
   const valRankMap = {}
-  teamOverview?.forEach(t => { valRankMap[t.Owner] = t['Value Rank'] })
+  teamOverview?.forEach(t => {
+    valRankMap[t.Owner] = t['Value Rank']
+    if (t['display_name']) valRankMap[t['display_name']] = t['Value Rank']
+  })
 
   const merged = standings.map(s => ({
     ...s, valRank: valRankMap[s.owner] || '-'

@@ -16,6 +16,7 @@ import ProtectedRoute from './components/ProtectedRoute'
 import Blueprint from './pages/Blueprint'
 import PowerRankings from './pages/PowerRankings'
 import WilsonsOnly from './components/WilsonsOnly'
+import LeagueSwitcher from './components/LeagueSwitcher'
 import './App.css'
 
 const WILSONS_ONLY_PAGES = {
@@ -26,9 +27,10 @@ const WILSONS_ONLY_PAGES = {
 }
 
 function AppInner() {
-  const [page,        setPage]        = useState('home')
-  const [owner,       setOwner]       = useState('')
-  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [page,          setPage]          = useState('home')
+  const [owner,         setOwner]         = useState('')
+  const [sidebarOpen,   setSidebarOpen]   = useState(false)
+  const [switcherOpen,  setSwitcherOpen]  = useState(false)
   const { data, loading, error, refresh } = useData()
   const { userProfile } = useAuth()
   const { leagueId } = useLeague()
@@ -49,24 +51,52 @@ function AppInner() {
   if (loading) return (
     <div style={{
       display: 'flex', alignItems: 'center', justifyContent: 'center',
-      height: '100vh', flexDirection: 'column', gap: '1rem'
+      height: '100vh', flexDirection: 'column', gap: '1rem',
+      background: 'var(--page-bg)', color: 'var(--text-primary)',
     }}>
       <div style={{ fontSize: '24px', fontWeight: 500 }}>Wilson's Moms House</div>
-      <div style={{ color: '#888' }}>Loading league data...</div>
+      <div style={{ color: 'var(--text-secondary)' }}>Loading league data...</div>
     </div>
   )
 
   if (error) return (
-    <div style={{
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      height: '100vh', flexDirection: 'column', gap: '1rem'
-    }}>
-      <div style={{ fontSize: '18px', fontWeight: 500, color: '#e24b4a' }}>
-        Error loading data
+    <>
+      {switcherOpen && <LeagueSwitcher onClose={() => setSwitcherOpen(false)} />}
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        height: '100vh', flexDirection: 'column', gap: '1rem',
+        background: 'var(--page-bg)', color: 'var(--text-primary)',
+      }}>
+        <div style={{ fontSize: '18px', fontWeight: 500, color: '#e24b4a' }}>
+          Error loading data
+        </div>
+        {!isWilsonsLeague && (
+          <div style={{
+            color: 'var(--text-secondary)', fontSize: '14px',
+            textAlign: 'center', maxWidth: '380px',
+          }}>
+            Could not load league data. The league ID may be invalid.
+          </div>
+        )}
+        <div style={{ color: 'var(--text-muted)', fontSize: '12px' }}>{error}</div>
+        <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
+          <button onClick={refresh} style={{
+            padding: '7px 16px', borderRadius: '8px', border: '1px solid var(--card-border)',
+            background: 'var(--card-bg)', color: 'var(--text-primary)',
+            fontSize: '13px', cursor: 'pointer',
+          }}>
+            Try again
+          </button>
+          <button onClick={() => setSwitcherOpen(true)} style={{
+            padding: '7px 16px', borderRadius: '8px', border: 'none',
+            background: '#3182ce', color: '#fff',
+            fontSize: '13px', fontWeight: 600, cursor: 'pointer',
+          }}>
+            Switch League
+          </button>
+        </div>
       </div>
-      <div style={{ color: '#888', fontSize: '14px' }}>{error}</div>
-      <button onClick={refresh}>Try again</button>
-    </div>
+    </>
   )
 
   if (page === 'login')  return <Login  setPage={setPage} />

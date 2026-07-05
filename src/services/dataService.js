@@ -68,6 +68,7 @@ async function loadExternalLeagueData(leagueId) {
     const pickVal   = (r.picks   || []).reduce((s, p) => s + (p.ktc_value || 0), 0)
     return {
       'Owner':              r.team_name,
+      'display_name':       r.display_name || r.team_name,
       'Value Rank':         i + 1,
       'Outlook':            null,
       'Player Value':       playerVal,

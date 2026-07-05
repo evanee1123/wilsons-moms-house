@@ -63,7 +63,7 @@ export default function Sidebar({ page, setPage, owner, setOwner,
             {/* League indicator pill */}
             <button
               onClick={() => setSwitcherOpen(true)}
-              title="Switch league"
+              title={`${leagueName} · League ID: ${leagueId}`}
               style={{
                 display: 'inline-flex', alignItems: 'center', gap: '4px',
                 marginTop: '5px', padding: '2px 8px',
@@ -71,13 +71,13 @@ export default function Sidebar({ page, setPage, owner, setOwner,
                 border: '1px solid rgba(49,130,206,0.35)',
                 borderRadius: '99px', cursor: 'pointer',
                 color: '#63b3ed', fontSize: '10px', fontWeight: 600,
-                maxWidth: '100%', overflow: 'hidden',
+                maxWidth: '162px', overflow: 'hidden',
                 transition: 'background 0.15s, border-color 0.15s',
               }}
               onMouseEnter={e => { e.currentTarget.style.background = 'rgba(49,130,206,0.3)'; e.currentTarget.style.borderColor = 'rgba(49,130,206,0.6)'; }}
               onMouseLeave={e => { e.currentTarget.style.background = 'rgba(49,130,206,0.18)'; e.currentTarget.style.borderColor = 'rgba(49,130,206,0.35)'; }}
             >
-              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {leagueName}
               </span>
               <span style={{ opacity: 0.7, flexShrink: 0 }}>⇄</span>
