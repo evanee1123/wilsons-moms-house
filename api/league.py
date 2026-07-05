@@ -49,15 +49,14 @@ def kv_set(key, value, ex_seconds):
         return
     try:
         serialized = json.dumps(value)
-        r = requests.post(
+        requests.post(
             f"{KV_URL}/pipeline",
             headers={"Authorization": f"Bearer {KV_TOKEN}"},
             json=[["SET", key, serialized, "EX", ex_seconds]],
             timeout=10,
         )
-        print(f"kv_set {key}: status={r.status_code} body={r.text[:200]}")
-    except Exception as e:
-        print(f"kv_set {key} error: {e}")
+    except Exception:
+        pass
 
 
 # ── Name corrections to improve difflib matching — mirrors wilsons_teams.py ──

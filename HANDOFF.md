@@ -483,9 +483,9 @@ All 6 Phase A steps are done. The site now supports any Sleeper dynasty league.
 
 ---
 
-## Phase B — Vercel KV Caching for /api/league (Complete — KV provisioning pending)
+## Phase B — Vercel KV Caching for /api/league (Complete)
 
-Two cache layers added to `api/league.py`:
+Two cache layers in `api/league.py` backed by Upstash Redis (Vercel KV). Confirmed working — `x-cache-status: HIT` on repeat requests.
 
 ### Cache keys and TTLs
 | Cache key | TTL | What it stores |
@@ -494,32 +494,17 @@ Two cache layers added to `api/league.py`:
 | `league_{league_id}` | 1 hour (3600s) | Full structured response for that league (players + picks + rosters) |
 
 ### Implementation details
-- `kv_get(key)` / `kv_set(key, value, ex_seconds)` — module-level helpers that read/write via the Vercel KV REST API (`GET {KV_REST_API_URL}/get/{key}`, `POST {KV_REST_API_URL}/set/{key}`). Auth via `Bearer {KV_REST_API_TOKEN}` header. Both are no-ops if env vars are absent.
+- `kv_get(key)` / `kv_set(key, value, ex_seconds)` — module-level helpers. GET uses `GET {KV_REST_API_URL}/get/{key}`; SET uses `POST {KV_REST_API_URL}/pipeline` with body `[["SET", key, value, "EX", ttl]]` (Upstash pipeline format — value in body, not URL path). Auth via `Bearer {KV_REST_API_TOKEN}` header. Both are no-ops if env vars are absent.
 - **Layer 2 check** (full league cache) fires at the top of `_handle()` right after `league_id` is validated — cache HIT returns immediately without touching KTC or Sleeper APIs.
-- **Layer 1 check** (players/nfl cache) fires before the `ThreadPoolExecutor` parallel fetch — if cached, `players_db` is skipped from the URL map (saves ~2-4s of the cold request time).
+- **Layer 1 check** (players/nfl cache) fires before the `ThreadPoolExecutor` parallel fetch — if cached, `players_db` is skipped from the URL map entirely (saves ~2–4s of cold request time).
 - **Layer 1 write** happens immediately after the parallel fetch completes, before any roster processing.
 - **Layer 2 write** happens just before `self._respond()` at the end of `_handle()`.
-- `x-cache-status: HIT | MISS` response header added to all responses for debugging.
+- `x-cache-status: HIT | MISS` response header on all responses.
 - Wilson's league (`1312130103358021632`) uses the same cache path as external leagues — no special casing.
+- Timeouts: `kv_get` 5s, `kv_set` 10s (accounts for the ~5MB players payload).
 
 ### Graceful degradation
 If `KV_REST_API_URL` or `KV_REST_API_TOKEN` are missing, `kv_get` returns `None` and `kv_set` is a no-op. The function works identically to pre-Phase-B — just slower. No KV failure can break a league request.
-
-### KV provisioning — STILL NEEDED (Vercel CLI not authenticated in session)
-The KV store has not been created yet. To finish Phase B, run these commands locally:
-
-```bash
-npx vercel login          # authenticate (one-time)
-npx vercel link           # link this repo to the Vercel project
-npx vercel kv create wmh-cache
-npx vercel env pull .env.local   # verify KV_REST_API_URL + KV_REST_API_TOKEN appear
-```
-
-Then add the two KV vars to the Vercel project's production environment:
-1. Go to Vercel Dashboard → wilsons-moms-house project → Settings → Environment Variables
-2. Add `KV_REST_API_URL` and `KV_REST_API_TOKEN` (values from `.env.local` after the pull above)
-
-Until the KV store is provisioned, the code is deployed and correct — it just runs uncached (same performance as before Phase A).
 
 ## Next Steps
 
