@@ -34,7 +34,7 @@ def kv_get(key):
         r = requests.get(
             f"{KV_URL}/get/{key}",
             headers={"Authorization": f"Bearer {KV_TOKEN}"},
-            timeout=2
+            timeout=5
         )
         if r.status_code == 200:
             val = r.json().get('result')
@@ -48,14 +48,16 @@ def kv_set(key, value, ex_seconds):
     if not KV_URL or not KV_TOKEN:
         return
     try:
-        requests.post(
-            f"{KV_URL}/set/{key}",
+        serialized = json.dumps(value)
+        r = requests.post(
+            f"{KV_URL}/pipeline",
             headers={"Authorization": f"Bearer {KV_TOKEN}"},
-            json={"value": json.dumps(value), "ex": ex_seconds},
-            timeout=2
+            json=[["SET", key, serialized, "EX", ex_seconds]],
+            timeout=10,
         )
-    except Exception:
-        pass
+        print(f"kv_set {key}: status={r.status_code} body={r.text[:200]}")
+    except Exception as e:
+        print(f"kv_set {key} error: {e}")
 
 
 # ── Name corrections to improve difflib matching — mirrors wilsons_teams.py ──
