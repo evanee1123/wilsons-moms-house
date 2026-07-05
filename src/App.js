@@ -78,7 +78,6 @@ function AppInner() {
             Could not load league data. The league ID may be invalid.
           </div>
         )}
-        <div style={{ color: 'var(--text-muted)', fontSize: '12px' }}>{error}</div>
         <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
           <button onClick={refresh} style={{
             padding: '7px 16px', borderRadius: '8px', border: '1px solid var(--card-border)',
