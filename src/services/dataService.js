@@ -62,7 +62,7 @@ async function loadExternalLeagueData(leagueId) {
   const totalLeagueValue = rosters.reduce((s, r) => s + (r.total_ktc || 0), 0)
   const sortedByValue    = [...rosters].sort((a, b) => (b.total_ktc || 0) - (a.total_ktc || 0))
 
-  // teamOverview — derived from rosters; no Outlook or production data for external leagues
+  // teamOverview — derived from rosters; Outlook computed server-side in /api/league
   const teamOverview = sortedByValue.map((r, i) => {
     const playerVal = (r.players || []).reduce((s, p) => s + (p.ktc_value || 0), 0)
     const pickVal   = (r.picks   || []).reduce((s, p) => s + (p.ktc_value || 0), 0)
@@ -70,13 +70,13 @@ async function loadExternalLeagueData(leagueId) {
       'Owner':              r.team_name,
       'display_name':       r.display_name || r.team_name,
       'Value Rank':         i + 1,
-      'Outlook':            null,
+      'Outlook':            r.outlook || null,
       'Player Value':       playerVal,
       'Pick Value':         pickVal,
       'Total Value':        r.total_ktc || 0,
       'Value Share %':      totalLeagueValue > 0 ? +((r.total_ktc || 0) / totalLeagueValue * 100).toFixed(1) : 0,
       'Production Share %': 0,
-      'C+F Total':          0,
+      'C+F Total':          r.cf_total || 0,
     }
   })
 

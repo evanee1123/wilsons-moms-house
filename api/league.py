@@ -67,6 +67,36 @@ _NAME_FIXES = {
 SKILL_POSITIONS = {"QB", "RB", "WR", "TE"}
 ROUNDS = [1, 2, 3, 4]
 
+# KTC threshold for approximating Cornerstone/Foundational tier — matches the floor of
+# Wilson's Foundational tier and is used as a proxy since external leagues don't have
+# production data for the full tier assignment logic.
+CF_KTC_THRESHOLD = 5000
+
+
+def _classify_outlook(value_rank, cf_total, total_firsts):
+    """
+    Simplified replication of Wilson's classify_outlook for external leagues.
+    Omits production-rank and share-gap gates (not available without cron data).
+    Mirrors wilsons_teams.py classify_outlook() for the remaining conditions.
+    """
+    vr, cf, tf = value_rank, cf_total, total_firsts
+
+    # Contender — top value + strong Cornerstone/Foundational foundation
+    if vr <= 3 and cf >= 3:
+        return "Contender"
+    if vr <= 5 and cf >= 4:
+        return "Contender"
+
+    # Reload — mid-tier value + established core + draft capital
+    if vr <= 6 and cf >= 3 and tf >= 2:
+        return "Reload"
+
+    # Rebuild — low value rank or weak foundation
+    if vr >= 7 or cf <= 2:
+        return "Rebuild (future value)" if tf >= 3 else "Rebuild"
+
+    return "Reload"
+
 
 def _get_current_season():
     """Returns the current NFL season year — same logic as wilsons_teams.py."""
@@ -303,16 +333,27 @@ class handler(BaseHTTPRequestHandler):
                 + sum(p["ktc_value"] for p in roster_picks)
             )
 
+            cf_total     = sum(1 for p in players_list if p["ktc_value"] >= CF_KTC_THRESHOLD)
+            total_firsts = sum(1 for p in roster_picks if p["pick_name"].endswith("1st"))
+
             result_rosters.append({
-                "owner_id":    owner_id,
-                "display_name": user_info.get("display_name") or "Unknown",
-                "team_name":   team_name,
-                "players":     sorted(players_list, key=lambda x: -x["ktc_value"]),
-                "picks":       sorted(roster_picks, key=lambda x: -x["ktc_value"]),
-                "total_ktc":   int(total_ktc),
+                "owner_id":      owner_id,
+                "display_name":  user_info.get("display_name") or "Unknown",
+                "team_name":     team_name,
+                "players":       sorted(players_list, key=lambda x: -x["ktc_value"]),
+                "picks":         sorted(roster_picks, key=lambda x: -x["ktc_value"]),
+                "total_ktc":     int(total_ktc),
+                "_cf_total":     cf_total,
+                "_total_firsts": total_firsts,
             })
 
         result_rosters.sort(key=lambda x: -x["total_ktc"])
+
+        for i, r in enumerate(result_rosters):
+            cf  = r.pop("_cf_total")
+            tf  = r.pop("_total_firsts")
+            r["outlook"]  = _classify_outlook(i + 1, cf, tf)
+            r["cf_total"] = cf
 
         response_payload = {
             "league_id":   league_id,
