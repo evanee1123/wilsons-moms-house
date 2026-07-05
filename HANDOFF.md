@@ -462,10 +462,37 @@ they navigate to the WilsonsOnly placeholder.
 
 ---
 
+## Phase A — Multi-League Support (Complete)
+
+All 6 Phase A steps are done. The site now supports any Sleeper dynasty league.
+
+| Step | Description | Status |
+|------|-------------|--------|
+| 1 | KTC Cache API (`/api/ktc`) — serves KTC data from cron-written static files | ✅ Done |
+| 2 | League Roster API (`/api/league`) — structured KTC data for any Sleeper dynasty league | ✅ Done |
+| 3 | LeagueContext + LeagueSwitcher UI — localStorage-backed league switching, modal/drawer | ✅ Done |
+| 4 | Wire all pages to `/api/league` and `/api/ktc` — Bucket A/B/C page split | ✅ Done |
+| 5 | WilsonsOnly placeholder — Bucket B pages show lock icon + "Switch to Wilson's" for external leagues | ✅ Done |
+| 6 | Polish & deploy — Val Rank fix, loading states, error handling, nav indicator | ✅ Done |
+
+### Phase A Step 6 details
+- **Val Rank fix**: `/api/league.py` now returns both `team_name` and `display_name` on each roster object. `dataService.js` stores `display_name` on each `teamOverview` entry. `StandingsTable.valRankMap` keys on both `Owner` (team_name) and `display_name`, so external leagues with custom team names now show correct Val Rank instead of `#-`.
+- **Loading states**: Global loading/error divs in `App.js` now set `background: var(--page-bg)` and `color: var(--text-primary)`, eliminating the blank white/dark flash on league switch. All Bucket A pages receive data as props from `App.js` — no individual page loading states needed.
+- **Error handling**: Error state in `App.js` shows "Could not load league data. The league ID may be invalid." for non-WMH leagues. A styled "Switch League" button opens the `LeagueSwitcher` modal (now imported in `App.js`). LeagueSwitcher already showed clear inline errors for invalid IDs (unchanged). "Try again" button retained alongside "Switch League".
+- **Nav indicator polish**: Sidebar league pill now has `maxWidth: 162px` + `minWidth: 0` on the text span, so names longer than ~20 chars truncate with ellipsis. The `title` attribute shows the full league name and League ID on hover.
+
+---
+
 ## Next Steps
 
-Phase A Step 6 — Fix the Val Rank display name mismatch for external leagues (standings Owner vs /api/league team_name),
-add loading states, add error handling, and add a "Viewing: [league name]" nav indicator.
+**Phase B — Caching with Vercel KV**
+
+The `/api/league` endpoint fetches Sleeper's `players/nfl` endpoint (~5MB) on every request, which is the dominant latency source and makes cold requests approach the 10s Vercel function limit. Phase B should cache this data (and optionally the full per-league response) using Vercel KV.
+
+Suggested approach:
+- Cache `players/nfl` in Vercel KV with a 24-hour TTL (players don't change intraday)
+- Cache per-league responses with a 1-hour TTL (keyed by `league_id`)
+- Add `x-cache-status: HIT | MISS` header for debugging
 
 When adding features, apply changes to **both** leagues:
 - Wilson's: `src/`
