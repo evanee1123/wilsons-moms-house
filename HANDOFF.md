@@ -369,7 +369,8 @@ None currently. Both leagues are stable and auto-updating.
 ### localStorage keys
 - `wmh_league_id` — active Sleeper league ID string
 - `wmh_league_name` — active league display name string
-- On first visit, both are written to localStorage with Wilson's Moms House defaults (ID `1312130103358021632`)
+- `wmh_last_username` — last Sleeper username that returned results in LeagueSwitcher; pre-fills the input on next open
+- On first visit, both league keys are written to localStorage with Wilson's Moms House defaults (ID `1312130103358021632`)
 
 ### New files
 - `src/contexts/LeagueContext.js` — `LeagueProvider` + `useLeague()` hook. Exposes `leagueId`, `leagueName`, `setLeague(id, name)`. Initializes from localStorage, falls back to WMH defaults. Wrapped around `<AuthProvider>` in `App.js`.
@@ -531,6 +532,16 @@ Outlook badges (Contender, Reload, Rebuild, etc.) now compute on the fly in `/ap
 **Frontend (no changes needed):** Home.js `TeamCard` and TeamDeepDive already render `team.Outlook`/`teamData.Outlook` — the badge appears automatically once the field is non-null.
 
 **KV cache note:** Cached responses (1-hour TTL) that predate this deploy won't have `outlook` — `|| null` fallbacks in dataService.js handle this gracefully (no badge until cache expires).
+
+### Phase C UX Polish (Complete)
+
+Three small UX fixes shipped before Phase C Step 2:
+
+1. **LeagueSwitcher username memory** — `LeagueSwitcher.jsx` initialises the input from `localStorage.getItem('wmh_last_username') || ''` and calls `localStorage.setItem('wmh_last_username', val)` immediately before `setLeagues(leagueList)` on a successful username lookup. Direct league-ID entries (the `^\d{15,}$` branch) do not save — only username lookups do, since those are the ones you'd want pre-filled next time.
+
+2. **Admin "View As" owners list** — `Sidebar.js`: removed the hardcoded `ALL_OWNERS` constant; the dropdown now maps `owners` (the prop passed from `App.js`, already derived from `data.teamOverview`) and filters out `userProfile?.rosterOwnerName` (the admin's own entry). For Wilson's this is identical to before; for external leagues the dropdown now shows the actual teams from that league.
+
+3. **Auto-select user's team on league switch** — `App.js`: replaced the `[userProfile]`-only auto-select effect with a `[data, userProfile]` effect that checks `rosterOwnerName` then `sleeperUsername` against the loaded `teamOverview` owners list. Uses a functional update (`setOwner(prev => prev || candidate)`) so a manual dropdown selection is never overridden; it only fills in the `''` reset left by the `[leagueId]` effect. If neither name is in the external league (user not a member), owner stays at `''` / "Select team...".
 
 ---
 
