@@ -20,7 +20,6 @@ import LeagueSwitcher from './components/LeagueSwitcher'
 import './App.css'
 
 const WILSONS_ONLY_PAGES = {
-  tradehistory:  'Trade History',
   history:       'League History',
   powerrankings: 'Power Rankings',
   blueprint:     'My Blueprint',

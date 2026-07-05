@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import PlayerDetailModal from '../components/PlayerDetailModal'
 import { findPlayerByName } from '../utils/playerUtils'
 import { useLeague } from '../contexts/LeagueContext'
@@ -17,14 +17,47 @@ function getVerdict(surplus) {
 
 export default function TradeHistory({ data, owner }) {
   const { leagueId } = useLeague()
-  // eslint-disable-next-line no-unused-vars
   const isWilsonsLeague = leagueId === '1312130103358021632'
   const [ownerFilter,  setOwnerFilter]  = useState('ALL')
   const [seasonFilter, setSeasonFilter] = useState('ALL')
   const [selectedPlayer, setSelectedPlayer] = useState(null)
   const [expandedTrade, setExpandedTrade] = useState(null)
 
-  const trades = useMemo(() => data?.tradeHistory || [], [data])
+  // External league: fetch trades from /api/trades on demand
+  const [extTrades,  setExtTrades]  = useState([])
+  const [extLoading, setExtLoading] = useState(false)
+  const [extError,   setExtError]   = useState(null)
+
+  useEffect(() => {
+    if (isWilsonsLeague) {
+      setExtTrades([])
+      setExtLoading(false)
+      setExtError(null)
+      return
+    }
+    setExtLoading(true)
+    setExtError(null)
+    setOwnerFilter('ALL')
+    setSeasonFilter('ALL')
+    fetch(`/api/trades?league_id=${leagueId}`)
+      .then(r => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`)
+        return r.json()
+      })
+      .then(result => {
+        setExtTrades(Array.isArray(result) ? result : [])
+        setExtLoading(false)
+      })
+      .catch(err => {
+        setExtError(err.message)
+        setExtLoading(false)
+      })
+  }, [leagueId, isWilsonsLeague])
+
+  const trades = useMemo(
+    () => isWilsonsLeague ? (data?.tradeHistory || []) : extTrades,
+    [data, isWilsonsLeague, extTrades]
+  )
 
   const owners = useMemo(() => (
     ['ALL', ...new Set([
@@ -95,6 +128,24 @@ export default function TradeHistory({ data, owner }) {
     })
     return { wins, losses, fair, totalSurplus, total: myTrades.length }
   }, [filtered, viewOwner])
+
+  if (extLoading) return (
+    <div className='page'>
+      <div className='page-title'>Trade History</div>
+      <div style={{ color: 'var(--text-secondary)', marginTop: '2rem', textAlign: 'center' }}>
+        Loading trade history…
+      </div>
+    </div>
+  )
+
+  if (extError) return (
+    <div className='page'>
+      <div className='page-title'>Trade History</div>
+      <div style={{ color: '#e53e3e', marginTop: '2rem' }}>
+        Failed to load trades: {extError}
+      </div>
+    </div>
+  )
 
   return (
     <div className='page'>

@@ -533,6 +533,32 @@ Outlook badges (Contender, Reload, Rebuild, etc.) now compute on the fly in `/ap
 
 **KV cache note:** Cached responses (1-hour TTL) that predate this deploy won't have `outlook` — `|| null` fallbacks in dataService.js handle this gracefully (no badge until cache expires).
 
+### Phase C Step 2 — Trade History for All Leagues (Complete)
+
+Trade History is now available for any Sleeper dynasty league via `/api/trades`.
+
+**New file:** `api/trades.py` — Vercel Python serverless function:
+- **Route:** `GET /api/trades?league_id=<sleeper_league_id>`
+- **Follows `previous_league_id` chain** up to 3 seasons back — multi-season trade history for any dynasty league, not just the current season
+- **Fetches all 18 weeks per season in parallel** (ThreadPoolExecutor, max 20 workers) — all seasons fired simultaneously; stays comfortably under the 10s Vercel limit
+- **Player resolution:** reuses KV-cached `sleeper_players_nfl` (shared 24h cache with `league.py`); difflib cutoff 0.85 + `_NAME_FIXES` dict (mirrored from `wilsons_teams.py`)
+- **Pick resolution:** `_get_pick_ktc()` — Sleeper doesn't return tier for future picks in transactions, defaults to 'Mid'; for past years not in `pickValues`, proxies using average of `current_season+1/+2/+3` equivalents (mirrors `wilsons_teams.py get_pick_ktc()`)
+- **Grading:** exact replica of `wilsons_teams.py grade_trade()` / `ktc_adj()` — stud adjustment applied when one side has more assets than the other, `base_rates = {2:0.46, 3:0.55, 4:0.63, 5:0.70}`, `stud_mult = 1.0 + max(0,(top_ktc−5000)/100) * 0.003`
+- **Grade labels:** `Surplus > 500 → WIN`, `< −500 → LOSS`, otherwise `FAIR` (matches TradeHistory.js `getVerdict()` thresholds)
+- **Output shape:** identical to `tradeHistory.json` — `Date, Season, Team A, Team A Received, Team A Face, Team A Adjusted, Team B, Team B Received, Team B Face, Team B Adjusted, Surplus A, Surplus B, N Assets A, N Assets B`
+- **Cache key:** `trades_{league_id}` · **TTL:** 1 hour (3600s)
+- **`x-cache-status: HIT/MISS`** header on all responses
+- **Graceful degradation:** players not in SKILL_POSITIONS skipped; trades with no graded assets on either side skipped; per-week fetch failures logged and skipped (don't break the whole response)
+
+**Frontend changes:**
+- `src/pages/TradeHistory.js` — added `useEffect` that fires when `!isWilsonsLeague`; fetches `/api/trades?league_id={leagueId}` with loading/error states. Wilson's path unchanged (still reads `data.tradeHistory`). Resets filters on league switch.
+- `src/App.js` — removed `tradehistory` from `WILSONS_ONLY_PAGES`
+- `src/components/Sidebar.js` — removed `tradehistory` from `WILSONS_ONLY_PAGES` lock-icon set
+
+**Note:** `dataService.js` is unchanged — external leagues still return `tradeHistory: []` from `loadExternalLeagueData`. TradeHistory.js now bypasses that empty array and fetches live from `/api/trades` directly when `!isWilsonsLeague`.
+
+---
+
 ### Phase C UX Polish (Complete)
 
 Three small UX fixes shipped before Phase C Step 2:
