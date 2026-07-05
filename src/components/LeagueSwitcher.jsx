@@ -7,7 +7,7 @@ const CURRENT_SEASON  = '2026';
 
 export default function LeagueSwitcher({ onClose }) {
   const { setLeague } = useLeague();
-  const [input,     setInput]     = useState('');
+  const [input,     setInput]     = useState(localStorage.getItem('wmh_last_username') || '');
   const [loading,   setLoading]   = useState(false);
   const [error,     setError]     = useState('');
   const [leagues,   setLeagues]   = useState(null); // list from username lookup
@@ -44,6 +44,7 @@ export default function LeagueSwitcher({ onClose }) {
         if (!leagueList || leagueList.length === 0) {
           throw new Error(`No NFL leagues found for "${val}" in ${CURRENT_SEASON}.`);
         }
+        localStorage.setItem('wmh_last_username', val);
         setLeagues(leagueList);
       }
     } catch (err) {

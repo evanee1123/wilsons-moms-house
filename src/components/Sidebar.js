@@ -3,10 +3,6 @@ import { useAuth } from '../contexts/AuthContext';
 import { useLeague } from '../contexts/LeagueContext';
 import LeagueSwitcher from './LeagueSwitcher';
 
-const ALL_OWNERS = [
-  'ekleiner1123', 'Herschey6153', 'jsinykin', 'SvenMoney34', 'Akracoon',
-  'GiantHawkTua', 'nchernandez19', 'sethfriedman12', 'GreyWaedekin27', 'gavinw20',
-];
 
 export default function Sidebar({ page, setPage, owner, setOwner,
                                    lastUpdated, refresh, owners,
@@ -146,7 +142,7 @@ export default function Sidebar({ page, setPage, owner, setOwner,
                   style={selectStyle}
                 >
                   <option value=''>Myself (ekleiner1123)</option>
-                  {ALL_OWNERS.filter(o => o !== 'ekleiner1123').map(o => (
+                  {owners.filter(o => o !== userProfile?.rosterOwnerName).map(o => (
                     <option key={o} value={o}>{o}</option>
                   ))}
                 </select>

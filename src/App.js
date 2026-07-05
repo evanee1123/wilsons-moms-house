@@ -41,12 +41,18 @@ function AppInner() {
     setOwner('')
   }, [leagueId])
 
-  // Auto-select logged-in user's team in the public team selector
+  // Auto-select logged-in user's team whenever data or auth state changes.
+  // Using functional update (prev => prev || candidate) so a manual dropdown
+  // selection is never overridden; it only fills in the '' reset left by the
+  // leagueId effect above.  Falls back to sleeperUsername so external-league
+  // display_names (which match the Sleeper username) are also recognised.
   useEffect(() => {
-    if (userProfile?.rosterOwnerName) {
-      setOwner(userProfile.rosterOwnerName)
-    }
-  }, [userProfile])
+    if (!userProfile || !data?.teamOverview) return;
+    const ownersList = [...new Set(data.teamOverview.map(t => t.Owner))];
+    const candidate = [userProfile.rosterOwnerName, userProfile.sleeperUsername]
+      .find(n => n && ownersList.includes(n));
+    if (candidate) setOwner(prev => prev || candidate);
+  }, [data, userProfile]) // eslint-disable-line react-hooks/exhaustive-deps
 
   if (loading) return (
     <div style={{
