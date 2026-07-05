@@ -533,6 +533,30 @@ Outlook badges (Contender, Reload, Rebuild, etc.) now compute on the fly in `/ap
 
 **KV cache note:** Cached responses (1-hour TTL) that predate this deploy won't have `outlook` — `|| null` fallbacks in dataService.js handle this gracefully (no badge until cache expires).
 
+### Phase C Step 3 — Power Rankings for All Leagues (Complete)
+
+Power Rankings is now available for any Sleeper dynasty league via `/api/power-rankings`.
+
+**New file:** `api/power-rankings.py` — Vercel Python serverless function:
+- **Route:** `GET /api/power-rankings?league_id=<sleeper_league_id>`
+- **Fetches roster data from `/api/league`** (already KV-cached 1h) — no duplicate pipeline
+- **Single Anthropic API call** for all teams (one prompt, all rosters): model assigns rank order, power_score (0–100), and 3–5 sentence savage blurb per team
+- **Model:** `claude-haiku-4-5-20251001` — fast and cheap; runs on every external page load (cached after first hit)
+- **Output shape:** identical to `public/data/power_rankings.json` — `{ generated_at, rankings: [{ rank, team_name, owner, outlook, power_score, blurb }] }`
+- **Cache key:** `power_rankings_{league_id}` · **TTL:** 6 hours (longer than trades since AI generation is expensive)
+- **`x-cache-status: HIT/MISS`** header on all responses
+- **maxDuration: 60** — new `vercel.json` at repo root sets 60-second timeout for this function only (Haiku + league fetch can exceed the default 10s on cold start)
+- **ANTHROPIC_API_KEY** must be set as a Vercel environment variable (it's already a GitHub Actions secret for the power_rankings.yml workflow — needs to also be added in Vercel Dashboard → Settings → Environment Variables)
+
+**Frontend changes:**
+- `src/pages/PowerRankings.js` — `isWilsonsLeague` branch: still reads `data.powerRankings` (static JSON, unchanged). External branch: `useEffect` fetches `/api/power-rankings?league_id={leagueId}` with loading ("Generating AI power rankings… 15–20 seconds on first load") and error states. Chart and narrative cards render identically once data arrives.
+- `src/App.js` — removed `powerrankings` from `WILSONS_ONLY_PAGES`
+- `src/components/Sidebar.js` — removed `powerrankings` from the lock-icon Set
+
+**Note:** Wilson's Power Rankings page and the weekly Tuesday cron (power_rankings.yml) are completely unchanged.
+
+---
+
 ### Phase C Step 2 — Trade History for All Leagues (Complete)
 
 Trade History is now available for any Sleeper dynasty league via `/api/trades`.
