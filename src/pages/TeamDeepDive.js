@@ -1450,7 +1450,11 @@ export default function TeamDeepDive({ data, owner }) {
   const owners = [...new Set(data?.leagueRosters?.map(p => p.Owner) || [])]
   const [selectedTeam, setSelectedTeam] = useState('')
 
-  const teamOwner    = selectedTeam || owner || owners[0]
+  // owner comes from the Wilson's rosterOwnerName which may not match external
+  // league team names (custom Sleeper team names differ from display_name).
+  // Validate before using it so a non-matching prop falls back to owners[0].
+  const validOwner = owners.includes(owner) ? owner : null
+  const teamOwner    = selectedTeam || validOwner || owners[0]
   const teamPlayers  = data?.leagueRosters?.filter(p => p.Owner === teamOwner) || []
   const teamOverview = data?.teamOverview?.find(t => t.Owner === teamOwner)
   const standings    = data?.standings?.find(s => s.owner === teamOwner)
