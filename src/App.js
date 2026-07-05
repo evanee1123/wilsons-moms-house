@@ -15,7 +15,15 @@ import Signup from './pages/Signup'
 import ProtectedRoute from './components/ProtectedRoute'
 import Blueprint from './pages/Blueprint'
 import PowerRankings from './pages/PowerRankings'
+import WilsonsOnly from './components/WilsonsOnly'
 import './App.css'
+
+const WILSONS_ONLY_PAGES = {
+  tradehistory:  'Trade History',
+  history:       'League History',
+  powerrankings: 'Power Rankings',
+  blueprint:     'My Blueprint',
+}
 
 function AppInner() {
   const [page,        setPage]        = useState('home')
@@ -24,6 +32,7 @@ function AppInner() {
   const { data, loading, error, refresh } = useData()
   const { userProfile } = useAuth()
   const { leagueId } = useLeague()
+  const isWilsonsLeague = leagueId === '1312130103358021632'
 
   // Reset selected owner when the active league changes
   useEffect(() => {
@@ -109,9 +118,11 @@ function AppInner() {
           <div style={{ width: '52px' }} />
         </div>
         <div style={{ flex: 1 }}>
-          {page === 'blueprint'
-            ? <ProtectedRoute setPage={setPage}><Blueprint data={data} setPage={setPage} /></ProtectedRoute>
-            : <PageComponent data={data} owner={owner} setPage={setPage} />
+          {!isWilsonsLeague && WILSONS_ONLY_PAGES[page]
+            ? <WilsonsOnly pageName={WILSONS_ONLY_PAGES[page]} setPage={setPage} />
+            : page === 'blueprint'
+              ? <ProtectedRoute setPage={setPage}><Blueprint data={data} setPage={setPage} /></ProtectedRoute>
+              : <PageComponent data={data} owner={owner} setPage={setPage} />
           }
         </div>
       </main>

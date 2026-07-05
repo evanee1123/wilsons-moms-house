@@ -12,7 +12,9 @@ export default function Sidebar({ page, setPage, owner, setOwner,
                                    lastUpdated, refresh, owners,
                                    sidebarOpen, setSidebarOpen }) {
   const { currentUser, userProfile, viewAsOwner, setViewAsOwner, logout } = useAuth();
-  const { leagueName } = useLeague();
+  const { leagueName, leagueId } = useLeague();
+  const isWilsonsLeague = leagueId === '1312130103358021632';
+  const WILSONS_ONLY_PAGES = new Set(['tradehistory', 'history', 'powerrankings', 'blueprint']);
   const [switcherOpen, setSwitcherOpen] = useState(false);
   const isAdmin = userProfile?.sleeperUsername === 'ekleiner1123';
 
@@ -110,7 +112,10 @@ export default function Sidebar({ page, setPage, owner, setOwner,
             }}
           >
             <span style={{ fontSize: '14px' }}>{item.icon}</span>
-            {item.label}
+            <span style={{ flex: 1 }}>{item.label}</span>
+            {!isWilsonsLeague && WILSONS_ONLY_PAGES.has(item.id) && (
+              <span style={{ fontSize: '10px', opacity: 0.45, marginLeft: '4px', flexShrink: 0 }}>🔒</span>
+            )}
           </button>
         ))}
       </nav>

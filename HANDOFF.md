@@ -435,9 +435,37 @@ The `/api/league` and `/api/ktc` endpoints are Vercel Python/JS serverless funct
 
 ---
 
+## Phase A Step 5 — WilsonsOnly Placeholder for External League Pages (Complete)
+
+### New component
+- `src/components/WilsonsOnly.jsx` — renders when a Wilson's-only feature is viewed from an external league.
+  Shows a 🔒 icon, "Wilson's Moms House Only" heading, explanation copy, and a "Switch to Wilson's Moms House"
+  button that calls `setLeague('1312130103358021632', "Wilson's Moms House")` and navigates to home.
+  Accepts `pageName` (string) and `setPage` (function) props.
+
+### Gated pages
+All four Bucket B pages are gated in `src/App.js` via `WILSONS_ONLY_PAGES` — a const mapping page IDs to display names.
+When `!isWilsonsLeague && WILSONS_ONLY_PAGES[page]`, `WilsonsOnly` renders instead of the page component.
+The gate lives in App.js (not inside each page) to respect React's rules-of-hooks — each page has hooks that
+cannot follow an early return.
+
+Gated pages:
+- `tradehistory` → "Trade History"
+- `history` → "League History"
+- `powerrankings` → "Power Rankings"
+- `blueprint` → "My Blueprint"
+
+### Sidebar lock icons
+`src/components/Sidebar.js` derives `isWilsonsLeague` from `useLeague()` and shows a subtle 🔒 icon (opacity 0.45)
+next to the four Bucket B nav items when a non-Wilson's league is active. Links are still clickable —
+they navigate to the WilsonsOnly placeholder.
+
+---
+
 ## Next Steps
 
-Phase A Step 5 — Add "not available for external leagues" placeholder UI to all Bucket B pages. Each Bucket B page already has `isWilsonsLeague` wired in. Step 5 conditionally renders a placeholder card when `!isWilsonsLeague` instead of the Wilson's-only section.
+Phase A Step 6 — Fix the Val Rank display name mismatch for external leagues (standings Owner vs /api/league team_name),
+add loading states, add error handling, and add a "Viewing: [league name]" nav indicator.
 
 When adding features, apply changes to **both** leagues:
 - Wilson's: `src/`
