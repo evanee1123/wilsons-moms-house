@@ -80,7 +80,7 @@ async function loadExternalLeagueData(leagueId) {
     }
   })
 
-  // playerUniverse — flattened from rosters; no Tier/Age/production for external leagues
+  // playerUniverse — flattened from rosters; Tier from KTC-only approximation; no Age/production
   const playerUniverse = rosters.flatMap(r =>
     (r.players || []).map(p => ({
       'Player':         p.name,
@@ -89,7 +89,7 @@ async function loadExternalLeagueData(leagueId) {
       'Combined Score': p.ktc_value || 0,
       'Owner':          r.team_name,
       'Dynasty Owner':  r.team_name,
-      'Tier':           null,
+      'Tier':           p.tier || null,
       'Age':            null,
       'Avg PPG':        0,
       'On Taxi':        'False',
@@ -100,11 +100,15 @@ async function loadExternalLeagueData(leagueId) {
   // leagueRosters — same source as playerUniverse in the leagueRosters shape
   const leagueRosters = rosters.flatMap(r =>
     (r.players || []).map(p => ({
-      'Owner':     r.team_name,
-      'Player':    p.name,
-      'Position':  p.position,
-      'Age':       null,
-      'KTC Value': p.ktc_value || 0,
+      'Owner':          r.team_name,
+      'Player':         p.name,
+      'Position':       p.position,
+      'Age':            null,
+      'KTC Value':      p.ktc_value || 0,
+      'Combined Score': p.ktc_value || 0,
+      'Tier':           p.tier || null,
+      'Avg PPG':        0,
+      'On Taxi':        'False',
     }))
   )
 

@@ -72,6 +72,27 @@ ROUNDS = [1, 2, 3, 4]
 # production data for the full tier assignment logic.
 CF_KTC_THRESHOLD = 5000
 
+# KTC-only tier thresholds — mirrors the direct KTC override values used in wilsons_teams.py's
+# position scoring cells (6500 Cornerstone, 5500 Foundational, 4500 Upside Premier) plus
+# observed breakpoints from Wilson's league data for the lower tiers.
+_KTC_TIER_THRESHOLDS = [
+    (6500, "Cornerstone"),
+    (5500, "Foundational"),
+    (4500, "Upside Premier"),
+    (3500, "Mainstay"),
+    (2500, "Serviceable"),
+    (1500, "Jag Developmental"),
+    (1,    "Replaceable"),
+]
+
+
+def _assign_player_tier(ktc_value):
+    """KTC-only tier approximation for external leagues without production/age data."""
+    for threshold, tier in _KTC_TIER_THRESHOLDS:
+        if ktc_value >= threshold:
+            return tier
+    return None
+
 
 def _classify_outlook(value_rank, cf_total, total_firsts):
     """
@@ -325,6 +346,7 @@ class handler(BaseHTTPRequestHandler):
                     "name":       raw_name,
                     "ktc_value":  ktc_val,
                     "position":   position,
+                    "tier":       _assign_player_tier(ktc_val),
                 })
 
             roster_picks = picks_by_roster.get(roster_id, [])
