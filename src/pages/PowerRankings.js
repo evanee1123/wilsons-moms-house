@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Cell, LabelList,
   Tooltip as RechartsTooltip, ResponsiveContainer,
@@ -132,12 +133,27 @@ function formatGeneratedAt(ts) {
 export default function PowerRankings({ data }) {
   const { userProfile, viewAsOwner } = useAuth()
   const { leagueId } = useLeague()
-  // eslint-disable-next-line no-unused-vars
   const isWilsonsLeague = leagueId === '1312130103358021632'
   const myOwner = viewAsOwner || userProfile?.rosterOwnerName || null
 
-  const rankings    = (data?.powerRankings?.rankings || []).slice().sort((a, b) => a.rank - b.rank)
-  const generatedAt = formatGeneratedAt(data?.powerRankings?.generated_at)
+  const [extData,    setExtData]    = useState(null)
+  const [extLoading, setExtLoading] = useState(false)
+  const [extError,   setExtError]   = useState(null)
+
+  useEffect(() => {
+    if (isWilsonsLeague) return
+    setExtLoading(true)
+    setExtError(null)
+    setExtData(null)
+    fetch(`/api/power-rankings?league_id=${leagueId}`)
+      .then(r => r.ok ? r.json() : Promise.reject(`HTTP ${r.status}`))
+      .then(d => { setExtData(d); setExtLoading(false) })
+      .catch(e => { setExtError(String(e)); setExtLoading(false) })
+  }, [isWilsonsLeague, leagueId])
+
+  const sourceData  = isWilsonsLeague ? data?.powerRankings : extData
+  const rankings    = (sourceData?.rankings || []).slice().sort((a, b) => a.rank - b.rank)
+  const generatedAt = formatGeneratedAt(sourceData?.generated_at)
 
   return (
     <div className='page'>
@@ -147,15 +163,29 @@ export default function PowerRankings({ data }) {
         {generatedAt ? ` · Last updated ${generatedAt}` : ' · Not yet generated'}
       </div>
 
-      {rankings.length > 0 && rankings.every(t => typeof t.power_score === 'number') && (
+      {!isWilsonsLeague && extLoading && (
+        <div className='card' style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '14px' }}>
+          Generating AI power rankings… this takes 15–20 seconds on first load.
+        </div>
+      )}
+
+      {!isWilsonsLeague && extError && (
+        <div className='card' style={{ padding: '2rem', textAlign: 'center', color: 'var(--red)', fontSize: '14px' }}>
+          Failed to generate power rankings: {extError}
+        </div>
+      )}
+
+      {!extLoading && !extError && rankings.length > 0 && rankings.every(t => typeof t.power_score === 'number') && (
         <div style={{ marginBottom: '1.25rem' }}>
           <PowerScoreChart rankings={rankings} myOwner={myOwner} />
         </div>
       )}
 
-      {rankings.length === 0 ? (
+      {rankings.length === 0 && !extLoading && !extError ? (
         <div className='card' style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '14px' }}>
-          Power rankings haven't been generated yet. Run the <code>power_rankings</code> notebook or trigger the GitHub Actions workflow.
+          {isWilsonsLeague
+            ? <>Power rankings haven't been generated yet. Run the <code>power_rankings</code> notebook or trigger the GitHub Actions workflow.</>
+            : 'No power rankings available for this league.'}
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>

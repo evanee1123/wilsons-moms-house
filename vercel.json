@@ -1,0 +1,7 @@
+{
+  "functions": {
+    "api/power-rankings.py": {
+      "maxDuration": 60
+    }
+  }
+}
