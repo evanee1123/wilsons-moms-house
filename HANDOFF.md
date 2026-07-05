@@ -506,6 +506,34 @@ Two cache layers in `api/league.py` backed by Upstash Redis (Vercel KV). Confirm
 ### Graceful degradation
 If `KV_REST_API_URL` or `KV_REST_API_TOKEN` are missing, `kv_get` returns `None` and `kv_set` is a no-op. The function works identically to pre-Phase-B — just slower. No KV failure can break a league request.
 
+## Phase C — External League Feature Parity
+
+### Phase C Step 1 — Outlook Badges for External Leagues (Complete)
+
+Outlook badges (Contender, Reload, Rebuild, etc.) now compute on the fly in `/api/league.py` for any external league. Previously, external league Home page value cards and Team Deep Dive showed no badge (`null`).
+
+**Logic added to `api/league.py`:**
+- `CF_KTC_THRESHOLD = 5000` — proxy for Cornerstone/Foundational tier (players at or above Wilson's Foundational floor)
+- `_classify_outlook(value_rank, cf_total, total_firsts)` — mirrors Wilson's `classify_outlook()` for the three inputs that don't require production data:
+  - `value_rank`: 1-based rank by `total_ktc` descending
+  - `cf_total`: count of players with `ktc_value >= 5000`
+  - `total_firsts`: count of 1st-round picks owned (pick_name ending in "1st")
+- Production-rank and share-gap gates are omitted (historical scoring data not available for external leagues)
+- `outlook` and `cf_total` fields added to each roster object in the API response
+
+**Accuracy against Wilson's real data:** 7/10 correct. The 3 misclassifications all require production rank:
+- jsinykin: high value + high CF but low production → "Contender" (real: "Reload")
+- GreyWaedekin27, Herschey6153: low value but high production → "Rebuild" (real: "Window Contender")
+
+**`dataService.js` change:**
+- `loadExternalLeagueData` maps `r.outlook → 'Outlook'` and `r.cf_total → 'C+F Total'`
+
+**Frontend (no changes needed):** Home.js `TeamCard` and TeamDeepDive already render `team.Outlook`/`teamData.Outlook` — the badge appears automatically once the field is non-null.
+
+**KV cache note:** Cached responses (1-hour TTL) that predate this deploy won't have `outlook` — `|| null` fallbacks in dataService.js handle this gracefully (no badge until cache expires).
+
+---
+
 ## Next Steps
 
 When adding features, apply changes to **both** leagues:
