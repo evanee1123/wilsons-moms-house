@@ -483,16 +483,45 @@ All 6 Phase A steps are done. The site now supports any Sleeper dynasty league.
 
 ---
 
+## Phase B — Vercel KV Caching for /api/league (Complete — KV provisioning pending)
+
+Two cache layers added to `api/league.py`:
+
+### Cache keys and TTLs
+| Cache key | TTL | What it stores |
+|-----------|-----|----------------|
+| `sleeper_players_nfl` | 24 hours (86400s) | Full Sleeper `/v1/players/nfl` response (~5MB — the dominant latency source) |
+| `league_{league_id}` | 1 hour (3600s) | Full structured response for that league (players + picks + rosters) |
+
+### Implementation details
+- `kv_get(key)` / `kv_set(key, value, ex_seconds)` — module-level helpers that read/write via the Vercel KV REST API (`GET {KV_REST_API_URL}/get/{key}`, `POST {KV_REST_API_URL}/set/{key}`). Auth via `Bearer {KV_REST_API_TOKEN}` header. Both are no-ops if env vars are absent.
+- **Layer 2 check** (full league cache) fires at the top of `_handle()` right after `league_id` is validated — cache HIT returns immediately without touching KTC or Sleeper APIs.
+- **Layer 1 check** (players/nfl cache) fires before the `ThreadPoolExecutor` parallel fetch — if cached, `players_db` is skipped from the URL map (saves ~2-4s of the cold request time).
+- **Layer 1 write** happens immediately after the parallel fetch completes, before any roster processing.
+- **Layer 2 write** happens just before `self._respond()` at the end of `_handle()`.
+- `x-cache-status: HIT | MISS` response header added to all responses for debugging.
+- Wilson's league (`1312130103358021632`) uses the same cache path as external leagues — no special casing.
+
+### Graceful degradation
+If `KV_REST_API_URL` or `KV_REST_API_TOKEN` are missing, `kv_get` returns `None` and `kv_set` is a no-op. The function works identically to pre-Phase-B — just slower. No KV failure can break a league request.
+
+### KV provisioning — STILL NEEDED (Vercel CLI not authenticated in session)
+The KV store has not been created yet. To finish Phase B, run these commands locally:
+
+```bash
+npx vercel login          # authenticate (one-time)
+npx vercel link           # link this repo to the Vercel project
+npx vercel kv create wmh-cache
+npx vercel env pull .env.local   # verify KV_REST_API_URL + KV_REST_API_TOKEN appear
+```
+
+Then add the two KV vars to the Vercel project's production environment:
+1. Go to Vercel Dashboard → wilsons-moms-house project → Settings → Environment Variables
+2. Add `KV_REST_API_URL` and `KV_REST_API_TOKEN` (values from `.env.local` after the pull above)
+
+Until the KV store is provisioned, the code is deployed and correct — it just runs uncached (same performance as before Phase A).
+
 ## Next Steps
-
-**Phase B — Caching with Vercel KV**
-
-The `/api/league` endpoint fetches Sleeper's `players/nfl` endpoint (~5MB) on every request, which is the dominant latency source and makes cold requests approach the 10s Vercel function limit. Phase B should cache this data (and optionally the full per-league response) using Vercel KV.
-
-Suggested approach:
-- Cache `players/nfl` in Vercel KV with a 24-hour TTL (players don't change intraday)
-- Cache per-league responses with a 1-hour TTL (keyed by `league_id`)
-- Add `x-cache-status: HIT | MISS` header for debugging
 
 When adding features, apply changes to **both** leagues:
 - Wilson's: `src/`

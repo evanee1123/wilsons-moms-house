@@ -6,6 +6,7 @@ KTC values are served from cron-written static files — never re-scraped on dem
 """
 
 import json
+import os
 import time
 import traceback
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -17,7 +18,47 @@ from urllib.request import urlopen
 
 import requests
 
-# Name corrections to improve difflib matching — mirrors wilsons_teams.py
+# ── Vercel KV caching ──────────────────────────────────────────────────────────
+KV_URL = os.environ.get('KV_REST_API_URL')
+KV_TOKEN = os.environ.get('KV_REST_API_TOKEN')
+
+PLAYERS_CACHE_KEY = 'sleeper_players_nfl'
+PLAYERS_TTL = 86400  # 24 hours — players don't change intraday
+LEAGUE_TTL = 3600    # 1 hour — per-league full response
+
+
+def kv_get(key):
+    if not KV_URL or not KV_TOKEN:
+        return None
+    try:
+        r = requests.get(
+            f"{KV_URL}/get/{key}",
+            headers={"Authorization": f"Bearer {KV_TOKEN}"},
+            timeout=2
+        )
+        if r.status_code == 200:
+            val = r.json().get('result')
+            return json.loads(val) if val else None
+    except Exception:
+        pass
+    return None
+
+
+def kv_set(key, value, ex_seconds):
+    if not KV_URL or not KV_TOKEN:
+        return
+    try:
+        requests.post(
+            f"{KV_URL}/set/{key}",
+            headers={"Authorization": f"Bearer {KV_TOKEN}"},
+            json={"value": json.dumps(value), "ex": ex_seconds},
+            timeout=2
+        )
+    except Exception:
+        pass
+
+
+# ── Name corrections to improve difflib matching — mirrors wilsons_teams.py ──
 _NAME_FIXES = {
     "Chig Okonkwo": "Chigoziem Okonkwo",
 }
@@ -88,6 +129,13 @@ class handler(BaseHTTPRequestHandler):
             return self._respond(400, {"error": "league_id is required"})
         league_id = league_id_values[0]
 
+        # ── Layer 2: full per-league response cache (1 hour TTL) ──────────────
+        cache_key = f'league_{league_id}'
+        cached = kv_get(cache_key)
+        if cached is not None:
+            print(f"league.py KV HIT: {cache_key}")
+            return self._respond(200, cached, cache_status='HIT')
+
         # Fetch KTC data from /api/ktc — avoids direct file access in serverless
         try:
             ktc_resp = requests.get(
@@ -102,15 +150,23 @@ class handler(BaseHTTPRequestHandler):
         ktc_names = list(ktc_name_to_value.keys())
         ktc_pick_lookup = {p["Pick Name"]: p["KTC Value"] for p in ktc_data["picks"]}
 
-        # Fetch all Sleeper endpoints in parallel
+        # ── Layer 1: players/nfl cache (24 hour TTL) ──────────────────────────
+        cached_players = kv_get(PLAYERS_CACHE_KEY)
+        players_cache_hit = cached_players is not None
+        if players_cache_hit:
+            print("league.py KV HIT: sleeper_players_nfl")
+
+        # Fetch all Sleeper endpoints in parallel; skip players/nfl if cached
         sleeper_urls = {
             "league_info":   f"https://api.sleeper.app/v1/league/{league_id}",
             "rosters":       f"https://api.sleeper.app/v1/league/{league_id}/rosters",
             "users":         f"https://api.sleeper.app/v1/league/{league_id}/users",
-            "players_db":    "https://api.sleeper.app/v1/players/nfl",
             "traded_picks":  f"https://api.sleeper.app/v1/league/{league_id}/traded_picks",
             "drafts":        f"https://api.sleeper.app/v1/league/{league_id}/drafts",
         }
+        if not players_cache_hit:
+            sleeper_urls["players_db"] = "https://api.sleeper.app/v1/players/nfl"
+
         sleeper_data = {}
         with ThreadPoolExecutor(max_workers=6) as executor:
             future_to_key = {executor.submit(_fetch_json, url): key
@@ -125,9 +181,13 @@ class handler(BaseHTTPRequestHandler):
         league_info  = sleeper_data["league_info"]
         rosters      = sleeper_data["rosters"]
         users        = sleeper_data["users"]
-        players_db   = sleeper_data["players_db"]
         traded_picks = sleeper_data["traded_picks"]
         drafts       = sleeper_data["drafts"]
+
+        # Resolve players_db from cache or fresh fetch, then populate cache if missed
+        players_db = cached_players if players_cache_hit else sleeper_data.get("players_db", {})
+        if not players_cache_hit:
+            kv_set(PLAYERS_CACHE_KEY, players_db, PLAYERS_TTL)
 
         # user_id → display_name + team_name (from metadata.team_name when set)
         user_map = {}
@@ -253,18 +313,24 @@ class handler(BaseHTTPRequestHandler):
 
         result_rosters.sort(key=lambda x: -x["total_ktc"])
 
-        self._respond(200, {
+        response_payload = {
             "league_id":   league_id,
             "league_name": league_info.get("name", ""),
             "season":      league_info.get("season", ""),
             "rosters":     result_rosters,
-        })
+        }
 
-    def _respond(self, status, body):
+        # ── Layer 2 write: cache the full response for 1 hour ─────────────────
+        kv_set(cache_key, response_payload, LEAGUE_TTL)
+
+        self._respond(200, response_payload)
+
+    def _respond(self, status, body, cache_status='MISS'):
         payload = json.dumps(body).encode("utf-8")
         self.send_response(status)
         self.send_header("Content-Type", "application/json")
         self.send_header("Cache-Control", "s-maxage=3600, stale-while-revalidate")
+        self.send_header("x-cache-status", cache_status)
         self.send_header("Content-Length", str(len(payload)))
         self.end_headers()
         self.wfile.write(payload)
