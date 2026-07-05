@@ -66,9 +66,10 @@ async function loadExternalLeagueData(leagueId) {
   const teamOverview = sortedByValue.map((r, i) => {
     const playerVal = (r.players || []).reduce((s, p) => s + (p.ktc_value || 0), 0)
     const pickVal   = (r.picks   || []).reduce((s, p) => s + (p.ktc_value || 0), 0)
+    const dn        = r.display_name || r.team_name
     return {
-      'Owner':              r.team_name,
-      'display_name':       r.display_name || r.team_name,
+      'Owner':              dn,
+      'display_name':       dn,
       'Value Rank':         i + 1,
       'Outlook':            r.outlook || null,
       'Player Value':       playerVal,
@@ -81,26 +82,28 @@ async function loadExternalLeagueData(leagueId) {
   })
 
   // playerUniverse — flattened from rosters; Tier from KTC-only approximation; no Age/production
-  const playerUniverse = rosters.flatMap(r =>
-    (r.players || []).map(p => ({
+  const playerUniverse = rosters.flatMap(r => {
+    const dn = r.display_name || r.team_name
+    return (r.players || []).map(p => ({
       'Player':         p.name,
       'Position':       p.position,
       'KTC Value':      p.ktc_value || 0,
       'Combined Score': p.ktc_value || 0,
-      'Owner':          r.team_name,
-      'Dynasty Owner':  r.team_name,
+      'Owner':          dn,
+      'Dynasty Owner':  dn,
       'Tier':           p.tier || null,
       'Age':            null,
       'Avg PPG':        0,
       'On Taxi':        'False',
       'NFL Team':       null,
     }))
-  )
+  })
 
   // leagueRosters — same source as playerUniverse in the leagueRosters shape
-  const leagueRosters = rosters.flatMap(r =>
-    (r.players || []).map(p => ({
-      'Owner':          r.team_name,
+  const leagueRosters = rosters.flatMap(r => {
+    const dn = r.display_name || r.team_name
+    return (r.players || []).map(p => ({
+      'Owner':          dn,
       'Player':         p.name,
       'Position':       p.position,
       'Age':            null,
@@ -110,23 +113,24 @@ async function loadExternalLeagueData(leagueId) {
       'Avg PPG':        0,
       'On Taxi':        'False',
     }))
-  )
+  })
 
   // pickPortfolio — derived from rosters picks; Original Owner unknown for external leagues
-  const pickPortfolio = rosters.flatMap(r =>
-    (r.picks || []).map(pick => {
+  const pickPortfolio = rosters.flatMap(r => {
+    const dn = r.display_name || r.team_name
+    return (r.picks || []).map(pick => {
       const { year, tier, round } = parsePickName(pick.pick_name)
       return {
         'Year':           year,
         'Round':          round,
         'Tier':           tier,
-        'Current Owner':  r.team_name,
-        'Original Owner': r.team_name,
+        'Current Owner':  dn,
+        'Original Owner': dn,
         'KTC Value':      pick.ktc_value || 0,
         'Pick Name':      pick.pick_name,
       }
     })
-  )
+  })
 
   // rosterGrades — derived from positional KTC sums; used for rankings in Home + TradeCalculator
   const rosterGrades = rosters.map(r => {
@@ -136,8 +140,9 @@ async function loadExternalLeagueData(leagueId) {
         byPos[p.position] += (p.ktc_value || 0)
       }
     })
+    const dn = r.display_name || r.team_name
     return {
-      'Owner':          r.team_name,
+      'Owner':          dn,
       'QB Starter Val': byPos.QB,
       'RB Starter Val': byPos.RB,
       'WR Starter Val': byPos.WR,
