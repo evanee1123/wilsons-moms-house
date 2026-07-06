@@ -57,16 +57,20 @@ def kv_get(key):
 
 def kv_set(key, value, ex_seconds):
     if not KV_URL or not KV_TOKEN:
-        return
+        return 'no_creds'
     try:
-        requests.post(
+        serialized = json.dumps(value)
+        r = requests.post(
             f"{KV_URL}/pipeline",
             headers={"Authorization": f"Bearer {KV_TOKEN}"},
-            json=[["SET", key, json.dumps(value), "EX", ex_seconds]],
+            json=[["SET", key, serialized, "EX", ex_seconds]],
             timeout=10,
         )
-    except Exception:
-        pass
+        print(f"league-history.py kv_set '{key}': HTTP {r.status_code}, body={r.text[:200]}, payload_size={len(serialized)}")
+        return f"http_{r.status_code}"
+    except Exception as e:
+        print(f"league-history.py kv_set '{key}' EXCEPTION: {e}")
+        return f"exception:{e}"
 
 
 # ── Sleeper fetch ─────────────────────────────────────────────────────────────
@@ -552,7 +556,15 @@ class handler(BaseHTTPRequestHandler):
             print(f"league-history.py: first historyPlayerGames entry: {response['historyPlayerGames'][0]}")
 
         # Always write back to KV (without _debug) so bust=1 also refreshes the cache.
-        kv_set(cache_key, {k: v for k, v in response.items() if k != '_debug'}, HISTORY_TTL)
+        payload_to_write = {k: v for k, v in response.items() if k != '_debug'}
+        write_result = kv_set(cache_key, payload_to_write, HISTORY_TTL)
+        # Immediately verify the write by reading back the key
+        readback = kv_get(cache_key)
+        readback_pg = len((readback or {}).get('historyPlayerGames', [])) if readback else -1
+        print(f"league-history.py: kv_set result={write_result}, readback historyPlayerGames={readback_pg}")
+        debug['kv_set_result'] = write_result
+        debug['kv_readback_pg_count'] = readback_pg
+
         if bust_cache:
             response['_debug'] = debug
         self._respond(200, response)
