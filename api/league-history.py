@@ -551,11 +551,10 @@ class handler(BaseHTTPRequestHandler):
         if total_pg > 0:
             print(f"league-history.py: first historyPlayerGames entry: {response['historyPlayerGames'][0]}")
 
+        # Always write back to KV (without _debug) so bust=1 also refreshes the cache.
+        kv_set(cache_key, {k: v for k, v in response.items() if k != '_debug'}, HISTORY_TTL)
         if bust_cache:
             response['_debug'] = debug
-
-        if not bust_cache:
-            kv_set(cache_key, response, HISTORY_TTL)
         self._respond(200, response)
 
     def _respond(self, status, body, cache_status='MISS'):
