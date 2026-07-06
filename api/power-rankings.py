@@ -278,9 +278,14 @@ class handler(BaseHTTPRequestHandler):
                 'blurb':      str(item.get('blurb', '')),
             })
 
+        # Sort by power_score descending, then reassign ranks 1–N so rank 1 = highest score.
+        rankings.sort(key=lambda x: x['power_score'], reverse=True)
+        for i, team in enumerate(rankings, 1):
+            team['rank'] = i
+
         result = {
             'generated_at': datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ'),
-            'rankings':     sorted(rankings, key=lambda x: x['rank']),
+            'rankings':     rankings,
         }
 
         kv_set(cache_key, result, POWER_RANKINGS_TTL)
