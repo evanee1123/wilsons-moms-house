@@ -465,8 +465,19 @@ class handler(BaseHTTPRequestHandler):
                 except Exception as e:
                     print(f"league-history.py: season {season} fetch error: {e}")
 
-        # Players DB from KV (shared 24h cache with league.py and trades.py)
-        players_db = kv_get(PLAYERS_KEY) or {}
+        # Players DB from KV (shared 24h cache with league.py and trades.py).
+        # If KV is cold (no recent league.py call), fetch directly from Sleeper and warm the cache.
+        players_db = kv_get(PLAYERS_KEY)
+        if not players_db:
+            try:
+                pr = requests.get(f"{SLEEPER_BASE}/players/nfl", timeout=30)
+                pr.raise_for_status()
+                players_db = pr.json()
+                kv_set(PLAYERS_KEY, players_db, 86400)
+                print("league-history.py: fetched and cached sleeper_players_nfl")
+            except Exception as e:
+                print(f"league-history.py: could not fetch players_db: {e}")
+                players_db = {}
 
         # Process each season
         results = []
