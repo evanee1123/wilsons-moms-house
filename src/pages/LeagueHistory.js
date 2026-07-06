@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useLeague } from '../contexts/LeagueContext'
 
 // ─── Layout constants ──────────────────────────────────────────────
@@ -544,17 +544,38 @@ function AllTimeStandings({ data }) {
 // ─── Main page ─────────────────────────────────────────────────────
 export default function LeagueHistory({ data }) {
   const { leagueId } = useLeague()
-  // eslint-disable-next-line no-unused-vars
   const isWilsonsLeague = leagueId === '1312130103358021632'
   const [selectedSeason, setSelectedSeason] = useState(null)
 
+  // External league: fetch history from /api/league-history
+  const [extHistory,   setExtHistory]   = useState(null)
+  const [histLoading,  setHistLoading]  = useState(false)
+  const [histError,    setHistError]    = useState(null)
+
+  useEffect(() => {
+    if (isWilsonsLeague) return
+    setHistLoading(true)
+    setHistError(null)
+    setExtHistory(null)
+    fetch(`/api/league-history?league_id=${leagueId}`)
+      .then(r => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`)
+        return r.json()
+      })
+      .then(d => { setExtHistory(d); setHistLoading(false) })
+      .catch(err => { setHistError(err.message); setHistLoading(false) })
+  }, [isWilsonsLeague, leagueId])
+
+  // Resolve which data source to use
+  const historyData = isWilsonsLeague ? data : extHistory
+
   const seasons = useMemo(() => {
-    const s = [...new Set(data?.historyStandings?.map(r => r.Season) || [])]
+    const s = [...new Set(historyData?.historyStandings?.map(r => r.Season) || [])]
     return s.sort((a, b) => parseInt(b) - parseInt(a))
-  }, [data])
+  }, [historyData])
 
   const playerGames = useMemo(() => {
-    const all = data?.historyPlayerGames || []
+    const all = historyData?.historyPlayerGames || []
     return {
       overall: all.filter(r => r.Category === 'Overall'),
       QB: all.filter(r => r.Category === 'QB'),
@@ -562,7 +583,7 @@ export default function LeagueHistory({ data }) {
       WR: all.filter(r => r.Category === 'WR'),
       TE: all.filter(r => r.Category === 'TE'),
     }
-  }, [data])
+  }, [historyData])
 
   const weekCols = [
     { key: 'Owner', label: 'Owner', highlight: true },
@@ -585,15 +606,37 @@ export default function LeagueHistory({ data }) {
     { key: 'Started', label: 'Status' },
   ]
 
+  if (!isWilsonsLeague && histLoading) {
+    return (
+      <div className='page'>
+        <div className='page-title'>League History</div>
+        <div style={{ padding: '2rem', color: 'var(--text-secondary)', fontSize: 14 }}>
+          Loading league history…
+        </div>
+      </div>
+    )
+  }
+
+  if (!isWilsonsLeague && histError) {
+    return (
+      <div className='page'>
+        <div className='page-title'>League History</div>
+        <div style={{ padding: '2rem', color: 'var(--text-secondary)', fontSize: 14 }}>
+          Could not load league history: {histError}
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className='page'>
       <div className='page-title'>League History</div>
       <div className='page-subtitle'>
-        {seasons.length} seasons · {data?.historyChampions?.length || 0} champions
+        {seasons.length} seasons · {historyData?.historyChampions?.length || 0} champions
       </div>
 
-      <ChampionBanner champions={data?.historyChampions} />
-      <AllTimeStandings data={data?.historyAllTime} />
+      <ChampionBanner champions={historyData?.historyChampions} />
+      <AllTimeStandings data={historyData?.historyAllTime} />
 
       <div className='card' style={{ marginBottom: '1.25rem' }}>
         <div className='card-header'>
@@ -602,7 +645,7 @@ export default function LeagueHistory({ data }) {
         </div>
         <div style={{ padding: '1rem', display: 'flex', gap: 10, flexWrap: 'wrap' }}>
           {seasons.map(season => {
-            const champ = data?.historyChampions?.find(c => c.Season === season)?.Champion
+            const champ = historyData?.historyChampions?.find(c => c.Season === season)?.Champion
             return (
               <button key={season} onClick={() => setSelectedSeason(season)} style={{
                 padding: '12px 20px', borderRadius: 10, cursor: 'pointer',
@@ -624,7 +667,7 @@ export default function LeagueHistory({ data }) {
         <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', marginBottom: '1.25rem' }}>
           All-Time Records
         </div>
-        <Top10Table title='🔥 Top 10 Highest Scoring Weeks' data={data?.historyTopWeeks || []} cols={weekCols} />
+        <Top10Table title='🔥 Top 10 Highest Scoring Weeks' data={historyData?.historyTopWeeks || []} cols={weekCols} />
         <Top10Table title='⭐ Top 10 Player Games (All Positions)' data={playerGames.overall} cols={playerCols} />
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }}>
           {['QB', 'RB', 'WR', 'TE'].map(pos => (
@@ -636,9 +679,9 @@ export default function LeagueHistory({ data }) {
       {selectedSeason && (
         <SeasonModal
           season={selectedSeason}
-          historyStandings={data?.historyStandings}
-          champions={data?.historyChampions}
-          historyBrackets={data?.historyBrackets}
+          historyStandings={historyData?.historyStandings}
+          champions={historyData?.historyChampions}
+          historyBrackets={historyData?.historyBrackets}
           onClose={() => setSelectedSeason(null)}
         />
       )}

@@ -533,6 +533,37 @@ Outlook badges (Contender, Reload, Rebuild, etc.) now compute on the fly in `/ap
 
 **KV cache note:** Cached responses (1-hour TTL) that predate this deploy won't have `outlook` — `|| null` fallbacks in dataService.js handle this gracefully (no badge until cache expires).
 
+### Phase C Step 4 — League History for All Leagues (Complete)
+
+League History is now available for any Sleeper dynasty league via `/api/league-history`.
+
+**New file:** `api/league-history.py` — Vercel Python serverless function:
+- **Route:** `GET /api/league-history?league_id=<sleeper_league_id>`
+- **Walks `previous_league_id` chain** up to 10 seasons back. Chain is traversed sequentially (each league info fetch feeds the next), then all seasons are fetched in parallel.
+- **Per season, all calls are parallelized** (ThreadPoolExecutor, max 25 workers): rosters, users, winners_bracket, losers_bracket, and all matchup weeks (regular season + 3 playoff weeks) in one concurrent batch.
+- **Skips seasons with no completed games** (wins sum = 0) — so the current preseason 2026 season is excluded from Wilson's history automatically.
+- **Champion determination:** `winners_bracket` max round, `m=1` entry (lowest match number in final round) winner → mapped to `display_name`. Falls back to regular-season leader if bracket is empty.
+- **Output shape:** identical to the static `history*.json` files that `LeagueHistory.js` already reads:
+  - `historyChampions` — `[{ Season, Champion }]`
+  - `historyStandings` — `[{ Season, Rank, Owner, Wins, Losses, PF, PA, PPG, "Max PF", "Best Score", Champion }]`
+  - `historyAllTime` — `[{ Rank, Owner, Seasons, Wins, Losses, PF, PA, PPG, "Max PF", "Best Score", Championships, "Win %" }]`
+  - `historyBrackets` — Winners + Losers + Score entries (Score rows have `T1_Owner`, `Round`, `Points`, `Week` — sufficient for the frontend's `scoreLookup`)
+  - `historyTopWeeks` — top 10 single-game team scores across all seasons
+  - `historyPlayerGames` — top 10 per category (Overall/QB/RB/WR/TE), using `players_points` from matchups + KV-cached `sleeper_players_nfl` for name/position lookup
+- **Cache key:** `league_history_{league_id}` · **TTL:** 24 hours (history is stable)
+- **`x-cache-status: HIT/MISS`** header on all responses
+- **maxDuration: 60** — added to `vercel.json` alongside `api/power-rankings.py`
+- **Players DB:** reuses the shared KV-cached `sleeper_players_nfl` (24h TTL, shared with `league.py` and `trades.py`). If KV is empty, player games section returns empty (all other sections unaffected).
+
+**Frontend changes:**
+- `src/pages/LeagueHistory.js` — added `useEffect` that fires when `!isWilsonsLeague`; fetches `/api/league-history?league_id={leagueId}` with loading/error states. Wilson's path unchanged (still reads `data.historyStandings`, etc. from static JSON). All `data.*` references replaced with `historyData` which resolves to `data` for Wilson's and `extHistory` for external leagues.
+- `src/App.js` — removed `history` from `WILSONS_ONLY_PAGES`
+- `src/components/Sidebar.js` — removed `history` from the lock-icon Set
+
+**Wilson's league chain depth:** 3 seasons (2026 current → 2025 → 2024). The 2026 season has no completed games and is skipped; 2025 and 2024 are included in history output.
+
+---
+
 ### Phase C Step 3 — Power Rankings for All Leagues (Complete)
 
 Power Rankings is now available for any Sleeper dynasty league via `/api/power-rankings`.
