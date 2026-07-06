@@ -92,10 +92,10 @@ async function loadExternalLeagueData(leagueId) {
       'Owner':          dn,
       'Dynasty Owner':  dn,
       'Tier':           p.tier || null,
-      'Age':            null,
+      'Age':            p.age != null ? p.age : null,
       'Avg PPG':        0,
       'On Taxi':        'False',
-      'NFL Team':       null,
+      'NFL Team':       p.nfl_team || null,
     }))
   })
 
@@ -106,7 +106,7 @@ async function loadExternalLeagueData(leagueId) {
       'Owner':          dn,
       'Player':         p.name,
       'Position':       p.position,
-      'Age':            null,
+      'Age':            p.age != null ? p.age : null,
       'KTC Value':      p.ktc_value || 0,
       'Combined Score': p.ktc_value || 0,
       'Tier':           p.tier || null,

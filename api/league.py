@@ -177,16 +177,20 @@ class handler(BaseHTTPRequestHandler):
         parsed = urlparse(self.path)
         params = parse_qs(parsed.query)
         league_id_values = params.get("league_id", [])
+        bust_cache = 'bust' in params
         if not league_id_values:
             return self._respond(400, {"error": "league_id is required"})
         league_id = league_id_values[0]
 
         # ── Layer 2: full per-league response cache (1 hour TTL) ──────────────
         cache_key = f'league_{league_id}'
-        cached = kv_get(cache_key)
-        if cached is not None:
-            print(f"league.py KV HIT: {cache_key}")
-            return self._respond(200, cached, cache_status='HIT')
+        if not bust_cache:
+            cached = kv_get(cache_key)
+            if cached is not None:
+                print(f"league.py KV HIT: {cache_key}")
+                return self._respond(200, cached, cache_status='HIT')
+        else:
+            print(f"league.py: bust=1 — bypassing KV cache for {cache_key}")
 
         # Fetch KTC data from /api/ktc — avoids direct file access in serverless
         try:
@@ -347,6 +351,8 @@ class handler(BaseHTTPRequestHandler):
                     "ktc_value":  ktc_val,
                     "position":   position,
                     "tier":       _assign_player_tier(ktc_val),
+                    "age":        p.get("age"),
+                    "nfl_team":   p.get("team"),
                 })
 
             roster_picks = picks_by_roster.get(roster_id, [])
