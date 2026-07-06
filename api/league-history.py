@@ -57,20 +57,16 @@ def kv_get(key):
 
 def kv_set(key, value, ex_seconds):
     if not KV_URL or not KV_TOKEN:
-        return 'no_creds'
+        return
     try:
-        serialized = json.dumps(value)
-        r = requests.post(
+        requests.post(
             f"{KV_URL}/pipeline",
             headers={"Authorization": f"Bearer {KV_TOKEN}"},
-            json=[["SET", key, serialized, "EX", ex_seconds]],
+            json=[["SET", key, json.dumps(value), "EX", ex_seconds]],
             timeout=10,
         )
-        print(f"league-history.py kv_set '{key}': HTTP {r.status_code}, body={r.text[:200]}, payload_size={len(serialized)}")
-        return f"http_{r.status_code}"
     except Exception as e:
-        print(f"league-history.py kv_set '{key}' EXCEPTION: {e}")
-        return f"exception:{e}"
+        print(f"league-history.py kv_set '{key}' error: {e}")
 
 
 # ── Sleeper fetch ─────────────────────────────────────────────────────────────
@@ -451,7 +447,7 @@ class handler(BaseHTTPRequestHandler):
                 print(f"league-history.py KV HIT: {cache_key}")
                 return self._respond(200, cached, cache_status='HIT')
         else:
-            print(f"league-history.py: bust=1 — skipping KV cache for {cache_key}")
+            print(f"league-history.py: bust=1 — bypassing KV cache for {cache_key}")
 
         # Walk previous_league_id chain to collect all season league IDs
         chain = walk_chain(league_id)
@@ -473,67 +469,34 @@ class handler(BaseHTTPRequestHandler):
                 except Exception as e:
                     print(f"league-history.py: season {season} fetch error: {e}")
 
-        for raw in season_raws:
-            weeks_with_data = sum(1 for w, entries in raw['matchups'].items() if entries)
-            print(f"league-history.py: season {raw['season']} — {len(raw['matchups'])} weeks fetched, {weeks_with_data} non-empty")
-
         # Players DB from KV (shared 24h cache with league.py and trades.py).
         # If KV is cold (no recent league.py call), fetch directly from Sleeper and warm the cache.
-        debug = {}
         players_db = kv_get(PLAYERS_KEY)
-        debug['players_db_kv_size'] = len(players_db) if players_db else 0
-        print(f"league-history.py: players_db from KV — {'present' if players_db else 'MISSING — fetching from Sleeper'} ({len(players_db) if players_db else 0} entries)")
         if not players_db:
+            print("league-history.py: sleeper_players_nfl not in KV — fetching from Sleeper")
             try:
                 pr = requests.get(f"{SLEEPER_BASE}/players/nfl", timeout=30)
                 pr.raise_for_status()
                 players_db = pr.json()
                 kv_set(PLAYERS_KEY, players_db, 86400)
-                debug['players_db_source'] = 'sleeper_fetch'
-                debug['players_db_size'] = len(players_db)
                 print(f"league-history.py: fetched and cached sleeper_players_nfl ({len(players_db)} entries)")
             except Exception as e:
-                debug['players_db_source'] = f'fetch_failed:{e}'
-                debug['players_db_size'] = 0
                 print(f"league-history.py: could not fetch players_db: {e}")
                 players_db = {}
         else:
-            debug['players_db_source'] = 'kv_hit'
-            debug['players_db_size'] = len(players_db)
-
-        debug['players_db_truthy'] = bool(players_db)
-
-        # Sample: grab first entry from any matchup week to confirm players_points shape
-        for raw in season_raws:
-            for w, entries in sorted(raw['matchups'].items()):
-                if entries:
-                    first_e = entries[0]
-                    pp = first_e.get('players_points') or {}
-                    nonzero = {k: v for k, v in list(pp.items())[:5] if v and float(v) > 0}
-                    debug[f'sample_pp_season_{raw["season"]}_week_{w}'] = {
-                        'total_pp_keys': len(pp), 'nonzero_sample': nonzero,
-                        'team_points': first_e.get('points'),
-                    }
-                    break
+            print(f"league-history.py: sleeper_players_nfl KV hit ({len(players_db)} entries)")
 
         # Process each season
         results = []
-        debug['seasons'] = []
         for raw in season_raws:
             try:
                 res = process_season(raw, players_db)
                 if res is not None:
                     results.append(res)
-                    pg_count = len(res['player_games'])
-                    debug['seasons'].append({'season': raw['season'], 'player_games': pg_count, 'top_weeks': len(res['top_weeks'])})
-                    print(f"league-history.py: season {raw['season']} processed — {pg_count} player game entries")
-                    if res['player_games']:
-                        print(f"league-history.py: sample pg entry: {res['player_games'][0]}")
+                    print(f"league-history.py: season {raw['season']} — {len(res['player_games'])} player game entries")
                 else:
-                    debug['seasons'].append({'season': raw['season'], 'skipped': True})
                     print(f"league-history.py: season {raw['season']} skipped (no completed games)")
             except Exception as e:
-                debug['seasons'].append({'season': raw.get('season', '?'), 'error': str(e)})
                 print(f"league-history.py: season {raw.get('season', '?')} process error: {e}")
                 traceback.print_exc()
 
@@ -541,7 +504,6 @@ class handler(BaseHTTPRequestHandler):
             empty = {
                 'historyChampions': [], 'historyStandings': [], 'historyAllTime': [],
                 'historyBrackets': [], 'historyTopWeeks': [], 'historyPlayerGames': [],
-                '_debug': debug,
             }
             return self._respond(200, empty)
 
@@ -549,24 +511,9 @@ class handler(BaseHTTPRequestHandler):
         results.sort(key=lambda x: x['season'], reverse=True)
 
         response = aggregate(results)
-        total_pg = len(response.get('historyPlayerGames', []))
-        debug['final_player_games_count'] = total_pg
-        print(f"league-history.py: aggregate complete — historyPlayerGames count={total_pg}")
-        if total_pg > 0:
-            print(f"league-history.py: first historyPlayerGames entry: {response['historyPlayerGames'][0]}")
-
-        # Always write back to KV (without _debug) so bust=1 also refreshes the cache.
-        payload_to_write = {k: v for k, v in response.items() if k != '_debug'}
-        write_result = kv_set(cache_key, payload_to_write, HISTORY_TTL)
-        # Immediately verify the write by reading back the key
-        readback = kv_get(cache_key)
-        readback_pg = len((readback or {}).get('historyPlayerGames', [])) if readback else -1
-        print(f"league-history.py: kv_set result={write_result}, readback historyPlayerGames={readback_pg}")
-        debug['kv_set_result'] = write_result
-        debug['kv_readback_pg_count'] = readback_pg
-
-        if bust_cache:
-            response['_debug'] = debug
+        print(f"league-history.py: historyPlayerGames count={len(response.get('historyPlayerGames', []))}")
+        # Always write back to KV so bust=1 also refreshes the cache for future requests.
+        kv_set(cache_key, response, HISTORY_TTL)
         self._respond(200, response)
 
     def _respond(self, status, body, cache_status='MISS'):
