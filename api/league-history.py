@@ -433,17 +433,21 @@ class handler(BaseHTTPRequestHandler):
                 print(f"WARNING: execution over 8s — {elapsed:.2f}s total")
 
     def _handle(self):
-        params    = parse_qs(urlparse(self.path).query)
-        id_list   = params.get('league_id', [])
+        params     = parse_qs(urlparse(self.path).query)
+        id_list    = params.get('league_id', [])
+        bust_cache = 'bust' in params
         if not id_list:
             return self._respond(400, {'error': 'league_id is required'})
         league_id = id_list[0]
 
         cache_key = f"league_history_{league_id}"
-        cached    = kv_get(cache_key)
-        if cached is not None:
-            print(f"league-history.py KV HIT: {cache_key}")
-            return self._respond(200, cached, cache_status='HIT')
+        if not bust_cache:
+            cached = kv_get(cache_key)
+            if cached is not None:
+                print(f"league-history.py KV HIT: {cache_key}")
+                return self._respond(200, cached, cache_status='HIT')
+        else:
+            print(f"league-history.py: bust=1 — skipping KV cache for {cache_key}")
 
         # Walk previous_league_id chain to collect all season league IDs
         chain = walk_chain(league_id)
@@ -465,16 +469,21 @@ class handler(BaseHTTPRequestHandler):
                 except Exception as e:
                     print(f"league-history.py: season {season} fetch error: {e}")
 
+        for raw in season_raws:
+            weeks_with_data = sum(1 for w, entries in raw['matchups'].items() if entries)
+            print(f"league-history.py: season {raw['season']} — {len(raw['matchups'])} weeks fetched, {weeks_with_data} non-empty")
+
         # Players DB from KV (shared 24h cache with league.py and trades.py).
         # If KV is cold (no recent league.py call), fetch directly from Sleeper and warm the cache.
         players_db = kv_get(PLAYERS_KEY)
+        print(f"league-history.py: players_db from KV — {'present' if players_db else 'MISSING — fetching from Sleeper'} ({len(players_db) if players_db else 0} entries)")
         if not players_db:
             try:
                 pr = requests.get(f"{SLEEPER_BASE}/players/nfl", timeout=30)
                 pr.raise_for_status()
                 players_db = pr.json()
                 kv_set(PLAYERS_KEY, players_db, 86400)
-                print("league-history.py: fetched and cached sleeper_players_nfl")
+                print(f"league-history.py: fetched and cached sleeper_players_nfl ({len(players_db)} entries)")
             except Exception as e:
                 print(f"league-history.py: could not fetch players_db: {e}")
                 players_db = {}
@@ -486,6 +495,11 @@ class handler(BaseHTTPRequestHandler):
                 res = process_season(raw, players_db)
                 if res is not None:
                     results.append(res)
+                    print(f"league-history.py: season {raw['season']} processed — {len(res['player_games'])} player game entries")
+                    if res['player_games']:
+                        print(f"league-history.py: sample pg entry: {res['player_games'][0]}")
+                else:
+                    print(f"league-history.py: season {raw['season']} skipped (no completed games)")
             except Exception as e:
                 print(f"league-history.py: season {raw.get('season', '?')} process error: {e}")
                 traceback.print_exc()
@@ -501,7 +515,13 @@ class handler(BaseHTTPRequestHandler):
         results.sort(key=lambda x: x['season'], reverse=True)
 
         response = aggregate(results)
-        kv_set(cache_key, response, HISTORY_TTL)
+        total_pg = len(response.get('historyPlayerGames', []))
+        print(f"league-history.py: aggregate complete — historyPlayerGames count={total_pg}")
+        if total_pg > 0:
+            print(f"league-history.py: first historyPlayerGames entry: {response['historyPlayerGames'][0]}")
+
+        if not bust_cache:
+            kv_set(cache_key, response, HISTORY_TTL)
         self._respond(200, response)
 
     def _respond(self, status, body, cache_status='MISS'):
