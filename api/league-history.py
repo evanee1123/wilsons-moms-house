@@ -475,7 +475,9 @@ class handler(BaseHTTPRequestHandler):
 
         # Players DB from KV (shared 24h cache with league.py and trades.py).
         # If KV is cold (no recent league.py call), fetch directly from Sleeper and warm the cache.
+        debug = {}
         players_db = kv_get(PLAYERS_KEY)
+        debug['players_db_kv_size'] = len(players_db) if players_db else 0
         print(f"league-history.py: players_db from KV — {'present' if players_db else 'MISSING — fetching from Sleeper'} ({len(players_db) if players_db else 0} entries)")
         if not players_db:
             try:
@@ -483,24 +485,51 @@ class handler(BaseHTTPRequestHandler):
                 pr.raise_for_status()
                 players_db = pr.json()
                 kv_set(PLAYERS_KEY, players_db, 86400)
+                debug['players_db_source'] = 'sleeper_fetch'
+                debug['players_db_size'] = len(players_db)
                 print(f"league-history.py: fetched and cached sleeper_players_nfl ({len(players_db)} entries)")
             except Exception as e:
+                debug['players_db_source'] = f'fetch_failed:{e}'
+                debug['players_db_size'] = 0
                 print(f"league-history.py: could not fetch players_db: {e}")
                 players_db = {}
+        else:
+            debug['players_db_source'] = 'kv_hit'
+            debug['players_db_size'] = len(players_db)
+
+        debug['players_db_truthy'] = bool(players_db)
+
+        # Sample: grab first entry from any matchup week to confirm players_points shape
+        for raw in season_raws:
+            for w, entries in sorted(raw['matchups'].items()):
+                if entries:
+                    first_e = entries[0]
+                    pp = first_e.get('players_points') or {}
+                    nonzero = {k: v for k, v in list(pp.items())[:5] if v and float(v) > 0}
+                    debug[f'sample_pp_season_{raw["season"]}_week_{w}'] = {
+                        'total_pp_keys': len(pp), 'nonzero_sample': nonzero,
+                        'team_points': first_e.get('points'),
+                    }
+                    break
 
         # Process each season
         results = []
+        debug['seasons'] = []
         for raw in season_raws:
             try:
                 res = process_season(raw, players_db)
                 if res is not None:
                     results.append(res)
-                    print(f"league-history.py: season {raw['season']} processed — {len(res['player_games'])} player game entries")
+                    pg_count = len(res['player_games'])
+                    debug['seasons'].append({'season': raw['season'], 'player_games': pg_count, 'top_weeks': len(res['top_weeks'])})
+                    print(f"league-history.py: season {raw['season']} processed — {pg_count} player game entries")
                     if res['player_games']:
                         print(f"league-history.py: sample pg entry: {res['player_games'][0]}")
                 else:
+                    debug['seasons'].append({'season': raw['season'], 'skipped': True})
                     print(f"league-history.py: season {raw['season']} skipped (no completed games)")
             except Exception as e:
+                debug['seasons'].append({'season': raw.get('season', '?'), 'error': str(e)})
                 print(f"league-history.py: season {raw.get('season', '?')} process error: {e}")
                 traceback.print_exc()
 
@@ -508,6 +537,7 @@ class handler(BaseHTTPRequestHandler):
             empty = {
                 'historyChampions': [], 'historyStandings': [], 'historyAllTime': [],
                 'historyBrackets': [], 'historyTopWeeks': [], 'historyPlayerGames': [],
+                '_debug': debug,
             }
             return self._respond(200, empty)
 
@@ -516,9 +546,13 @@ class handler(BaseHTTPRequestHandler):
 
         response = aggregate(results)
         total_pg = len(response.get('historyPlayerGames', []))
+        debug['final_player_games_count'] = total_pg
         print(f"league-history.py: aggregate complete — historyPlayerGames count={total_pg}")
         if total_pg > 0:
             print(f"league-history.py: first historyPlayerGames entry: {response['historyPlayerGames'][0]}")
+
+        if bust_cache:
+            response['_debug'] = debug
 
         if not bust_cache:
             kv_set(cache_key, response, HISTORY_TTL)
