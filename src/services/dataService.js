@@ -371,6 +371,7 @@ async function loadExternalLeagueData(leagueId) {
     return {
       'Owner':              dn,
       'display_name':       dn,
+      'owner_id':           r.owner_id,
       'Value Rank':         i + 1,
       'Outlook':            r.outlook || null,
       'Player Value':       playerVal,

@@ -6,7 +6,7 @@ import LeagueSwitcher from './LeagueSwitcher';
 import SleeperLogin from './SleeperLogin';
 
 
-export default function Sidebar({ page, setPage, owner, setOwner,
+export default function Sidebar({ page, setPage, setOwner,
                                    lastUpdated, refresh, owners,
                                    sidebarOpen, setSidebarOpen }) {
   const { currentUser, userProfile, viewAsOwner, setViewAsOwner, logout } = useAuth();
@@ -124,8 +124,8 @@ export default function Sidebar({ page, setPage, owner, setOwner,
       {/* Bottom section */}
       <div style={{ padding: '1rem', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
 
-        {/* Auth state */}
-        {currentUser ? (
+        {/* Auth state (Firebase — Wilson's only) */}
+        {isWilsonsLeague && (currentUser ? (
           <div style={{ marginBottom: '12px' }}>
             <div style={{ fontSize: '11px', color: '#718096', marginBottom: '4px' }}>
               Signed in as
@@ -182,7 +182,7 @@ export default function Sidebar({ page, setPage, owner, setOwner,
               Sign up
             </button>
           </div>
-        )}
+        ))}
 
         {/* Sleeper login (external leagues only — Wilson's Firebase auth covers it) */}
         {!isWilsonsLeague && (
@@ -212,23 +212,10 @@ export default function Sidebar({ page, setPage, owner, setOwner,
                 fontSize: '11px', cursor: 'pointer', textDecoration: 'underline', padding: 0,
               }}
             >
-              Log in to save data
+              Log in with Sleeper
             </button>
           )
         )}
-
-        {/* Public team selector */}
-        <div style={{ fontSize: '11px', color: '#718096', marginBottom: '4px' }}>
-          Viewing as
-        </div>
-        <select
-          value={owner}
-          onChange={e => setOwner(e.target.value)}
-          style={selectStyle}
-        >
-          <option value=''>Select team...</option>
-          {owners.map(o => <option key={o} value={o}>{o}</option>)}
-        </select>
 
         {lastUpdated && (
           <div style={{ fontSize: '10px', color: '#4a5568', marginTop: '8px' }}>

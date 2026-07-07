@@ -14,6 +14,7 @@ import LeagueHistory from './pages/LeagueHistory'
 import Login from './pages/Login'
 import Signup from './pages/Signup'
 import ProtectedRoute from './components/ProtectedRoute'
+import SleeperProtectedRoute from './components/SleeperProtectedRoute'
 import Blueprint from './pages/Blueprint'
 import PowerRankings from './pages/PowerRankings'
 import WilsonsOnly from './components/WilsonsOnly'
@@ -131,7 +132,6 @@ function AppInner() {
       <Sidebar
         page={page}
         setPage={setPage}
-        owner={owner}
         setOwner={setOwner}
         lastUpdated={data?.lastUpdated}
         refresh={refresh}
@@ -157,12 +157,12 @@ function AppInner() {
           {!isWilsonsLeague && WILSONS_ONLY_PAGES[page]
             ? <WilsonsOnly pageName={WILSONS_ONLY_PAGES[page]} setPage={setPage} />
             : page === 'blueprint'
-              // Wilson's Blueprint still requires Firebase login (unchanged). External
-              // leagues have no Firebase signup path, so Blueprint renders directly —
-              // Goals/Watchlist gate on Sleeper login internally instead (see Blueprint.js).
+              // Wilson's Blueprint requires Firebase login; external leagues require
+              // Sleeper login (see SleeperProtectedRoute). Both gates resolve "my team"
+              // from the logged-in identity — no manual team selection (see Blueprint.js).
               ? isWilsonsLeague
-                ? <ProtectedRoute setPage={setPage}><Blueprint data={data} owner={owner} setPage={setPage} /></ProtectedRoute>
-                : <Blueprint data={data} owner={owner} setPage={setPage} />
+                ? <ProtectedRoute setPage={setPage}><Blueprint data={data} setPage={setPage} /></ProtectedRoute>
+                : <SleeperProtectedRoute><Blueprint data={data} setPage={setPage} /></SleeperProtectedRoute>
               : <PageComponent data={data} owner={owner} setPage={setPage} />
           }
         </div>

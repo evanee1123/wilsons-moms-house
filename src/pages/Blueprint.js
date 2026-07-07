@@ -2,7 +2,6 @@ import { useState, useEffect, useMemo } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { useLeague } from '../contexts/LeagueContext'
 import { useSleeperAuth } from '../contexts/SleeperAuthContext'
-import SleeperLogin from '../components/SleeperLogin'
 import {
   loadGoals, saveGoal, updateGoalStatus, deleteGoal,
   loadWatchlist, addToWatchlist, removeFromWatchlist,
@@ -815,26 +814,6 @@ function SleeperWatchlistSection({ watchlist, loading, data, allAssets, outlookB
   )
 }
 
-function SleeperLoginPrompt({ onLogin }) {
-  return (
-    <div className='card' style={{ marginBottom: '1.25rem' }}>
-      <div className='card-header'><h3>Roster Composition Goals & Watchlist</h3></div>
-      <div style={{ padding: '1.5rem', textAlign: 'center' }}>
-        <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '14px' }}>
-          Log in with your Sleeper account to save your watchlist and goals for this league.
-        </div>
-        <button onClick={onLogin} style={{
-          padding: '9px 18px', borderRadius: '8px', border: 'none',
-          background: '#3182ce', color: '#fff', fontSize: '13px',
-          fontWeight: 600, cursor: 'pointer',
-        }}>
-          Log in with Sleeper
-        </button>
-      </div>
-    </div>
-  )
-}
-
 // ── Section 2.5: Value Proportion ─────────────────────────────────────────────
 const POS_COLORS = { QB: '#fc8181', RB: '#68d391', WR: '#63b3ed', TE: '#f6e05e', Picks: '#b794f4' }
 
@@ -1498,17 +1477,19 @@ function TradeFinderSection({ myOwner, myOutlook, data, allAssets, outlookByOwne
 }
 
 // ── Main export ───────────────────────────────────────────────────────────────
-export default function Blueprint({ data, owner, setPage }) {
+export default function Blueprint({ data, setPage }) {
   const { currentUser, userProfile, viewAsOwner } = useAuth()
   const { leagueId } = useLeague()
   const { sleeperUser } = useSleeperAuth()
-  const [sleeperLoginOpen, setSleeperLoginOpen] = useState(false)
   const isWilsonsLeague = leagueId === '1312130103358021632'
   // Wilson's: identity (and "my team") comes from the Firebase profile, unchanged.
-  // External leagues: no Firebase signup path exists, so "my team" is whatever the
-  // public sidebar team selector has picked — the same mechanism every other page
-  // already uses for external leagues. Sleeper login only gates Goals/Watchlist below.
-  const myOwner = isWilsonsLeague ? (viewAsOwner || userProfile?.rosterOwnerName) : owner
+  // External leagues: gated behind Sleeper login (SleeperProtectedRoute, see App.js),
+  // so sleeperUser is guaranteed here — "my team" is resolved directly by matching the
+  // logged-in Sleeper user_id against each roster's owner_id (both are Sleeper user_ids,
+  // confirmed against api/league.py's response shape), not a manual team selector.
+  const myOwner = isWilsonsLeague
+    ? (viewAsOwner || userProfile?.rosterOwnerName)
+    : (data?.teamOverview || []).find(t => t.owner_id === sleeperUser?.user_id)?.Owner || ''
   // uid is always the real logged-in Wilson's user — never swapped by viewAsOwner
   const uid           = currentUser?.uid
   // personalOwner/personalOutlook are NEVER affected by viewAsOwner.
@@ -1567,7 +1548,7 @@ export default function Blueprint({ data, owner, setPage }) {
       <div style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>
         {isWilsonsLeague
           ? "Your account isn't linked to a roster. Contact the commissioner."
-          : 'Select your team from the sidebar to view your Blueprint.'}
+          : "Your Sleeper account isn't a member of this league."}
       </div>
     </div>
   )
@@ -1581,21 +1562,15 @@ export default function Blueprint({ data, owner, setPage }) {
         {viewAsOwner && <span style={{ marginLeft: '10px', fontSize: '11px', background: 'rgba(246,224,94,0.15)', color: '#d69e2e', padding: '2px 8px', borderRadius: '99px' }}>Admin view</span>}
       </div>
 
-      {sleeperLoginOpen && <SleeperLogin onClose={() => setSleeperLoginOpen(false)} />}
-
       {isWilsonsLeague
         ? <GoalsSection uid={uid} myOwner={personalOwner} myOutlook={personalOutlook} positionalRankings={positionalRankings} pickYears={pickYears} />
-        : sleeperUser
-          ? <SleeperGoalsSection goals={sleeperBlueprint.goals} loading={sleeperBlueprint.loading} myOutlook={myOutlook}
-              onAdd={sleeperBlueprint.handleGoalAdd} onStatus={sleeperBlueprint.handleGoalStatus} onDelete={sleeperBlueprint.handleGoalDelete} />
-          : <SleeperLoginPrompt onLogin={() => setSleeperLoginOpen(true)} />
+        : <SleeperGoalsSection goals={sleeperBlueprint.goals} loading={sleeperBlueprint.loading} myOutlook={myOutlook}
+            onAdd={sleeperBlueprint.handleGoalAdd} onStatus={sleeperBlueprint.handleGoalStatus} onDelete={sleeperBlueprint.handleGoalDelete} />
       }
       {isWilsonsLeague
         ? <WatchlistSection uid={uid} data={data} allAssets={allAssets} outlookByOwner={outlookByOwner} />
-        : sleeperUser
-          ? <SleeperWatchlistSection watchlist={sleeperBlueprint.watchlist} loading={sleeperBlueprint.loading} data={data} allAssets={allAssets} outlookByOwner={outlookByOwner}
-              onAdd={sleeperBlueprint.handleWatchAdd} onRemove={sleeperBlueprint.handleWatchRemove} />
-          : null /* single combined prompt above already covers both Goals and Watchlist */
+        : <SleeperWatchlistSection watchlist={sleeperBlueprint.watchlist} loading={sleeperBlueprint.loading} data={data} allAssets={allAssets} outlookByOwner={outlookByOwner}
+            onAdd={sleeperBlueprint.handleWatchAdd} onRemove={sleeperBlueprint.handleWatchRemove} />
       }
       <ValueProportionSection myOwner={myOwner} data={data} />
       <TradeStrategySection myOwner={myOwner} data={data} />
