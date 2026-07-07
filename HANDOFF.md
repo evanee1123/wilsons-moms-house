@@ -626,6 +626,108 @@ Three small UX fixes shipped before Phase C Step 2:
 
 ---
 
+## Phase D — Player Production Stats API (Prod%, Snap Share, Career Stats) for All Leagues (Complete)
+
+Production data (best-3-of-4 Avg PPG, position-normalized production score, combined score, snap
+share, career season stats) is now computed on demand for any Sleeper dynasty league, closing the
+last major gap between Wilson's cron-computed data and external leagues.
+
+**Audit findings before implementation:**
+- Sleeper's `players/nfl` DB only has `gsis_id` populated for a minority of active skill players
+  (confirmed: ~1,259 of ~4,030 QB/RB/WR/TE entries — many current stars like Amon-Ra St. Brown and
+  Malik Nabers have it `null`). GSIS ID is therefore not a usable merge key; the new endpoint matches
+  Wilson's static JSON by normalized player name instead (`src/utils/playerUtils.js`), and external
+  leagues by exact Sleeper ID (already present in `/api/league`'s roster player objects).
+- Sleeper's season-stats endpoint has no `rec_yac` field — the YAC-equivalent field is `rec_yar`
+  ("yards after reception"). Confirmed by direct inspection (`rec_yd - rec_air_yd == rec_yar` for a
+  real player). `wilsons_teams.py`'s own career-stats cell (section 15) sources from nflfastR, a
+  different provider with different field names, so this wasn't a copy-paste bug to fix there —
+  it only affects the new Sleeper-sourced endpoint.
+- The task's "positionalProportion shows 0% Production Share" framing was imprecise:
+  `positionalProportion.json` only ever holds KTC-value pie-chart data (QB/RB/WR/TE % of value) and
+  has no production concept. The actual 0%/`undefined` fields were `teamOverview`'s `Production
+  Share %`, `Production Rank` (missing entirely for external leagues — rendered as `#undefined in
+  league` on Team Deep Dive), and `Gap`. Fixed those three fields instead.
+- `PlayerDetailModal`'s "Games (2yr)" stat card read `player['Games Played']`, a field that has never
+  existed in `playerUniverse.json` (only `"Seasons"` is written by the cron) — it silently rendered
+  `—` for every player, Wilson's included, before this change. Now populated for all leagues via the
+  new endpoint's `games` field (total games across all qualifying seasons, not just the top-3 used
+  for Avg PPG).
+
+**New file:** `api/player-stats.py` — Vercel Python serverless function:
+- **Route:** `GET /api/player-stats?league_id=<sleeper_league_id>`
+- Fetches the rostered player list from `/api/league` (already KV-cached), then the last 4 seasons of
+  `GET /v1/stats/nfl/regular/{year}?season_type=regular` in parallel — same "4 years ending at the
+  current season" window as `wilsons_teams.py`'s `get_pbp_seasons()` (no hardcoded years).
+- **Best-3-of-4 Avg PPG**: seasons with `gp>=6` only; top 3 by PPG averaged. `seasons` = count of all
+  qualifying seasons (not just the top 3); `games` = summed `gp` across those seasons.
+- **Position normalization**: `multi_year_prod_score = avg_ppg / max(avg_ppg for that position among
+  this league's rostered players) * 10000` — scoped to the requesting league's own roster, per the
+  task spec (not a global player pool).
+- **Combined score**: `round(ktc*0.7 + prod*0.3, 1)` if `prod > 0`, else `ktc_value` — 0-production
+  rookies get `multi_year_prod_score=0` (deliberately different from Wilson's cron fallback of
+  `KTC*0.3` — the cron itself is untouched; this is the new endpoint's own documented rookie rule).
+- **Snap share**: determines the most recent season with any qualifying games (not hardcoded), then
+  fetches all 18 weeks of that season in parallel (`GET .../regular/{season}/{week}`), averaging
+  `off_snp/tm_off_snp*100` across weeks where the player had snaps.
+- **Career stats**: per-season rows for every season the player had meaningful involvement (mirrors
+  `wilsons_teams.py`'s `has_meaningful_stats()` gate, not the `gp>=6` production filter), using the
+  *exact* field names `PlayerDetailModal`'s existing `qbCols`/`rbCols`/`wrTeCols` already expect
+  (`Season`, `Games`, `Fantasy Pts`, `PPG`, `Pos Rank`, plus position-specific columns) — so the modal
+  needed a new data source, not new rendering code.
+- **Cache:** KV key `player_stats_{league_id}`, 24h TTL, `x-cache-status: HIT/MISS` header,
+  `bust=1` param to bypass. `maxDuration: 60` added to `vercel.json`.
+- **Measured timing (live, CLTC league, 264 rostered skill players):** cold (own-cache bust, `/api/league`
+  cache still warm) **0.89s**; warm (KV hit, bypassing Vercel's CDN edge cache) **0.34s** — well inside
+  the 60s budget.
+
+**Frontend (`src/services/dataService.js`):**
+- New `fetchPlayerStats()` + `mergePlayerStats(rows, playerStats, primaryFromCron)` — the latter is
+  shared by both the Wilson's and external-league code paths. `primaryFromCron=true` (Wilson's): cron
+  values for Avg PPG/Multi-Year Prod Score/Combined Score/Seasons win unless truly missing (`null`/
+  `undefined`, not falsy-0 — 0 is a legitimate rookie value in both sources). `primaryFromCron=false`
+  (external): API values always replace the 0/null placeholders. `Games Played`/`Snap Pct`/
+  `career_stats` are unconditional in both cases (never existed before this change).
+  Merged onto both `playerUniverse` and `leagueRosters` for every league.
+- External leagues: added `Sleeper ID` to the `playerUniverse`/`leagueRosters` row mappings (sourced
+  from `/api/league`'s existing `sleeper_id` field) so the merge is an exact-key lookup, not fuzzy
+  name matching.
+- **Production Share/Rank/Gap fix**: new `computeProductionShares()` sums merged `Multi-Year Prod
+  Score` per owner from `playerUniverse`, mirroring `wilsons_teams.py`'s `team_summary` aggregation
+  (`share = team total / league total * 100`, `rank` = descending rank by share). Applied to
+  `teamOverview`'s `Production Share %`, `Production Rank` (previously absent for external leagues —
+  rendered `#undefined in league`), and `Gap` (previously `undefined%`).
+
+**`PlayerDetailModal.js`:**
+- Removed the entire "Advanced Stats" section (EPA vs Avg, Snap Share (old nflfastR-sourced field),
+  Target Share, YPRR, RZ Carries, Rush Yards/TDs, Draft Capital) — none of these fields have existed
+  in any league's data since the AI-classifier migration; the section always rendered empty.
+  Removed `data` prop usage (callers still harmlessly pass it — not worth touching two call sites to
+  drop an inert prop).
+- Added new "Snap Share" section using `player['Snap Pct']` (from the merge above) with the same
+  `MiniBar` component used elsewhere in the file.
+- `seasonData` now reads directly from `player.career_stats` (merged onto the player object for every
+  league) instead of cross-referencing `data.qbSeasonStats`/etc. by GSIS ID — same column-rendering
+  code (`qbCols`/`rbCols`/`wrTeCols`), new universal data source. Renamed "Games (2yr)" → "Games"
+  since the field now spans up to 4 seasons, not a fixed 2-year window.
+
+**Verified end-to-end** with a headless Playwright pass against the live deployed site (no local dev
+alternative — `react-scripts start` can't reach the Vercel Python functions, per the existing Phase A
+Step 4 note): CLTC (external league, via the Wilson's site's LeagueSwitcher set to CLTC's league ID)
+Team Deep Dive now shows real Avg PPG/Combined Score instead of 0s; CLTC player popup shows Snap
+Share bar (82.8% for Jaxson Dart) and a populated Career Season Stats table; Wilson's Team Deep Dive
+unchanged/still correct; Wilson's player popup shows both the rookie edge case (Fernando Mendoza — 0
+seasons, "No career stats available", no snap bar) and the veteran case (Dak Prescott — Snap Share
+97.9%, 3 seasons of career stats, cron-sourced Avg PPG/Combined Score untouched). Zero console errors
+in either league. Confirmed the Advanced Stats section (EPA/RZ/Draft Capital) is gone from the popup
+in both leagues.
+
+**Not touched:** `wilsons_teams.py`/the cron pipeline, `cltc-dynasty/` (CLTC's separate static-data
+Vercel app — out of scope; "CLTC" in this task means viewing CLTC's league ID as an *external* league
+from within the Wilson's multi-league site, the same mechanism Phase A/C already built).
+
+---
+
 ## Next Steps
 
 When adding features, apply changes to **both** leagues:
