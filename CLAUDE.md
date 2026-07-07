@@ -45,6 +45,8 @@ Two dynasty fantasy football analytics platforms built with:
       update_data.yml        ← Wilson's auto-update (Sun/Thu 8am CST)
       update_cltc_data.yml   ← CLTC auto-update (Sun/Thu 8am CST)
       power_rankings.yml     ← Wilson's Power Rankings (every Tuesday 15:00 UTC / 9am CT)
+  scripts/
+    classify_tiers.py        ← AI tier classifier (Wilson's only) — standalone, run manually 2-5x/year
   notebooks/
     wilsons_teams.ipynb
     wilsons_teams.py
@@ -195,6 +197,10 @@ playoffPicture.json       — Playoff Picture Monte Carlo simulation results (Wi
                             schema: { generated_at, season, weeks_simulated, weeks_played, current_week, season_started,
                                       playoff_spots, iterations, teams: [{ owner, team_name, playoff_pct, blended_ppg,
                                       historical_ppg, roster_strength_score, current_wins, current_losses, outlook }] }
+playerTiers.json          — AI-classified tier per rostered player (Wilson's only) — source of truth for Wilson's
+                            player tiers. schema: { "Player Name": "Tier Name" }. Produced by scripts/classify_tiers.py
+                            (not part of the regular notebook run) and read by wilsons_teams.py's tier assignment
+                            section on every notebook run — see "AI Tier Classifier" below.
 ```
 
 ---
@@ -229,6 +235,16 @@ KTC doesn't have values for the furthest year (`YEARS[-1]`), so we generate them
 11=Jag Insurance, 12=Replaceable
 ```
 
+Tiers are AI-classified — see "AI Tier Classifier" below. `wilsons_teams.py`'s tier-assignment section
+(cell "10. AI-Classified Tier Assignment") looks each player up in `public/data/playerTiers.json`
+(falling back to `difflib.get_close_matches` at cutoff 0.85 for name mismatches, then a KTC-threshold
+tier as a last-resort safety net) instead of computing a tier from a formula. The old formula-based
+`score_rb`/`score_wr`/`score_te`/`score_qb` functions and the nflfastR EPA/snap-count/target-share/
+red-zone/draft-capital pulls that fed them have been removed from the notebook — they are no longer
+needed for tier assignment. (`gsis_id` — used for career season stats matching and by
+`PlayerDetailModal.jsx` — is still derived from nflfastR's player table, since that's unrelated to
+tier scoring.)
+
 ### Outlook Classifications
 ```
 Contender, Contender (needs production),
@@ -260,7 +276,12 @@ stud_mult = 1.0 + max(0, (top_ktc - 5000) / 100) * 0.003
 | My Blueprint | /blueprint | Personalized roster analysis, trade strategy, priorities (login required) |
 
 ### Shared Components
-- `PlayerDetailModal` — career stats, advanced stats, overview. Used in PlayerRankings, TeamDeepDive, TradeCalculator
+- `PlayerDetailModal` — career stats, advanced stats, overview. Used in PlayerRankings, TeamDeepDive, TradeCalculator.
+  **Advanced stats section (EPA vs Avg, Snap Pct, Target Share, YPRR, RZ Carries, Rush Yards/TDs, Draft
+  Value/Round/Pick, Games Played) renders blank as of the AI tier classifier migration** — the nflfastR
+  pulls that populated those `playerUniverse.json` fields were removed from `wilsons_teams.py` since tier
+  assignment no longer needs them. Not fixed as part of that migration; revisit if this section should
+  be restored via a dedicated (non-tier-scoring) data pull.
 - `Sidebar` — navigation with owner selector
 
 ### Blueprint Page Sections (src/pages/Blueprint.js)
@@ -320,6 +341,43 @@ Sections render in this order:
 ### React integration
 - `src/pages/PowerRankings.js` — rank number color-coded (gold #1, green top 3, orange 7–8, red 9–10), outlook badges use existing `badge-green/orange/blue/red` classes, AI disclaimer footer with last-updated date from `generated_at`
 - Added to `dataService.js` (`fetchJSON('power_rankings.json')` in `Promise.all`), `App.js` (`powerrankings` route), and `Sidebar.js` (nav item between League History and My Blueprint)
+- **CLTC does not have this feature** — do not add it there
+
+---
+
+## AI Tier Classifier (Wilson's Only)
+
+**Script:** `scripts/classify_tiers.py` — standalone, **not** part of the regular `wilsons_teams.py`
+notebook run and **not** triggered by any GitHub Actions workflow. Run manually **2-5x per year**
+(e.g. after a significant chunk of the season has played out, or before a draft) whenever tiers need
+refreshing.
+
+### How it works
+1. Reads `public/data/playerUniverse.json` (rostered players, current tier as prior) and
+   `public/data/ktcRankings.json` (KTC values)
+2. Builds a single prompt containing the 12 tier definitions, every rostered player's name/position/
+   age/KTC value/current tier/avg PPG/seasons played, and instructions to use the current tier as a
+   strong prior — only change it with high confidence, and to return ONLY a JSON array
+3. One Anthropic API call (`claude-sonnet-4-6`)
+4. Parses the response, prints a comparison of which players changed tier and why, and writes
+   `public/data/playerTiers.json` — schema `{ "Player Name": "Tier Name" }`
+
+### Running it
+```bash
+cd ~/wilsons-moms-house
+python3 scripts/classify_tiers.py
+```
+Requires `ANTHROPIC_API_KEY` — same `.env`-in-repo-root setup as the Power Rankings notebook (see
+above). Requires the `anthropic` and `python-dotenv` packages.
+
+### Output is the source of truth for Wilson's tiers
+`public/data/playerTiers.json` is read directly by `wilsons_teams.py` on every regular notebook run
+(cell "10. AI-Classified Tier Assignment") — the notebook does **not** call the Anthropic API itself,
+it just looks up each player's tier from this file (via exact match, then `difflib.get_close_matches`
+at cutoff 0.85 for name mismatches, then a KTC-threshold tier as a last-resort fallback for anyone
+missing from the file entirely). Review the printed tier-change comparison from a classifier run
+before committing an updated `playerTiers.json` — it is not auto-applied.
+
 - **CLTC does not have this feature** — do not add it there
 
 ---
@@ -402,7 +460,7 @@ These issues arise when running on **Python 3.11** (used by GitHub Actions):
 
 ## Trade Calculator Details
 
-The trade calculator (both leagues) uses **Combined Score = 60% KTC + 40% Production** as its base, with these dynamic adjustments applied on top:
+The trade calculator (both leagues) uses **Combined Score = 70% KTC + 30% Production** as its base, with these dynamic adjustments applied on top:
 
 - **Stud tax**: applied when give side and receive side have unequal top assets. Uses raw KTC only — Combined Score is for display totals only.
   - Formula: `adj = round(topKtc × baseRate(topKtc) × studMult × dilution)`

@@ -57,9 +57,6 @@ current_season = get_current_season()
 YEARS = [str(current_season+1), str(current_season+2), str(current_season+3), str(current_season+4)]
 CURRENT_DRAFT_YEAR = str(current_season + 1)  # the upcoming draft year
 
-# Position-adjusted age limits
-AGE_LIMITS = {"QB": 34, "RB": 28, "WR": 31, "TE": 32}
-
 # Tier order
 TIER_ORDER = [
     "Cornerstone", "Upside Premier", "Foundational", "Mainstay",
@@ -447,54 +444,16 @@ print(f"Multi-year production calculated: {len(multi_year_prod)} players ✅")
 
 
 # ============================================================
-# 5. Advanced Stats & Draft Capital
+# 5. Player ID Lookup (gsis_id mapping)
 # ============================================================
+# nflfastR advanced-stats pulls (EPA, snap counts, target share, RZ carries,
+# draft capital) were removed here — tier assignment now comes from
+# public/data/playerTiers.json (see scripts/classify_tiers.py) instead of the
+# formula-based score_rb/wr/te/qb functions. This section is kept only because
+# gsis_id (used for career season stats matching in section 15 and by the
+# frontend's PlayerDetailModal) is derived from nflfastR's player ID table.
 
 import nfl_data_py as nfl
-
-# ---- Draft Capital ----
-print("Loading draft capital...")
-draft_picks = nfl.import_draft_picks(years=list(range(2000, current_season + 1)))
-draft_value = nfl.import_draft_values()
-
-draft_capital = draft_picks[["season","round","pick","gsis_id","pfr_player_name",
-                               "position","team"]].copy()
-draft_capital = draft_capital.merge(
-    draft_value[["pick","otc"]],
-    on="pick", how="left"
-)
-draft_capital["draft_value"] = draft_capital["otc"].fillna(0)
-draft_capital = draft_capital.rename(columns={
-    "pfr_player_name": "draft_name",
-    "season":          "draft_year",
-    "round":           "draft_round",
-    "pick":            "draft_pick"
-})
-
-print(f"Draft capital loaded: {len(draft_capital)} players")
-print(draft_capital[["draft_name","draft_year","draft_round",
-                       "draft_pick","draft_value"]].head(5).to_string(index=False))
-
-# ---- Advanced Stats (2024-2025 seasons) ----
-print("\nLoading advanced stats...")
-ADVANCED_SEASONS = [current_season - 1, current_season]
-pbp_adv = nfl.import_pbp_data(ADVANCED_SEASONS)
-
-# ---- Snap counts ----
-print("Loading snap counts...")
-snaps = nfl.import_snap_counts(ADVANCED_SEASONS)
-
-snap_avg = snaps[snaps["game_type"] == "REG"].groupby(
-    ["player", "position", "season"]
-).agg(
-    avg_snap_pct = ("offense_pct", "mean"),
-    games_played = ("offense_snaps", "count")
-).reset_index()
-
-snap_avg_2yr = snap_avg.groupby(["player","position"]).agg(
-    avg_snap_pct = ("avg_snap_pct", "mean"),
-    games_played = ("games_played", "sum")
-).reset_index()
 
 # ---- Build ID to full name lookup ----
 print("Building player ID lookup...")
@@ -505,11 +464,6 @@ id_to_name = participants[
     participants["display_name"].notna()
 ].set_index("gsis_id")["display_name"].to_dict()
 
-id_to_position = participants[
-    participants["gsis_id"].str.startswith("00-", na=False) &
-    participants["position"].notna()
-].set_index("gsis_id")["position"].to_dict()
-
 print(f"ID lookup built: {len(id_to_name)} players")
 
 # Build name to gsis_id lookup
@@ -517,193 +471,6 @@ name_to_gsis = participants[
     participants["display_name"].notna() &
     participants["gsis_id"].str.startswith("00-", na=False)
 ].set_index("display_name")["gsis_id"].to_dict()
-
-print(f"name_to_gsis built: {len(name_to_gsis)} players")
-print(f"Sample: {list(name_to_gsis.items())[:3]}")
-
-# ---- QB EPA — passing dropbacks only, grouped by ID ----
-print("\nCalculating EPA...")
-qb_epa_raw = pbp_adv[
-    (pbp_adv["season_type"] == "REG") &
-    (pbp_adv["passer_player_id"].notna()) &
-    (pbp_adv["epa"].notna()) &
-    (pbp_adv["play_type"].isin(["pass", "qb_spike"]))
-].groupby("passer_player_id").agg(
-    epa_per_play = ("epa", "mean"),
-    total_plays  = ("epa", "count")
-).reset_index()
-qb_epa_raw.columns = ["gsis_id", "epa_per_play", "total_plays"]
-qb_epa_raw["player"] = qb_epa_raw["gsis_id"].map(id_to_name)
-
-# Clean QB list — min 100 dropbacks
-qb_epa      = qb_epa_raw[qb_epa_raw["total_plays"] >= 100].copy()
-qb_gsis_ids = set(qb_epa["gsis_id"].tolist())
-qb_avg_epa  = qb_epa["epa_per_play"].mean()
-
-# ---- RB EPA — rushing only, exclude QBs, grouped by ID ----
-rb_epa_raw = pbp_adv[
-    (pbp_adv["season_type"] == "REG") &
-    (pbp_adv["rusher_player_id"].notna()) &
-    (pbp_adv["epa"].notna()) &
-    (pbp_adv["play_type"] == "run") &
-    (~pbp_adv["rusher_player_id"].isin(qb_gsis_ids))
-].groupby("rusher_player_id").agg(
-    epa_per_play = ("epa", "mean"),
-    total_plays  = ("epa", "count")
-).reset_index()
-rb_epa_raw.columns = ["gsis_id", "epa_per_play", "total_plays"]
-rb_epa_raw["player"] = rb_epa_raw["gsis_id"].map(id_to_name)
-rb_epa     = rb_epa_raw[rb_epa_raw["total_plays"] >= 50].copy()
-rb_avg_epa = rb_epa_raw["epa_per_play"].mean()
-
-# ---- WR/TE EPA — receiving targets only, grouped by ID ----
-rec_epa_raw = pbp_adv[
-    (pbp_adv["season_type"] == "REG") &
-    (pbp_adv["receiver_player_id"].notna()) &
-    (pbp_adv["epa"].notna()) &
-    (pbp_adv["play_type"] == "pass")
-].groupby("receiver_player_id").agg(
-    epa_per_play = ("epa", "mean"),
-    total_plays  = ("epa", "count")
-).reset_index()
-rec_epa_raw.columns = ["gsis_id", "epa_per_play", "total_plays"]
-rec_epa_raw["player"] = rec_epa_raw["gsis_id"].map(id_to_name)
-rec_epa     = rec_epa_raw[rec_epa_raw["total_plays"] >= 100].copy()
-rec_avg_epa = rec_epa_raw["epa_per_play"].mean()
-
-# ---- QB rushing — only real QBs, grouped by ID ----
-qb_rush_raw = pbp_adv[
-    (pbp_adv["season_type"] == "REG") &
-    (pbp_adv["rusher_player_id"].notna()) &
-    (pbp_adv["play_type"] == "run") &
-    (pbp_adv["rusher_player_id"].isin(qb_gsis_ids))
-].groupby("rusher_player_id").agg(
-    rush_attempts = ("epa",            "count"),
-    rush_yards    = ("yards_gained",   "sum"),
-    rush_tds      = ("rush_touchdown", "sum"),
-    rush_epa      = ("epa",            "mean"),
-).reset_index()
-qb_rush_raw.columns = ["gsis_id","rush_attempts","rush_yards","rush_tds","rush_epa"]
-qb_rush_raw["player"] = qb_rush_raw["gsis_id"].map(id_to_name)
-qb_rush = qb_rush_raw.copy()
-
-# Position average EPA
-print(f"Position average EPA per play:")
-print(f"  QB:    {qb_avg_epa:.4f}")
-print(f"  RB:    {rb_avg_epa:.4f}")
-print(f"  WR/TE: {rec_avg_epa:.4f}")
-
-print(f"\nTop QBs by EPA per dropback (min 100 dropbacks):")
-print(qb_epa.sort_values("epa_per_play", ascending=False)[
-    ["player","epa_per_play","total_plays"]].head(10).to_string(index=False))
-
-print(f"\nTop RBs by EPA per carry (min 50 carries):")
-print(rb_epa.sort_values("epa_per_play", ascending=False)[
-    ["player","epa_per_play","total_plays"]].head(10).to_string(index=False))
-
-print(f"\nTop WR/TEs by EPA per target (min 100 targets):")
-print(rec_epa.sort_values("epa_per_play", ascending=False)[
-    ["player","epa_per_play","total_plays"]].head(10).to_string(index=False))
-
-print(f"\nTop QBs by rush yards:")
-print(qb_rush.sort_values("rush_yards", ascending=False)[
-    ["player","rush_attempts","rush_yards","rush_tds","rush_epa"]].head(10).to_string(index=False))
-
-# ---- Target Share + Air Yards — grouped by ID ----
-print("\nCalculating target share...")
-
-team_targets = pbp_adv[
-    (pbp_adv["season_type"] == "REG") &
-    (pbp_adv["receiver_player_id"].notna())
-].groupby(["posteam","season"]).size().reset_index(name="team_total_targets")
-
-player_targets_raw = pbp_adv[
-    (pbp_adv["season_type"] == "REG") &
-    (pbp_adv["receiver_player_id"].notna())
-].groupby(["receiver_player_id","posteam","season"]).agg(
-    targets    = ("epa",           "count"),
-    air_yards  = ("air_yards",     "sum"),
-    avg_depth  = ("air_yards",     "mean"),
-    receptions = ("complete_pass", "sum"),
-    rec_yards  = ("yards_gained",  "sum"),
-).reset_index()
-
-player_targets_raw = player_targets_raw.merge(
-    team_targets, on=["posteam","season"], how="left"
-)
-player_targets_raw["target_share"] = (
-    player_targets_raw["targets"] / player_targets_raw["team_total_targets"]
-)
-player_targets_raw["yprr"] = (
-    player_targets_raw["rec_yards"] / player_targets_raw["targets"]
-)
-
-target_avg_raw = player_targets_raw.groupby("receiver_player_id").agg(
-    avg_target_share = ("target_share", "mean"),
-    avg_air_yards    = ("air_yards",    "mean"),
-    avg_depth        = ("avg_depth",    "mean"),
-    avg_yprr         = ("yprr",         "mean"),
-    total_targets    = ("targets",      "sum"),
-).reset_index()
-target_avg_raw.columns = ["gsis_id","avg_target_share","avg_air_yards",
-                           "avg_depth","avg_yprr","total_targets"]
-target_avg_raw["player"] = target_avg_raw["gsis_id"].map(id_to_name)
-target_avg = target_avg_raw.copy()
-
-# ---- RB Red Zone — grouped by ID ----
-print("Calculating RB red zone...")
-rz5_raw = pbp_adv[
-    (pbp_adv["season_type"] == "REG") &
-    (pbp_adv["rusher_player_id"].notna()) &
-    (pbp_adv["yardline_100"] <= 5) &
-    (~pbp_adv["rusher_player_id"].isin(qb_gsis_ids))
-].groupby("rusher_player_id").agg(
-    rz5_carries = ("epa", "count")
-).reset_index()
-rz5_raw.columns = ["gsis_id", "rz5_carries"]
-rz5_raw["player"] = rz5_raw["gsis_id"].map(id_to_name)
-rz5 = rz5_raw.copy()
-
-rz10_raw = pbp_adv[
-    (pbp_adv["season_type"] == "REG") &
-    (pbp_adv["rusher_player_id"].notna()) &
-    (pbp_adv["yardline_100"] <= 10) &
-    (~pbp_adv["rusher_player_id"].isin(qb_gsis_ids))
-].groupby("rusher_player_id").agg(
-    rz10_carries = ("epa", "count")
-).reset_index()
-rz10_raw.columns = ["gsis_id", "rz10_carries"]
-rz10_raw["player"] = rz10_raw["gsis_id"].map(id_to_name)
-rz10 = rz10_raw.copy()
-
-# ---- Snap share — merge with ID lookup ----
-print("Merging snap share with ID lookup...")
-full_to_abbrev = dict(zip(
-    participants["display_name"].dropna(),
-    participants["short_name"].dropna()
-))
-snap_avg_2yr["gsis_id"] = snap_avg_2yr["player"].map(
-    dict(zip(participants["short_name"].dropna(),
-             participants["gsis_id"].dropna()))
-)
-
-print("\nAdvanced stats calculated ✅")
-
-print(f"\nTarget share sample (min 50 targets):")
-print(target_avg[target_avg["total_targets"] >= 50].sort_values(
-    "avg_target_share", ascending=False)[
-    ["player","avg_target_share","avg_air_yards","avg_yprr","total_targets"]
-].head(15).to_string(index=False))
-
-print(f"\nRed zone leaders (RB, min 5 carries):")
-print(rz5[rz5["rz5_carries"] >= 5].sort_values(
-    "rz5_carries", ascending=False)[
-    ["player","rz5_carries"]].head(15).to_string(index=False))
-
-print(f"\nTop QBs by rush yards:")
-print(qb_rush.sort_values("rush_yards", ascending=False)[
-    ["player","rush_attempts","rush_yards","rush_tds","rush_epa"]].head(10).to_string(index=False))
-
 
 print(f"name_to_gsis built: {len(name_to_gsis)} players")
 print(f"Sample: {list(name_to_gsis.items())[:3]}")
@@ -750,13 +517,9 @@ rankings_df["combined_score"] = rankings_df.apply(
     axis=1
 ).round(1)
 
-# Placeholder tier — will be replaced by unified tier in cell 14
+# Placeholder tier — will be replaced by AI-classified tier lookup below
 rankings_df["tier"]      = "Unclassified"
 rankings_df["tier_rank"] = 99
-
-# years_remaining — used by all position scoring cells
-def years_remaining(age, pos):
-    return max(0, AGE_LIMITS.get(pos, 30) - age)
 
 print(f"✅ Rankings merged with multi-year production")
 print(f"   Players with production history: {rankings_df['avg_ppg'].gt(0).sum()}")
@@ -949,7 +712,7 @@ if second_future:
 
 
 # ============================================================
-# 9. Merge Advanced Stats into merged_df
+# 9. Build gsis_id Lookup
 # ============================================================
 import re
 
@@ -986,731 +749,64 @@ for name, gsis in MANUAL_OVERRIDES.items():
 # Manual ID fixes where PBP ID differs from participants ID
 name_to_gsis_clean["Lamar Jackson"] = "00-0034796"
 
-# ---- Fix snap share — use full name to gsis_id mapping ----
-snap_avg_2yr["gsis_id"] = snap_avg_2yr["player"].map(name_to_gsis_clean)
-print(f"Snap share matched: {snap_avg_2yr['gsis_id'].notna().sum()} / {len(snap_avg_2yr)}")
-
-# ---- Build master advanced stats df keyed by gsis_id ----
-adv_stats = pd.DataFrame({"gsis_id": list(id_to_name.keys())})
-adv_stats["full_name"] = adv_stats["gsis_id"].map(id_to_name)
-
-# QB EPA
-adv_stats = adv_stats.merge(
-    qb_epa_raw[["gsis_id","epa_per_play","total_plays"]].rename(
-        columns={"epa_per_play":"qb_epa","total_plays":"qb_dropbacks"}),
-    on="gsis_id", how="left"
-)
-
-# RB EPA
-adv_stats = adv_stats.merge(
-    rb_epa_raw[["gsis_id","epa_per_play","total_plays"]].rename(
-        columns={"epa_per_play":"rb_epa","total_plays":"rb_carries"}),
-    on="gsis_id", how="left"
-)
-
-# WR/TE EPA
-adv_stats = adv_stats.merge(
-    rec_epa_raw[["gsis_id","epa_per_play","total_plays"]].rename(
-        columns={"epa_per_play":"rec_epa","total_plays":"rec_targets"}),
-    on="gsis_id", how="left"
-)
-
-# QB rush
-adv_stats = adv_stats.merge(
-    qb_rush_raw[["gsis_id","rush_attempts","rush_yards","rush_tds","rush_epa"]],
-    on="gsis_id", how="left"
-)
-
-# Target share + air yards
-adv_stats = adv_stats.merge(
-    target_avg_raw[["gsis_id","avg_target_share","avg_air_yards",
-                     "avg_depth","avg_yprr","total_targets"]],
-    on="gsis_id", how="left"
-)
-
-# Red zone
-adv_stats = adv_stats.merge(
-    rz5_raw[["gsis_id","rz5_carries"]],
-    on="gsis_id", how="left"
-)
-adv_stats = adv_stats.merge(
-    rz10_raw[["gsis_id","rz10_carries"]],
-    on="gsis_id", how="left"
-)
-
-# Snap share — now using gsis_id
-snap_lookup = snap_avg_2yr[snap_avg_2yr["gsis_id"].notna()].groupby("gsis_id").agg(
-    avg_snap_pct = ("avg_snap_pct", "mean"),
-    games_played = ("games_played", "sum")
-).reset_index()
-adv_stats = adv_stats.merge(snap_lookup, on="gsis_id", how="left")
-
-# Draft capital
-draft_latest = draft_capital.sort_values("draft_year", ascending=False).drop_duplicates(
-    subset="gsis_id"
-)
-adv_stats = adv_stats.merge(
-    draft_latest[["gsis_id","draft_year","draft_round","draft_pick","draft_value"]],
-    on="gsis_id", how="left"
-)
-
-print(f"Advanced stats df built: {len(adv_stats)} players")
-
-# ---- Drop existing advanced stats columns if they exist (from previous runs) ----
-adv_cols = [
-    "qb_epa","qb_dropbacks","rb_epa","rb_carries",
-    "rec_epa","rec_targets","rush_attempts","rush_yards","rush_tds",
-    "rush_epa","avg_target_share","avg_air_yards","avg_depth",
-    "avg_yprr","total_targets","rz5_carries","rz10_carries",
-    "avg_snap_pct","games_played","draft_year","draft_round",
-    "draft_pick","draft_value","epa_vs_avg","gsis_id"
-]
-merged_df = merged_df.drop(columns=[c for c in adv_cols if c in merged_df.columns])
-
-# ---- Re-add gsis_id after dropping ----
 merged_df["gsis_id"] = merged_df["name"].map(name_to_gsis_clean)
 
 print(f"Players matched to gsis_id: {merged_df['gsis_id'].notna().sum()} / {len(merged_df)}")
 print("Unmatched players:")
 print(merged_df[merged_df["gsis_id"].isna()][["name","position","owner"]].to_string(index=False))
 
-# ---- Merge into merged_df ----
-merged_df = merged_df.merge(
-    adv_stats[[
-        "gsis_id","qb_epa","qb_dropbacks","rb_epa","rb_carries",
-        "rec_epa","rec_targets","rush_attempts","rush_yards","rush_tds",
-        "rush_epa","avg_target_share","avg_air_yards","avg_depth",
-        "avg_yprr","total_targets","rz5_carries","rz10_carries",
-        "avg_snap_pct","games_played","draft_year","draft_round",
-        "draft_pick","draft_value"
-    ]],
-    on="gsis_id", how="left"
-)
-
-# ---- Calculate relative EPA (vs position average) using position ----
-def calc_epa_vs_avg(row):
-    pos = row["position"]
-    if pos == "QB":
-        epa = row.get("qb_epa")
-        avg = qb_avg_epa
-    elif pos == "RB":
-        epa = row.get("rb_epa")
-        avg = rb_avg_epa
-    elif pos in ["WR", "TE"]:
-        epa = row.get("rec_epa")
-        avg = rec_avg_epa
-    else:
-        return None
-    if pd.notna(epa):
-        return round(epa - avg, 4)
-    return None
-
-merged_df["epa_vs_avg"] = merged_df.apply(calc_epa_vs_avg, axis=1)
-
-# ---- Only keep draft capital for players under 27 ----
-AGE_CUTOFF_DRAFT = 27
-merged_df.loc[merged_df["age"] >= AGE_CUTOFF_DRAFT, "draft_value"] = 0
-merged_df.loc[merged_df["age"] >= AGE_CUTOFF_DRAFT, "draft_round"] = None
-merged_df.loc[merged_df["age"] >= AGE_CUTOFF_DRAFT, "draft_pick"]  = None
-
-print(f"merged_df after advanced stats merge: {merged_df.shape}")
-print(f"\nAdvanced stats coverage:")
-print(f"  EPA data:         {merged_df['epa_vs_avg'].notna().sum()} / {len(merged_df)} players")
-print(f"  Snap share:       {merged_df['avg_snap_pct'].notna().sum()} / {len(merged_df)} players")
-print(f"  Draft capital:    {merged_df['draft_value'].notna().sum()} / {len(merged_df)} players")
-print(f"  Target share:     {merged_df['avg_target_share'].notna().sum()} / {len(merged_df)} players")
-print(f"  RZ carries:       {merged_df['rz5_carries'].notna().sum()} / {len(merged_df)} players")
-
-print(f"\nSample — your key players:")
-check = ["Drake Maye","Puka Nacua","Trey McBride","Kyren Williams",
-         "Bijan Robinson","Tetairoa McMillan","Jahmyr Gibbs"]
-for name in check:
-    r = merged_df[merged_df["name"] == name]
-    if not r.empty:
-        r = r.iloc[0]
-        print(f"\n  {name}")
-        print(f"    EPA vs avg:    {r['epa_vs_avg']:.4f}" if pd.notna(r['epa_vs_avg']) else "    EPA vs avg:    N/A")
-        print(f"    Snap %:        {r['avg_snap_pct']:.1%}" if pd.notna(r['avg_snap_pct']) else "    Snap %:        N/A")
-        print(f"    Draft value:   {r['draft_value']:.0f}" if pd.notna(r['draft_value']) else "    Draft value:   N/A")
-        print(f"    Target share:  {r['avg_target_share']:.1%}" if pd.notna(r['avg_target_share']) else "    Target share:  N/A")
-        print(f"    RZ carries:    {r['rz5_carries']:.0f}" if pd.notna(r['rz5_carries']) else "    RZ carries:    N/A")
-
 
 # In[ ]:
 
 
 # ============================================================
-# 10. RB Tier Scoring
+# 10. AI-Classified Tier Assignment
 # ============================================================
+# Tiers come from public/data/playerTiers.json, produced by scripts/classify_tiers.py
+# — a standalone script run manually 2-5x/year that makes a single Anthropic API call
+# to classify every rostered player into a tier. This section only performs the
+# lookup + fallback; it does not call the Anthropic API and does not run the old
+# formula-based score_rb/score_wr/score_te/score_qb scoring.
 
-def score_rb(row):
-    ktc     = row["KTC Value"]             if pd.notna(row.get("KTC Value"))             else 0
-    prod    = row["multi_year_prod_score"] if pd.notna(row.get("multi_year_prod_score")) else 0
-    age     = row["age"]                   if pd.notna(row.get("age"))                   else 99
-    epa     = row["epa_vs_avg"]            if pd.notna(row.get("epa_vs_avg"))            else None
-    snap    = row["avg_snap_pct"]          if pd.notna(row.get("avg_snap_pct"))          else None
-    rz5     = row["rz5_carries"]           if pd.notna(row.get("rz5_carries"))           else None
-    draft   = row["draft_value"]           if pd.notna(row.get("draft_value"))           else 0
-    rb_n    = row["rb_carries"]            if pd.notna(row.get("rb_carries"))            else 0
-    n_seas  = row["n_seasons"]             if pd.notna(row.get("n_seasons"))             else 0
-    games   = row["games_played"]          if pd.notna(row.get("games_played"))          else 0
-    runway  = years_remaining(age, "RB")
+with open(os.path.join(OUTPUT_DIR, "playerTiers.json")) as f:
+    ai_tiers = json.load(f)
 
-    is_rookie  = n_seas <= 1
-    is_injured = games < 20
+ai_tier_names = list(ai_tiers.keys())
 
-    # ---- KTC (0-100) ----
-    ktc_score = min(ktc / 10000 * 100, 100)
+# KTC-only tier thresholds — safety net for any player missing from playerTiers.json.
+# Mirrors api/league.py's _assign_player_tier(), used there for external leagues.
+_KTC_TIER_THRESHOLDS = [
+    (6500, "Cornerstone"),
+    (5500, "Foundational"),
+    (4500, "Upside Premier"),
+    (3500, "Mainstay"),
+    (2500, "Serviceable"),
+    (1500, "Jag Developmental"),
+    (1,    "Replaceable"),
+]
 
-    # ---- Production (0-100) ----
-    prod_score = min(prod / 10000 * 100, 100)
-
-    # ---- EPA (0-100) ----
-    if epa is not None and rb_n >= 50 and not is_rookie and not is_injured:
-        epa_score = min(max((epa + 0.14) / 0.35 * 100, 0), 100)
-    elif epa is not None and rb_n >= 50 and is_rookie:
-        epa_score = max(min(max((epa + 0.14) / 0.35 * 100, 0), 100), 40)
-    else:
-        epa_score = 50
-
-    # ---- Snap share (0-100) ----
-    if snap is not None and not is_rookie and not is_injured:
-        snap_score = min(snap / 0.814 * 100, 100)
-    elif snap is not None and is_rookie:
-        snap_score = max(min(snap / 0.814 * 100, 100), 40)
-    else:
-        snap_score = 50
-
-    # ---- Red zone (0-100) ----
-    if rz5 is not None and not is_rookie and not is_injured:
-        rz_score = min(rz5 / 47 * 100, 100)
-    elif rz5 is not None and is_rookie:
-        rz_score = max(min(rz5 / 47 * 100, 100), 40)
-    else:
-        rz_score = 50
-
-    # ---- Draft capital (0-100) — age < 27 only ----
-    draft_score = min(draft / 2056 * 100, 100) if age < 27 and draft > 0 else 0
-
-    # ---- Runway (0-100) ----
-    runway_score = min(runway / 7 * 100, 100)
-
-    # ---- Weighted total ----
-    return round(
-        ktc_score    * 0.28 +
-        prod_score   * 0.22 +
-        epa_score    * 0.15 +
-        snap_score   * 0.13 +
-        rz_score     * 0.10 +
-        draft_score  * 0.07 +
-        runway_score * 0.05,
-        1
-    )
-
-def assign_rb_tier(score, age, draft, n_seasons, ktc):
-    is_young   = age <= 24
-    is_vet     = age >= 28
-    is_old_vet = age >= 30
-    is_rookie  = n_seasons <= 1
-
-    if score >= 83:                                         return "Cornerstone"
-
-    if score >= 65:
-        if is_old_vet:                                          return "Short-term Winner"
-        if is_vet:                                              return "Productive Vet"
-        if ktc >= 6500:                                         return "Cornerstone"      # Jeanty/Achane/Hampton fix
-        return                                                         "Foundational"
-
-    if score >= 55:
-        if is_old_vet:                                          return "Short-term Winner"
-        if is_vet:                                              return "Productive Vet"
-        if is_rookie and draft >= 1500:                         return "Upside Premier"
-        if is_rookie and draft >= 800:                          return "Upside Shot"
-        if is_young:                                            return "Foundational"
-        if ktc >= 5500:                                         return "Foundational"      # Cook fix
-        return                                                         "Mainstay"
-
-    if score >= 45:
-        if is_old_vet:                                          return "Short-term Production"
-        if is_vet:                                              return "Serviceable"
-        if is_rookie and draft >= 1000:                         return "Upside Premier"
-        if is_rookie and draft >= 800:                          return "Upside Shot"
-        if is_young and ktc >= 4500:                            return "Upside Premier"    # Irving/Skattebo fix
-        return                                                         "Mainstay"
-
-    if score >= 35:
-        if is_old_vet and ktc < 1500:                       return "Jag Insurance"
-        if is_old_vet:                                      return "Short-term Production"
-        if is_vet:                                          return "Serviceable"
-        if is_rookie:                                       return "Upside Shot"
-        return                                                     "Serviceable"
-
-    if score >= 25:
-        if is_vet:                                          return "Jag Insurance"
-        if age <= 23:                                       return "Jag Developmental"
-        return                                                     "Jag Insurance"
-
+def _ktc_fallback_tier(ktc_value):
+    for threshold, tier in _KTC_TIER_THRESHOLDS:
+        if ktc_value >= threshold:
+            return tier
     return "Replaceable"
 
-# ---- Apply to all RBs ----
-rb_mask = merged_df["position"] == "RB"
+def assign_ai_tier(row):
+    name = row["name"]
+    ktc  = row["KTC Value"] if pd.notna(row.get("KTC Value")) else 0
 
-merged_df.loc[rb_mask, "rb_score"] = merged_df[rb_mask].apply(score_rb, axis=1)
+    if name in ai_tiers:
+        return ai_tiers[name]
 
-merged_df.loc[rb_mask, "rb_tier_new"] = merged_df[rb_mask].apply(lambda r:
-    assign_rb_tier(
-        r["rb_score"],
-        r["age"]        if pd.notna(r["age"])        else 99,
-        r["draft_value"] if pd.notna(r["draft_value"]) else 0,
-        r["n_seasons"]  if pd.notna(r["n_seasons"])  else 0,
-        r["KTC Value"]  if pd.notna(r["KTC Value"])  else 0,
-    ), axis=1
-)
+    match = get_close_matches(name, ai_tier_names, n=1, cutoff=0.85)
+    if match:
+        return ai_tiers[match[0]]
 
-print("RB tiers assigned ✅")
-print(f"\nRB tier distribution:")
-print(merged_df[rb_mask]["rb_tier_new"].value_counts())
+    return _ktc_fallback_tier(ktc)
 
+merged_df["tier_new"] = merged_df.apply(assign_ai_tier, axis=1)
 
-# In[ ]:
-
-
-# ============================================================
-# 11. WR Tier Scoring
-# ============================================================
-
-def score_wr(row):
-    ktc     = row["KTC Value"]             if pd.notna(row.get("KTC Value"))             else 0
-    prod    = row["multi_year_prod_score"] if pd.notna(row.get("multi_year_prod_score")) else 0
-    age     = row["age"]                   if pd.notna(row.get("age"))                   else 99
-    epa     = row["epa_vs_avg"]            if pd.notna(row.get("epa_vs_avg"))            else None
-    snap    = row["avg_snap_pct"]          if pd.notna(row.get("avg_snap_pct"))          else None
-    tshare  = row["avg_target_share"]      if pd.notna(row.get("avg_target_share"))      else None
-    draft   = row["draft_value"]           if pd.notna(row.get("draft_value"))           else 0
-    rec_n   = row["rec_targets"]           if pd.notna(row.get("rec_targets"))           else 0
-    n_seas  = row["n_seasons"]             if pd.notna(row.get("n_seasons"))             else 0
-    games   = row["games_played"]          if pd.notna(row.get("games_played"))          else 0
-    runway  = years_remaining(age, "WR")
-
-    is_rookie  = n_seas <= 1
-    is_injured = games < 25
-
-    # ---- KTC (0-100) ----
-    ktc_score = min(ktc / 10000 * 100, 100)
-
-    # ---- Production (0-100) ----
-    prod_score = min(prod / 10000 * 100, 100)
-
-    # ---- EPA (0-100) ----
-    # distribution: min=-0.23, max=0.56, mean=0.20
-    if epa is not None and rec_n >= 100 and not is_rookie and not is_injured:
-        epa_score = min(max((epa + 0.23) / 0.79 * 100, 0), 100)
-    elif epa is not None and rec_n >= 100 and is_rookie:
-        epa_score = max(min(max((epa + 0.23) / 0.79 * 100, 0), 100), 40)
-    else:
-        epa_score = 50
-
-    # ---- Snap share (0-100) ----
-    if snap is not None and not is_rookie and not is_injured:
-        snap_score = min(snap / 0.937 * 100, 100)
-    elif snap is not None and is_rookie:
-        snap_score = max(min(snap / 0.937 * 100, 100), 40)
-    else:
-        snap_score = 50
-
-    # ---- Target share (0-100) ----
-    if tshare is not None and not is_rookie and not is_injured:
-        tshare_score = min(tshare / 0.299 * 100, 100)
-    elif tshare is not None and is_rookie:
-        tshare_score = max(min(tshare / 0.299 * 100, 100), 40)
-    else:
-        tshare_score = 50
-
-    # ---- Draft capital (0-100) — age < 27 only ----
-    draft_score = min(draft / 2635 * 100, 100) if age < 27 and draft > 0 else 0
-
-    # ---- Weighted total ----
-    return round(
-        ktc_score    * 0.25 +
-        prod_score   * 0.22 +
-        epa_score    * 0.18 +
-        snap_score   * 0.12 +
-        tshare_score * 0.15 +
-        draft_score  * 0.08,
-        1
-    )
-
-def assign_wr_tier(score, age, draft, n_seasons, ktc):
-    is_young    = age <= 24
-    is_vet      = age >= 30
-    is_old_vet  = age >= 33
-    is_rookie   = n_seasons <= 1
-
-    if score >= 80:                                             return "Cornerstone"
-
-    if score >= 67:
-        if is_old_vet:                                          return "Short-term Winner"
-        if is_vet:                                              return "Short-term Production"
-        # Elite KTC required for Cornerstone in this range
-        if ktc >= 6500 and is_rookie and draft >= 2000:         return "Cornerstone"
-        if ktc >= 6500 and not is_rookie:                       return "Cornerstone"
-        # High KTC rookie without top draft → Foundational
-        if is_rookie and is_young:                              return "Foundational"
-        return                                                         "Foundational"
-
-    if score >= 58:
-        if is_old_vet:                                          return "Short-term Production"
-        if is_vet:                                              return "Short-term Production"
-        if is_rookie and is_young:                              return "Upside Premier"
-        if n_seasons <= 2 and is_young and draft >= 1200:       return "Upside Premier"
-        if n_seasons <= 2 and is_young and ktc >= 4500:         return "Upside Premier"
-        if ktc < 4500:                                          return "Mainstay"  # Pierce fix
-        return                                                         "Foundational"
-
-    if score >= 48:
-        if is_old_vet:                                          return "Short-term Production"
-        if is_vet:                                              return "Serviceable"
-        if is_rookie and draft >= 1500:                         return "Upside Premier"
-        if is_rookie and draft >= 800:                          return "Upside Shot"
-        if age <= 23 and draft >= 800:                          return "Upside Shot"
-        # High KTC players with good scores deserve Foundational
-        if ktc >= 5000 and not is_vet:                          return "Foundational"
-        return                                                         "Mainstay"
-
-    if score >= 38:
-        if is_old_vet:                                          return "Short-term Production"
-        if is_vet:                                              return "Serviceable"
-        # Check high KTC rookie BEFORE draft threshold
-        if is_rookie and ktc >= 4500:                           return "Upside Premier"
-        if is_rookie and draft >= 800:                          return "Upside Shot"
-        if age <= 23 and draft >= 800:                          return "Upside Shot"
-        return                                                         "Serviceable"
-
-    if score >= 28:
-        if ktc == 0:                                            return "Replaceable"
-        if is_vet:                                              return "Jag Insurance"
-        if age <= 23:                                           return "Jag Developmental"
-        return                                                         "Jag Insurance"
-
-    return "Replaceable"
-
-# ---- Apply to all WRs ----
-wr_mask = merged_df["position"] == "WR"
-
-merged_df.loc[wr_mask, "wr_score"] = merged_df[wr_mask].apply(score_wr, axis=1)
-
-merged_df.loc[wr_mask, "wr_tier_new"] = merged_df[wr_mask].apply(lambda r:
-    assign_wr_tier(
-        r["wr_score"],
-        r["age"]         if pd.notna(r["age"])         else 99,
-        r["draft_value"] if pd.notna(r["draft_value"]) else 0,
-        r["n_seasons"]   if pd.notna(r["n_seasons"])   else 0,
-        r["KTC Value"]   if pd.notna(r["KTC Value"])   else 0,
-    ), axis=1
-)
-
-print("WR tiers assigned ✅")
-print(f"\nWR tier distribution:")
-print(merged_df[wr_mask]["wr_tier_new"].value_counts())
-
-
-# In[ ]:
-
-
-# ============================================================
-# 12. TE Tier Scoring
-# ============================================================
-
-def score_te(row):
-    ktc     = row["KTC Value"]             if pd.notna(row.get("KTC Value"))             else 0
-    prod    = row["multi_year_prod_score"] if pd.notna(row.get("multi_year_prod_score")) else 0
-    age     = row["age"]                   if pd.notna(row.get("age"))                   else 99
-    epa     = row["epa_vs_avg"]            if pd.notna(row.get("epa_vs_avg"))            else None
-    snap    = row["avg_snap_pct"]          if pd.notna(row.get("avg_snap_pct"))          else None
-    tshare  = row["avg_target_share"]      if pd.notna(row.get("avg_target_share"))      else None
-    draft   = row["draft_value"]           if pd.notna(row.get("draft_value"))           else 0
-    rec_n   = row["rec_targets"]           if pd.notna(row.get("rec_targets"))           else 0
-    n_seas  = row["n_seasons"]             if pd.notna(row.get("n_seasons"))             else 0
-    games   = row["games_played"]          if pd.notna(row.get("games_played"))          else 0
-
-    is_rookie  = n_seas <= 1
-    is_injured = games < 25
-
-    # ---- KTC (0-100) ----
-    ktc_score = min(ktc / 10000 * 100, 100)
-
-    # ---- Production (0-100) ----
-    prod_score = min(prod / 10000 * 100, 100)
-
-    # ---- EPA (0-100) ----
-    # distribution: min=-0.19, max=0.63, mean=0.19
-    if epa is not None and rec_n >= 50 and not is_rookie and not is_injured:
-        epa_score = min(max((epa + 0.19) / 0.82 * 100, 0), 100)
-    elif epa is not None and rec_n >= 50 and is_rookie:
-        epa_score = max(min(max((epa + 0.19) / 0.82 * 100, 0), 100), 40)
-    else:
-        epa_score = 50
-
-    # ---- Snap share (0-100) ----
-    # Downweighted because blocking snaps inflate this metric
-    if snap is not None and not is_rookie and not is_injured:
-        snap_score = min(snap / 0.932 * 100, 100)
-    elif snap is not None and is_rookie:
-        snap_score = max(min(snap / 0.932 * 100, 100), 40)
-    else:
-        snap_score = 50
-
-    # ---- Target share (0-100) ----
-    if tshare is not None and not is_rookie and not is_injured:
-        tshare_score = min(tshare / 0.278 * 100, 100)
-    elif tshare is not None and is_rookie:
-        tshare_score = max(min(tshare / 0.278 * 100, 100), 40)
-    else:
-        tshare_score = 50
-
-    # ---- Draft capital (0-100) — age < 27 only ----
-    draft_score = min(draft / 2270 * 100, 100) if age < 27 and draft > 0 else 0
-
-    # ---- Weighted total ----
-    return round(
-        ktc_score    * 0.28 +
-        prod_score   * 0.25 +
-        epa_score    * 0.18 +
-        snap_score   * 0.08 +
-        tshare_score * 0.16 +
-        draft_score  * 0.05,
-        1
-    )
-
-def assign_te_tier(score, age, draft, n_seasons, ktc):
-    is_young   = age <= 24
-    is_vet     = age >= 30
-    is_old_vet = age >= 33
-    is_rookie  = n_seasons <= 1
-    has_elite_draft = draft >= 1500
-    has_good_draft  = draft >= 700
-
-    if score >= 80:                                             return "Cornerstone"
-
-    if score >= 65:
-        if is_old_vet:                                          return "Short-term Winner"
-        if is_vet:                                              return "Short-term Winner"
-        if is_rookie and ktc >= 7000:                           return "Cornerstone"
-        if is_rookie:                                           return "Foundational"      # Loveland fix
-        return                                                         "Cornerstone"
-
-    if score >= 55:
-        if is_old_vet:                                          return "Short-term Production"
-        if is_vet:                                              return "Productive Vet"
-        if is_rookie and has_elite_draft:                       return "Upside Premier"
-        if is_rookie and is_young and ktc >= 4000:              return "Upside Premier"
-        if is_rookie and has_good_draft:                        return "Upside Shot"
-        if is_young:                                            return "Foundational"
-        if ktc >= 4500:                                         return "Foundational"  # Kraft fix
-        return                                                         "Mainstay"
-
-    if score >= 45:
-        if is_old_vet:                                          return "Short-term Production"
-        if is_vet:                                              return "Serviceable"
-        if is_rookie and has_elite_draft:                       return "Upside Premier"
-        if is_rookie and has_good_draft:                        return "Upside Shot"
-        if is_rookie and ktc >= 3000:                           return "Upside Shot"
-        if ktc >= 5000 and not is_vet:                          return "Foundational"
-        if ktc >= 4500 and not is_vet:                          return "Mainstay"
-        return                                                         "Mainstay"
-
-    if score >= 35:
-        if is_old_vet:                                          return "Short-term Production"
-        if is_vet:                                              return "Serviceable"
-        if is_rookie and has_good_draft:                        return "Upside Shot"
-        if ktc >= 3000 and is_rookie:                           return "Upside Premier"
-        return                                                         "Serviceable"
-
-    if score >= 25:
-        if is_vet:                                              return "Jag Insurance"
-        if age <= 23:                                           return "Jag Developmental"
-        return                                                         "Jag Insurance"
-
-    return "Replaceable"
-
-# ---- Apply to all TEs ----
-te_mask = merged_df["position"] == "TE"
-
-merged_df.loc[te_mask, "te_score"] = merged_df[te_mask].apply(score_te, axis=1)
-
-merged_df.loc[te_mask, "te_tier_new"] = merged_df[te_mask].apply(lambda r:
-    assign_te_tier(
-        r["te_score"],
-        r["age"]         if pd.notna(r["age"])         else 99,
-        r["draft_value"] if pd.notna(r["draft_value"]) else 0,
-        r["n_seasons"]   if pd.notna(r["n_seasons"])   else 0,
-        r["KTC Value"]   if pd.notna(r["KTC Value"])   else 0,
-    ), axis=1
-)
-
-print("TE tiers assigned ✅")
-print(f"\nTE tier distribution:")
-print(merged_df[te_mask]["te_tier_new"].value_counts())
-
-
-# In[ ]:
-
-
-# ============================================================
-# 13. QB Tier Scoring
-# ============================================================
-
-def score_qb(row):
-    ktc     = row["KTC Value"]             if pd.notna(row.get("KTC Value"))             else 0
-    prod    = row["multi_year_prod_score"] if pd.notna(row.get("multi_year_prod_score")) else 0
-    age     = row["age"]                   if pd.notna(row.get("age"))                   else 99
-    epa     = row["epa_vs_avg"]            if pd.notna(row.get("epa_vs_avg"))            else None
-    ryards  = row["rush_yards"]            if pd.notna(row.get("rush_yards"))            else 0
-    draft   = row["draft_value"]           if pd.notna(row.get("draft_value"))           else 0
-    qb_n    = row["qb_dropbacks"]          if pd.notna(row.get("qb_dropbacks"))          else 0
-    n_seas  = row["n_seasons"]             if pd.notna(row.get("n_seasons"))             else 0
-    games   = row["games_played"]          if pd.notna(row.get("games_played"))          else 0
-
-    is_rookie  = n_seas <= 1
-    is_injured = games < 25
-
-    # ---- KTC (0-100) ----
-    ktc_score = min(ktc / 10000 * 100, 100)
-
-    # ---- Production (0-100) ----
-    prod_score = min(prod / 10000 * 100, 100)
-
-    # ---- EPA (0-100) ----
-    # distribution: min=-0.27, max=0.46, mean=0.055
-    if epa is not None and qb_n >= 100 and not is_rookie and not is_injured:
-        epa_score = min(max((epa + 0.27) / 0.73 * 100, 0), 100)
-    elif epa is not None and qb_n >= 100 and is_rookie:
-        epa_score = max(min(max((epa + 0.27) / 0.73 * 100, 0), 100), 40)
-    else:
-        epa_score = 50
-
-    # ---- Rush yards (0-100) ----
-    # distribution: min=37, max=1187, mean=431
-    # Neutral 50 for injured/rookies
-    if ryards > 0 and not is_rookie and not is_injured:
-        rush_score = min(ryards / 1187 * 100, 100)
-    elif ryards > 0 and is_rookie:
-        rush_score = max(min(ryards / 1187 * 100, 100), 40)
-    else:
-        rush_score = 50
-
-    # ---- Draft capital (0-100) — age < 27 only ----
-    draft_score = min(draft / 3000 * 100, 100) if age < 27 and draft > 0 else 0
-
-    # ---- Weighted total ----
-    return round(
-        ktc_score  * 0.30 +
-        prod_score * 0.28 +
-        epa_score  * 0.22 +
-        rush_score * 0.12 +
-        draft_score * 0.08,
-        1
-    )
-
-def assign_qb_tier(score, age, draft, n_seasons, ktc):
-    is_young   = age <= 24
-    is_vet     = age >= 30
-    is_old_vet = age >= 35
-    is_rookie  = n_seasons <= 1
-    has_elite_draft = draft >= 2000
-    has_good_draft  = draft >= 1200
-
-    if score >= 82:                                             return "Cornerstone"
-
-    if score >= 68:
-        if is_old_vet:                                          return "Short-term Winner"
-        if is_vet and ktc < 5000:                               return "Productive Vet"
-        if is_rookie and has_elite_draft:                       return "Upside Premier"
-        return                                                         "Cornerstone"
-
-    if score >= 55:
-        if is_old_vet:                                          return "Short-term Winner"
-        if is_vet and ktc < 5000:                               return "Productive Vet"
-        if is_vet and ktc >= 6500:                              return "Cornerstone"
-        if ktc >= 7000 and not is_vet:                          return "Cornerstone"      # Burrow fix
-        if is_rookie and has_elite_draft:                       return "Upside Premier"
-        if is_rookie and has_good_draft:                        return "Upside Premier"
-        if is_young and has_elite_draft:                        return "Upside Premier"
-        if ktc >= 5500:                                         return "Foundational"
-        return                                                         "Mainstay"
-
-    if score >= 45:
-        if is_old_vet:                                          return "Short-term Production"
-        if is_vet:                                              return "Productive Vet"
-        if is_rookie and has_elite_draft and ktc >= 3500:       return "Upside Premier"  # Richardson fix
-        if is_rookie and has_elite_draft:                       return "Upside Shot"      # Richardson fallback
-        if is_rookie and has_good_draft and ktc >= 3000:        return "Upside Shot"
-        if is_rookie and ktc >= 4500:                           return "Upside Shot"
-        if is_young and n_seasons >= 2 and ktc >= 4000:         return "Upside Shot"      # Young fix
-        if ktc >= 5500 and not is_vet:                          return "Foundational"
-        return                                                         "Mainstay"
-
-    if score >= 35:
-        if is_old_vet:                                          return "Short-term Production"
-        if is_vet:                                              return "Serviceable"
-        if is_rookie and has_elite_draft:                       return "Upside Premier"
-        if is_rookie and has_good_draft:                        return "Upside Shot"
-        if is_rookie and ktc >= 2500:                           return "Upside Shot"       # Sanders fix
-        if is_rookie and ktc >= 4500:                           return "Upside Shot"
-        if is_young and n_seasons >= 2:                         return "Upside Shot"       # Young fix
-        return                                                         "Serviceable"
-
-    if score >= 25:
-        if is_vet:                                              return "Jag Insurance"
-        if age <= 24:                                           return "Jag Developmental"
-        return                                                         "Jag Insurance"
-
-    return "Replaceable"
-
-# ---- Apply to all QBs ----
-qb_mask = merged_df["position"] == "QB"
-
-merged_df.loc[qb_mask, "qb_score"] = merged_df[qb_mask].apply(score_qb, axis=1)
-
-merged_df.loc[qb_mask, "qb_tier_new"] = merged_df[qb_mask].apply(lambda r:
-    assign_qb_tier(
-        r["qb_score"],
-        r["age"]         if pd.notna(r["age"])         else 99,
-        r["draft_value"] if pd.notna(r["draft_value"]) else 0,
-        r["n_seasons"]   if pd.notna(r["n_seasons"])   else 0,
-        r["KTC Value"]   if pd.notna(r["KTC Value"])   else 0,
-    ), axis=1
-)
-
-print("QB tiers assigned ✅")
-print(f"\nQB tier distribution:")
-print(merged_df[qb_mask]["qb_tier_new"].value_counts())
-
-
-# In[ ]:
-
-
-# ============================================================
-# 14. Unified Tier Column
-# ============================================================
-
-def assign_unified_tier(row):
-    pos = row["position"]
-
-    if pos == "RB":
-        return row["rb_tier_new"] if pd.notna(row.get("rb_tier_new")) else row["tier"]
-    elif pos == "WR":
-        return row["wr_tier_new"] if pd.notna(row.get("wr_tier_new")) else row["tier"]
-    elif pos == "TE":
-        return row["te_tier_new"] if pd.notna(row.get("te_tier_new")) else row["tier"]
-    elif pos == "QB":
-        return row["qb_tier_new"] if pd.notna(row.get("qb_tier_new")) else row["tier"]
-    else:
-        return row["tier"]
-
-merged_df["tier_new"] = merged_df.apply(assign_unified_tier, axis=1)
-
-print("Unified tier column built ✅")
+print("AI-classified tiers assigned ✅")
 print(f"\nTier distribution:")
 print(merged_df["tier_new"].value_counts())
 
@@ -1729,7 +825,7 @@ print(merged_df[merged_df["tier_new"] == "Upside Premier"][
     ["name","position","age","KTC Value","tier_new"]
 ].sort_values(["position","KTC Value"], ascending=[True, False]).to_string(index=False))
 
-# Replace old tier with new unified tier
+# Replace old tier with new AI-classified tier
 merged_df["tier_old"] = merged_df["tier"]  # keep backup
 merged_df["tier"]     = merged_df["tier_new"]
 
@@ -1750,7 +846,7 @@ tier_rank_map = {
 }
 merged_df["tier_rank"] = merged_df["tier"].map(tier_rank_map).fillna(99)
 
-print("✅ Tier column updated with new unified tiers")
+print("✅ Tier column updated with AI-classified tiers")
 print(f"\nFinal tier distribution:")
 print(merged_df["tier"].value_counts())
 
@@ -3336,20 +2432,12 @@ pu = merged_df[[
     "name","position","nfl_team","age","owner","on_taxi",
     "KTC Value","multi_year_prod_score","combined_score",
     "avg_ppg","n_seasons","tier","is_my_team",
-    "epa_vs_avg","avg_snap_pct","avg_target_share",
-    "avg_yprr","rz5_carries","rz10_carries",
-    "rush_yards","rush_tds","draft_value","draft_round",
-    "draft_pick","games_played","qb_dropbacks","rb_carries","rec_targets",
     "gsis_id"
 ]].copy()
 pu.columns = [
     "Player","Position","NFL Team","Age","Dynasty Owner","On Taxi",
     "KTC Value","Multi-Year Prod Score","Combined Score",
     "Avg PPG","Seasons","Tier","My Team",
-    "EPA vs Avg","Snap Pct","Target Share",
-    "YPRR","RZ5 Carries","RZ10 Carries",
-    "Rush Yards","Rush TDs","Draft Value","Draft Round",
-    "Draft Pick","Games Played","QB Dropbacks","RB Carries","Rec Targets",
     "GSIS ID"
 ]
 push_json('playerUniverse.json', df_to_records(
