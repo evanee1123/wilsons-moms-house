@@ -206,6 +206,11 @@ class handler(BaseHTTPRequestHandler):
         ktc_names = list(ktc_name_to_value.keys())
         ktc_pick_lookup = {p["Pick Name"]: p["KTC Value"] for p in ktc_data["picks"]}
 
+        # AI-classified tiers (Wilson's playerTiers.json, served via /api/ktc) — preferred
+        # over the KTC-only threshold approximation so external leagues match Wilson's tiers.
+        ai_tier_lookup = ktc_data.get("tiers", {}) or {}
+        ai_tier_names = list(ai_tier_lookup.keys())
+
         # ── Layer 1: players/nfl cache (24 hour TTL) ──────────────────────────
         cached_players = kv_get(PLAYERS_CACHE_KEY)
         players_cache_hit = cached_players is not None
@@ -345,12 +350,16 @@ class handler(BaseHTTPRequestHandler):
                 name     = _NAME_FIXES.get(raw_name, raw_name)
                 matches  = get_close_matches(name, ktc_names, n=1, cutoff=0.85)
                 ktc_val  = int(ktc_name_to_value[matches[0]]) if matches else 0
+
+                tier_matches = get_close_matches(name, ai_tier_names, n=1, cutoff=0.85)
+                tier = ai_tier_lookup[tier_matches[0]] if tier_matches else _assign_player_tier(ktc_val)
+
                 players_list.append({
                     "sleeper_id": pid,
                     "name":       raw_name,
                     "ktc_value":  ktc_val,
                     "position":   position,
-                    "tier":       _assign_player_tier(ktc_val),
+                    "tier":       tier,
                     "age":        p.get("age"),
                     "nfl_team":   p.get("team"),
                 })

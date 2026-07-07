@@ -90,17 +90,6 @@ def _fetch_json(url):
         return json.loads(r.read())
 
 
-def _has_meaningful_stats(pos, s):
-    """Mirrors wilsons_teams.py has_meaningful_stats() — filters out no-show seasons."""
-    if pos == 'QB':
-        return (s.get('pass_att', 0) or 0) > 0
-    if pos == 'RB':
-        return (s.get('rush_att', 0) or 0) > 0 or (s.get('rec', 0) or 0) > 0
-    if pos in ('WR', 'TE'):
-        return (s.get('rec_tgt', 0) or 0) > 0 or (s.get('rush_att', 0) or 0) > 0
-    return False
-
-
 def _career_row(pos, year, s):
     """Builds one career_stats entry — field names match PlayerDetailModal's qbCols/rbCols/wrTeCols exactly."""
     gp = s.get('gp', 0) or 0
@@ -278,10 +267,10 @@ class handler(BaseHTTPRequestHandler):
                     continue
                 pos = p["position"]
 
-                if _has_meaningful_stats(pos, s):
+                gp = s.get('gp', 0) or 0
+                if gp >= 1:
                     player_career.setdefault(sid, []).append(_career_row(pos, year, s))
 
-                gp = s.get('gp', 0) or 0
                 pts_ppr = s.get('pts_ppr', 0) or 0
                 if gp >= MIN_GAMES_FOR_PPG:
                     player_seasons.setdefault(sid, []).append({
