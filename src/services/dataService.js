@@ -1,3 +1,5 @@
+import { normalizeName } from '../utils/playerUtils'
+
 const BASE    = '/data'
 const WMH_ID  = '1312130103358021632'
 const SLEEPER = 'https://api.sleeper.app/v1'
@@ -11,6 +13,68 @@ async function fetchJSON(filename) {
 async function fetchSleeper(path) {
   const res = await fetch(`${SLEEPER}${path}`)
   return res.json()
+}
+
+async function fetchPlayerStats(leagueId) {
+  try {
+    const res = await fetch(`/api/player-stats?league_id=${leagueId}`)
+    if (!res.ok) return {}
+    return res.json()
+  } catch {
+    return {}
+  }
+}
+
+// Merges /api/player-stats onto a playerUniverse/leagueRosters row array.
+// External leagues match by exact Sleeper ID (present on every row); Wilson's static
+// JSON has no Sleeper ID so falls through to normalized-name matching instead.
+// primaryFromCron=true (Wilson's): cron-computed Avg PPG/Prod Score/Combined Score/Seasons
+// win unless actually missing. primaryFromCron=false (external): API values always win —
+// existing values are just 0/null placeholders.
+function mergePlayerStats(rows, playerStats, primaryFromCron) {
+  if (!playerStats || Object.keys(playerStats).length === 0) return rows
+
+  const byName = {}
+  Object.values(playerStats).forEach(s => { byName[normalizeName(s.name)] = s })
+  const isMissing = v => v === undefined || v === null
+
+  return rows.map(row => {
+    const stats = playerStats[row['Sleeper ID']] || byName[normalizeName(row.Player)]
+    if (!stats) return row
+
+    const merged = { ...row }
+    if (!primaryFromCron || isMissing(merged['Avg PPG']))               merged['Avg PPG'] = stats.avg_ppg
+    if (!primaryFromCron || isMissing(merged['Multi-Year Prod Score'])) merged['Multi-Year Prod Score'] = stats.multi_year_prod_score
+    if (!primaryFromCron || isMissing(merged['Combined Score']))        merged['Combined Score'] = stats.combined_score
+    if (!primaryFromCron || isMissing(merged['Seasons']))                merged['Seasons'] = stats.seasons
+    merged['Games Played'] = stats.games
+    merged['Snap Pct']     = stats.snap_pct
+    merged['career_stats'] = stats.career_stats
+    return merged
+  })
+}
+
+// Production Share/Rank/Gap — mirrors wilsons_teams.py's team_summary aggregation
+// (total_avg_ppg = sum of Multi-Year Prod Score per owner, share = % of league total).
+function computeProductionShares(playerUniverse) {
+  const totalsByOwner = {}
+  playerUniverse.forEach(p => {
+    const prod = parseFloat(p['Multi-Year Prod Score']) || 0
+    totalsByOwner[p.Owner] = (totalsByOwner[p.Owner] || 0) + prod
+  })
+  const leagueTotal = Object.values(totalsByOwner).reduce((s, v) => s + v, 0)
+
+  const shareByOwner = {}
+  Object.entries(totalsByOwner).forEach(([owner, total]) => {
+    shareByOwner[owner] = leagueTotal > 0 ? +(total / leagueTotal * 100).toFixed(2) : 0
+  })
+
+  const rankByOwner = {}
+  Object.entries(shareByOwner)
+    .sort((a, b) => b[1] - a[1])
+    .forEach(([owner], i) => { rankByOwner[owner] = i + 1 })
+
+  return { shareByOwner, rankByOwner }
 }
 
 async function fetchStandings(leagueId) {
@@ -49,40 +113,22 @@ function parsePickName(pickName) {
 }
 
 async function loadExternalLeagueData(leagueId) {
-  const [leagueRes, ktcRes, standings] = await Promise.all([
+  const [leagueRes, ktcRes, standings, playerStats] = await Promise.all([
     fetch(`/api/league?league_id=${leagueId}`).then(r => {
       if (!r.ok) throw new Error(`League API error: ${r.status}`)
       return r.json()
     }),
     fetch('/api/ktc').then(r => r.json()),
     fetchStandings(leagueId),
+    fetchPlayerStats(leagueId),
   ])
 
   const rosters          = leagueRes.rosters || []
   const totalLeagueValue = rosters.reduce((s, r) => s + (r.total_ktc || 0), 0)
   const sortedByValue    = [...rosters].sort((a, b) => (b.total_ktc || 0) - (a.total_ktc || 0))
 
-  // teamOverview — derived from rosters; Outlook computed server-side in /api/league
-  const teamOverview = sortedByValue.map((r, i) => {
-    const playerVal = (r.players || []).reduce((s, p) => s + (p.ktc_value || 0), 0)
-    const pickVal   = (r.picks   || []).reduce((s, p) => s + (p.ktc_value || 0), 0)
-    const dn        = r.display_name || r.team_name
-    return {
-      'Owner':              dn,
-      'display_name':       dn,
-      'Value Rank':         i + 1,
-      'Outlook':            r.outlook || null,
-      'Player Value':       playerVal,
-      'Pick Value':         pickVal,
-      'Total Value':        r.total_ktc || 0,
-      'Value Share %':      totalLeagueValue > 0 ? +((r.total_ktc || 0) / totalLeagueValue * 100).toFixed(1) : 0,
-      'Production Share %': 0,
-      'C+F Total':          r.cf_total || 0,
-    }
-  })
-
-  // playerUniverse — flattened from rosters; Tier from KTC-only approximation; no Age/production
-  const playerUniverse = rosters.flatMap(r => {
+  // playerUniverse — flattened from rosters; Tier from KTC-only approximation
+  let playerUniverse = rosters.flatMap(r => {
     const dn = r.display_name || r.team_name
     return (r.players || []).map(p => ({
       'Player':         p.name,
@@ -96,11 +142,12 @@ async function loadExternalLeagueData(leagueId) {
       'Avg PPG':        0,
       'On Taxi':        'False',
       'NFL Team':       p.nfl_team || null,
+      'Sleeper ID':     p.sleeper_id,
     }))
   })
 
   // leagueRosters — same source as playerUniverse in the leagueRosters shape
-  const leagueRosters = rosters.flatMap(r => {
+  let leagueRosters = rosters.flatMap(r => {
     const dn = r.display_name || r.team_name
     return (r.players || []).map(p => ({
       'Owner':          dn,
@@ -112,7 +159,37 @@ async function loadExternalLeagueData(leagueId) {
       'Tier':           p.tier || null,
       'Avg PPG':        0,
       'On Taxi':        'False',
+      'Sleeper ID':     p.sleeper_id,
     }))
+  })
+
+  playerUniverse = mergePlayerStats(playerUniverse, playerStats, false)
+  leagueRosters  = mergePlayerStats(leagueRosters, playerStats, false)
+
+  const { shareByOwner, rankByOwner } = computeProductionShares(playerUniverse)
+
+  // teamOverview — derived from rosters; Outlook computed server-side in /api/league;
+  // Production Share/Rank/Gap computed from merged playerUniverse's Multi-Year Prod Score
+  const teamOverview = sortedByValue.map((r, i) => {
+    const playerVal   = (r.players || []).reduce((s, p) => s + (p.ktc_value || 0), 0)
+    const pickVal     = (r.picks   || []).reduce((s, p) => s + (p.ktc_value || 0), 0)
+    const dn          = r.display_name || r.team_name
+    const valueShare  = totalLeagueValue > 0 ? +((r.total_ktc || 0) / totalLeagueValue * 100).toFixed(1) : 0
+    const prodShare   = shareByOwner[dn] || 0
+    return {
+      'Owner':              dn,
+      'display_name':       dn,
+      'Value Rank':         i + 1,
+      'Outlook':            r.outlook || null,
+      'Player Value':       playerVal,
+      'Pick Value':         pickVal,
+      'Total Value':        r.total_ktc || 0,
+      'Value Share %':      valueShare,
+      'Production Share %': prodShare,
+      'Production Rank':    rankByOwner[dn] || null,
+      'Gap':                +(valueShare - prodShare).toFixed(2),
+      'C+F Total':          r.cf_total || 0,
+    }
   })
 
   // pickPortfolio — derived from rosters picks; Original Owner unknown for external leagues
@@ -218,6 +295,7 @@ export async function loadAllData(leagueId) {
     powerRankings,
     valueHistory,
     playoffPicture,
+    playerStats,
   ] = await Promise.all([
     fetchJSON('teamOverview.json'),
     fetchJSON('playerUniverse.json'),
@@ -243,17 +321,18 @@ export async function loadAllData(leagueId) {
     fetchJSON('power_rankings.json'),
     fetchJSON('valueHistory.json'),
     fetchJSON('playoffPicture.json').catch(() => null),
+    fetchPlayerStats(leagueId),
   ])
 
   return {
     teamOverview,
-    playerUniverse,
+    playerUniverse: mergePlayerStats(playerUniverse, playerStats, true),
     rosterGrades,
     positionalProportion,
     pickPortfolio,
     tradeTargets,
     ktcRankings,
-    leagueRosters,
+    leagueRosters: mergePlayerStats(leagueRosters, playerStats, true),
     standings,
     qbSeasonStats,
     rbSeasonStats,
