@@ -2,7 +2,7 @@
 
 ## Current State
 
-Both leagues are **fully built and deployed**. The auto-update data pipeline is running on schedule. No outstanding work on either league.
+Both leagues are **fully built and deployed**. The auto-update data pipeline is running on schedule. Phase C (External League Feature Parity) is now fully complete — Blueprint was the last `WILSONS_ONLY_PAGES` gate and is now unlocked (see "Phase C Step 5" below for the one open follow-up: a logged-in visual check of Blueprint's computed sections on an external league).
 
 - **Wilson's Moms House**: https://wilsons-moms-house.vercel.app
 - **CLTC 8 2017**: https://cltcdynasty.vercel.app
@@ -623,6 +623,114 @@ Three small UX fixes shipped before Phase C Step 2:
 2. **Admin "View As" owners list** — `Sidebar.js`: removed the hardcoded `ALL_OWNERS` constant; the dropdown now maps `owners` (the prop passed from `App.js`, already derived from `data.teamOverview`) and filters out `userProfile?.rosterOwnerName` (the admin's own entry). For Wilson's this is identical to before; for external leagues the dropdown now shows the actual teams from that league.
 
 3. **Auto-select user's team on league switch** — `App.js`: replaced the `[userProfile]`-only auto-select effect with a `[data, userProfile]` effect that checks `rosterOwnerName` then `sleeperUsername` against the loaded `teamOverview` owners list. Uses a functional update (`setOwner(prev => prev || candidate)`) so a manual dropdown selection is never overridden; it only fills in the `''` reset left by the `[leagueId]` effect. If neither name is in the external league (user not a member), owner stays at `''` / "Select team...".
+
+---
+
+### Phase C Step 5 — Blueprint for All Leagues (Complete)
+
+This was the last page gated by `WILSONS_ONLY_PAGES`. Removed the `blueprint` entry from
+`App.js`/`Sidebar.js`'s `WILSONS_ONLY_PAGES`, so external leagues no longer see the 🔒
+lock icon or the "Wilson's Moms House Only" placeholder for `/blueprint`.
+
+**Pre-implementation audit found the original task brief's section list didn't match the
+codebase** — worth recording since it could trip up the next person too:
+- The 7 sections named in that brief (Dynasty Health, Roster/Trade Value Trajectory,
+  Competitive Window, Dynasty Matrix, Position Distribution, Prime Windows, Positional
+  Grades vs League) all live on **Team Deep Dive** (`src/pages/TeamDeepDive.js`), not
+  Blueprint. That page was already Bucket A (unlocked, no gate) since Phase A Step 4.
+- Blueprint's actual sections are: `GoalsSection`, `WatchlistSection` (both Firestore,
+  `users/{uid}/...`), `ValueProportionSection` (pie + `RosterMakeupSection` +
+  `AverageStarterAgeSection`), `TradeStrategySection`, `TradeTargetsSection`,
+  `SellCandidatesSection`, `TopPrioritiesSection`, `TradeFinderSection`.
+- Blueprint is also wrapped in `<ProtectedRoute>` (Firebase login required) independent of
+  `WILSONS_ONLY_PAGES`, and `Signup.jsx` hardcodes `LEAGUE_ID` to Wilson's when verifying
+  Sleeper membership — external-league users cannot create an account. **Decision (made
+  with the user): keep login required for all leagues** rather than build external-league
+  auth (out of scope). This means an anonymous external-league visitor still lands on
+  Login when they click Blueprint — only a user already logged into a Wilson's account
+  (e.g. admin `ekleiner1123`, who happens to also be a member of CLTC under the same
+  Sleeper display name) can view Blueprint for another league today.
+
+**Part 1 — computed sections, `src/pages/Blueprint.js`:**
+- `ValueProportionSection` previously hard-required `data.positionalProportion` (Wilson's-
+  only cron output) and returned `null` for the *entire* section — including the nested
+  `RosterMakeupSection`/`AverageStarterAgeSection`, which don't actually need that field.
+  Now falls back to summing `playerUniverse`'s `KTC Value` by `Position` for the owner
+  when `positionalProportion` isn't available, and the two nested sections render
+  independently of whether the pie chart has data.
+- `TradeStrategySection`, `TradeTargetsSection`, `SellCandidatesSection`,
+  `TopPrioritiesSection`, `TradeFinderSection` needed no changes — they already read only
+  `teamOverview`/`playerUniverse`/`rosterGrades`/`pickPortfolio` fields that `/api/league`
+  + Phase C Step 1 (outlook/cf_total) + Phase D (Production Share/Rank/Gap) already
+  populate for external leagues.
+
+**Part 2 — Goals/Watchlist, `src/pages/Blueprint.js`:** since login stays required for all
+leagues, "sign in to save your watchlist" didn't make sense (whoever reaches Blueprint is
+already signed in). Used the brief's other explicitly-offered fallback instead: a
+`ComingSoonCard` ("Coming soon for this league") renders in place of `GoalsSection`/
+`WatchlistSection` when `!isWilsonsLeague`. Wilson's path is untouched — same components,
+same Firestore calls, gated on `isWilsonsLeague` which was previously computed but unused.
+
+**Part 1 (continued) — Team Deep Dive gaps, since these sections were unlocked but not all
+fully correct for external leagues:**
+- `DynastyHealth` hardcoded literal `'2026 1sts'`/`'2027 1sts'`/`'2028 1sts'` keys — undefined
+  for external leagues (which never had those fields) and would have silently gone stale
+  for Wilson's too once the season rolls over, since nothing in this file derives years
+  dynamically. Now extracts `/^\d{4} 1sts$/` keys from `teamData`, sorts, takes the first 3.
+- `RosterValueTrajectory`/`TradeValueTrajectory` returned `null` (rendered nothing) when
+  `data.valueHistory`/`data.tradeHistory` was empty — true for every external league today.
+  Now render a `TrajectoryPlaceholderCard` with "Value history not available — trajectory
+  tracking requires multiple weeks of data." instead of silently disappearing, for any
+  league/case with insufficient data (not external-league-specific).
+- `PositionalGrades` reads `{pos} Top Player` from `rosterGrades`, which the external
+  `rosterGrades` computation in `dataService.js` never set (rendered `undefined`). Added —
+  highest-KTC player at that position, a simplified proxy for Wilson's cron's 70/30
+  starter/bench `get_starters()`-based grade (not reproduced client-side).
+- `CompetitiveWindow` needed `Core Age`/`Peak Year`/`Peak Window`/`Years to Peak`/
+  `Peak Gain %`/`Age Runway`/`Value Curve` on `teamOverview`, which only the notebook
+  computed (Wilson's only). Ported `wilsons_teams.py` cell "17b" (age-bucket runway %,
+  position growth curves, outlook multipliers, pick conversion, league-value cap, peak-
+  window derivation) into a new `computeCompetitiveWindow()` in `dataService.js`, plus the
+  cell "17" pick-year draft-status logic (`{year} 1sts`/`{year} Status`/`Total 1sts`,
+  Deficient/Adequate/Surplus/Overload thresholds). `currentDraftYear` = `parseInt(leagueRes.season) + 1`
+  (mirrors the notebook's `CURRENT_DRAFT_YEAR = current_season + 1`; `/api/league`'s own
+  pick-generation years already use the equivalent server-side calculation, so this should
+  stay in sync in practice). Dynasty Matrix, Position Distribution, and Prime Windows
+  needed no changes — they only ever used `Position`/`Age`/`KTC Value`, already present.
+- Validated the ported model against **live production CLTC data** via a standalone Node
+  harness (loads `dataService.js`'s internals directly, feeds it real `/api/league`+`/api/ktc`
+  responses) before deploying — confirmed no NaN/undefined outputs across all 10 teams and
+  sane values (e.g. OxenGoat: Core Age 24.9, Peak Window 2028–2029, Peak Gain +12.8%, Age
+  Runway summing to 100%).
+
+**Unplanned fix found while verifying:** `fetchPlayerStats()` in `dataService.js` had
+`return res.json()` (no `await`) inside a `try { … } catch { return {} }` — a classic JS
+gotcha where the async function returns before the inner promise settles, so the `catch`
+never actually catches a JSON-parse failure. This is silent in production (the endpoint
+always returns valid JSON there) but breaks the *entire* data load under `react-scripts
+start`/`vercel dev` locally (where `/api/player-stats` 404s to the SPA fallback HTML, and
+the resulting `SyntaxError` bypassed the catch and blew up `Promise.all` in
+`loadAllData`/`loadExternalLeagueData`). Fixed with `return await res.json()`.
+
+**Verified against the live deployed site** (headless Playwright, `wilsons-moms-house.vercel.app`,
+after push — local dev can't reach the Python API functions, same pre-existing limitation
+noted in Phase A Step 4/Phase D):
+- CLTC (external league, via LeagueSwitcher): sidebar shows no 🔒 anywhere; Team Deep Dive's
+  Dynasty Health/Competitive Window/Dynasty Matrix/Position Distribution/Prime Windows/
+  Positional Grades vs League all render real computed data, zero console errors; clicking
+  My Blueprint now falls through to the Login page instead of the old "Wilson's Moms House
+  Only" placeholder.
+- Wilson's: Home, Team Deep Dive (including Dynasty Health's now-dynamic pick-year keys and
+  the still-real, non-placeholder Roster Value Trajectory chart), and the Blueprint→Login
+  redirect for a logged-out session all unchanged.
+- **Not verified:** Blueprint's own computed sections (Value Proportion, Trade Strategy,
+  Trade Targets, Sell Candidates, Top Priorities, Trade Finder) rendering in-browser for a
+  *logged-in* session on an external league, and the Goals/Watchlist "Coming soon" cards —
+  no Firebase credentials available in this session (same recurring limitation as prior
+  sessions' Blueprint/PowerRankings work). Data-level correctness was checked via code
+  review and the Node harness above (all fields the sections read are populated and
+  well-formed for external leagues). Next person with `ekleiner1123` credentials should
+  log in, switch to CLTC, and eyeball `/blueprint` once to close this out.
 
 ---
 
