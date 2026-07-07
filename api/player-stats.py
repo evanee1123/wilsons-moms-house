@@ -238,11 +238,12 @@ class handler(BaseHTTPRequestHandler):
 
         prod_seasons = _get_prod_seasons(n_years=4)
         prod_seasons_set = set(prod_seasons)
-        # ALL_SEASONS covers a player's entire career (Sleeper's season-stats endpoint goes back to
-        # 2017) so career_stats can show every season played, not just a narrow recent window.
+        # ALL_SEASONS covers a player's entire career (Sleeper's season-stats endpoint's real coverage
+        # starts at 2009 — years before that return an identical rank-only placeholder payload with
+        # no gp field) so career_stats can show every season played, not just a narrow recent window.
         # avg_ppg/multi_year_prod_score must stay on the original 4-year prod_seasons window, so
         # ALL_SEASONS is only used to build career_stats.
-        ALL_SEASONS = list(range(2017, _get_current_season() + 1))
+        ALL_SEASONS = list(range(2009, _get_current_season() + 1))
 
         # ── Fetch season stats for all fetched years in parallel (ALL_SEASONS is a superset of prod_seasons) ──
         season_stats_by_year = {}
