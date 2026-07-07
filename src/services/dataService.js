@@ -19,7 +19,7 @@ async function fetchPlayerStats(leagueId) {
   try {
     const res = await fetch(`/api/player-stats?league_id=${leagueId}`)
     if (!res.ok) return {}
-    return res.json()
+    return await res.json()
   } catch {
     return {}
   }
@@ -112,6 +112,172 @@ function parsePickName(pickName) {
   return { year, tier, round }
 }
 
+// ── Competitive Window model — mirrors wilsons_teams.py cell "17b" exactly ──
+// (age-bucket runway %, position growth curves, outlook multipliers, pick
+// conversion, league-value cap, peak window derivation) so external leagues
+// get the same Core Age / Peak Window / Age Runway / Value Curve stats the
+// cron computes for Wilson's. See HANDOFF.md "Competitive Window Projection
+// Model" for the rationale behind these specific constants.
+const AGE_RUNWAY_BUCKETS = {
+  QB: [['Young', 0, 25], ['Prime', 26, 30], ['Late Prime', 31, 33], ['Aging', 34, 999]],
+  RB: [['Young', 0, 23], ['Prime', 24, 26], ['Late Prime', 27, 28], ['Aging', 29, 999]],
+  WR: [['Young', 0, 23], ['Prime', 24, 27], ['Late Prime', 28, 30], ['Aging', 31, 999]],
+  TE: [['Young', 0, 23], ['Prime', 24, 27], ['Late Prime', 28, 30], ['Aging', 31, 999]],
+}
+function getAgeRunwayBucket(position, age) {
+  for (const [name, lo, hi] of (AGE_RUNWAY_BUCKETS[position] || AGE_RUNWAY_BUCKETS.WR)) {
+    if (age >= lo && age <= hi) return name
+  }
+  return 'Aging'
+}
+
+const GROWTH_CURVES = {
+  QB: [['Rising', 0, 25, 0.12], ['Prime', 26, 30, 0.03], ['Peak', 31, 33, -0.02], ['Decline', 34, 999, -0.15]],
+  RB: [['Rising', 0, 24, 0.15], ['Prime', 25, 26, 0.02], ['Late', 27, 28, -0.12], ['Decline', 29, 999, -0.25]],
+  WR: [['Rising', 0, 24, 0.12], ['Prime', 25, 28, 0.03], ['Late', 29, 30, -0.08], ['Decline', 31, 999, -0.18]],
+  TE: [['Rising', 0, 24, 0.10], ['Prime', 25, 28, 0.02], ['Late', 29, 30, -0.08], ['Decline', 31, 999, -0.18]],
+}
+const GROWTH_ZERO_AGE = { QB: 36, RB: 30, WR: 33, TE: 33 }
+const VALUE_FLOOR = 500, VALUE_CEILING = 9999
+
+function getGrowthBucket(position, age) {
+  const curves = GROWTH_CURVES[position] || GROWTH_CURVES.WR
+  for (const [name, lo, hi, rate] of curves) {
+    if (age >= lo && age <= hi) return { name, rate }
+  }
+  const last = curves[curves.length - 1]
+  return { name: last[0], rate: last[3] }
+}
+
+const OUTLOOK_MULT = {
+  'Rebuild':                      { young: 1.4, pick: 1.3, aging: 0.7 },
+  'Rebuild (future value)':       { young: 1.4, pick: 1.3, aging: 0.7 },
+  'Reload':                       { young: 1.2, pick: 1.1, aging: 0.9 },
+  'Reload (sell vets for youth)': { young: 1.2, pick: 1.1, aging: 0.9 },
+  'Contender':                    { young: 1.0, pick: 0.9, aging: 1.0 },
+  'Window Contender':             { young: 1.0, pick: 0.9, aging: 1.0 },
+  'Contender (needs production)': { young: 1.0, pick: 0.9, aging: 1.0 },
+}
+const DEFAULT_MULT = { young: 1.0, pick: 1.0, aging: 1.0 }
+
+function projectPlayerValue(position, age, ktcValue, numYears, youngMult, agingMult) {
+  const zeroAge = GROWTH_ZERO_AGE[position] || 33
+  const values  = [Math.min(ktcValue, VALUE_CEILING)]
+  let running    = values[0]
+  for (let i = 1; i < numYears; i++) {
+    const projectedAge = age + i
+    if (running <= 0 || projectedAge >= zeroAge) {
+      running = 0
+    } else {
+      const { name: bucket, rate: baseRate } = getGrowthBucket(position, projectedAge)
+      const rate = bucket === 'Rising' ? baseRate * youngMult : baseRate
+      running = running * (1 + rate)
+      if (bucket === 'Decline') running = running * agingMult
+      running = Math.min(Math.max(running, VALUE_FLOOR), VALUE_CEILING)
+    }
+    values.push(running)
+  }
+  return values
+}
+
+function draftStatus(n) {
+  if (n === 0) return 'Deficient'
+  if (n <= 2) return 'Adequate'
+  if (n <= 4) return 'Surplus'
+  return 'Overload'
+}
+
+// Returns { [ownerName]: { 'Core Age', 'Peak Year', 'Peak Window', 'Years to Peak',
+// 'Peak Gain %', 'Age Runway', 'Value Curve', '{year} 1sts', '{year} Status', 'Total 1sts' } }
+function computeCompetitiveWindow(playerUniverse, pickPortfolio, rosters, currentDraftYear) {
+  const years            = [0, 1, 2, 3].map(i => currentDraftYear + i)
+  const valueCurveYears  = [0, 1, 2, 3, 4].map(i => currentDraftYear + i)
+  const maxTeamValue     = Math.max(0, ...rosters.map(r => r.total_ktc || 0))
+  const valueCurveCap    = maxTeamValue * 1.25
+
+  const result = {}
+  rosters.forEach(r => {
+    const owner   = r.display_name || r.team_name
+    const outlook = r.outlook || 'Reload'
+    const mult    = OUTLOOK_MULT[outlook] || DEFAULT_MULT
+
+    const teamPlayers = playerUniverse.filter(p => p['Dynasty Owner'] === owner && (p['KTC Value'] || 0) > 0 && p.Age != null)
+    const totalValue  = teamPlayers.reduce((s, p) => s + (p['KTC Value'] || 0), 0)
+
+    const coreAge = totalValue > 0
+      ? +((teamPlayers.reduce((s, p) => s + p.Age * p['KTC Value'], 0) / totalValue).toFixed(1))
+      : 0
+
+    const bucketValues = { Young: 0, Prime: 0, 'Late Prime': 0, Aging: 0 }
+    teamPlayers.forEach(p => { bucketValues[getAgeRunwayBucket(p.Position, p.Age)] += p['KTC Value'] || 0 })
+    const ageRunway = {}
+    Object.keys(bucketValues).forEach(b => {
+      ageRunway[b] = totalValue > 0 ? +((bucketValues[b] / totalValue * 100).toFixed(1)) : 0
+    })
+
+    let curveTotals = new Array(valueCurveYears.length).fill(0)
+    teamPlayers.forEach(p => {
+      const projected = projectPlayerValue(p.Position, p.Age, p['KTC Value'] || 0, valueCurveYears.length, mult.young, mult.aging)
+      curveTotals = curveTotals.map((v, i) => v + projected[i])
+    })
+
+    const pickContrib = {}
+    ;(pickPortfolio || [])
+      .filter(p => p['Current Owner'] === owner)
+      .forEach(p => {
+        const draftYear = p.Year
+        if (draftYear === currentDraftYear || !valueCurveYears.includes(draftYear)) return
+        pickContrib[draftYear] = (pickContrib[draftYear] || 0) + (p['KTC Value'] || 0) * mult.pick
+      })
+    valueCurveYears.forEach((year, idx) => { curveTotals[idx] += pickContrib[year] || 0 })
+    curveTotals = curveTotals.map(v => Math.min(v, valueCurveCap))
+
+    const valueCurve = {}
+    valueCurveYears.forEach((year, idx) => { valueCurve[year] = Math.round(curveTotals[idx]) })
+
+    const currentValue = curveTotals[0]
+    let peakIdx = 0
+    curveTotals.forEach((v, i) => { if (v > curveTotals[peakIdx]) peakIdx = i })
+    const peakYear  = valueCurveYears[peakIdx]
+    const peakValue = curveTotals[peakIdx]
+
+    const threshold = peakValue * 0.90
+    let lo = peakIdx, hi = peakIdx
+    while (lo - 1 >= 0 && curveTotals[lo - 1] >= threshold) lo--
+    while (hi + 1 < curveTotals.length && curveTotals[hi + 1] >= threshold) hi++
+    if (lo === hi) { lo = Math.max(lo - 1, 0); hi = Math.min(hi + 1, valueCurveYears.length - 1) }
+    const peakWindow   = `${valueCurveYears[lo]}–${valueCurveYears[hi]}`
+    const yearsToPeak  = peakYear - currentDraftYear
+
+    let peakGainPct = currentValue > 0 ? +(((peakValue - currentValue) / currentValue * 100).toFixed(1)) : 0
+    if (peakGainPct < 0.5) peakGainPct = 0
+
+    const yearFields = {}
+    let totalFirsts = 0
+    years.forEach(year => {
+      const n = (pickPortfolio || []).filter(p =>
+        p['Current Owner'] === owner && p.Year === year && parseInt(p.Round) === 1
+      ).length
+      yearFields[`${year} 1sts`]   = n
+      yearFields[`${year} Status`] = draftStatus(n)
+      totalFirsts += n
+    })
+    yearFields['Total 1sts'] = totalFirsts
+
+    result[owner] = {
+      'Core Age':      coreAge,
+      'Peak Year':     peakYear,
+      'Peak Window':   peakWindow,
+      'Years to Peak': yearsToPeak,
+      'Peak Gain %':   peakGainPct,
+      'Age Runway':    ageRunway,
+      'Value Curve':   valueCurve,
+      ...yearFields,
+    }
+  })
+  return result
+}
+
 async function loadExternalLeagueData(leagueId) {
   const [leagueRes, ktcRes, standings, playerStats] = await Promise.all([
     fetch(`/api/league?league_id=${leagueId}`).then(r => {
@@ -168,8 +334,34 @@ async function loadExternalLeagueData(leagueId) {
 
   const { shareByOwner, rankByOwner } = computeProductionShares(playerUniverse)
 
+  // pickPortfolio — derived from rosters picks; Original Owner unknown for external leagues
+  const pickPortfolio = rosters.flatMap(r => {
+    const dn = r.display_name || r.team_name
+    return (r.picks || []).map(pick => {
+      const { year, tier, round } = parsePickName(pick.pick_name)
+      return {
+        'Year':           year,
+        'Round':          round,
+        'Tier':           tier,
+        'Current Owner':  dn,
+        'Original Owner': dn,
+        'KTC Value':      pick.ktc_value || 0,
+        'Pick Name':      pick.pick_name,
+      }
+    })
+  })
+
+  // Competitive Window + pick-year draft status — mirrors wilsons_teams.py cells 17/17b.
+  // currentDraftYear follows the same definition as the notebook's CURRENT_DRAFT_YEAR
+  // (current_season + 1); Sleeper's league.season is used as current_season since /api/league
+  // already derives its own pick-generation years from the equivalent server-side calculation.
+  const currentSeason    = parseInt(leagueRes.season) || new Date().getFullYear()
+  const currentDraftYear = currentSeason + 1
+  const competitiveWindow = computeCompetitiveWindow(playerUniverse, pickPortfolio, rosters, currentDraftYear)
+
   // teamOverview — derived from rosters; Outlook computed server-side in /api/league;
-  // Production Share/Rank/Gap computed from merged playerUniverse's Multi-Year Prod Score
+  // Production Share/Rank/Gap computed from merged playerUniverse's Multi-Year Prod Score;
+  // Competitive Window + pick-year fields computed above
   const teamOverview = sortedByValue.map((r, i) => {
     const playerVal   = (r.players || []).reduce((s, p) => s + (p.ktc_value || 0), 0)
     const pickVal     = (r.picks   || []).reduce((s, p) => s + (p.ktc_value || 0), 0)
@@ -189,32 +381,22 @@ async function loadExternalLeagueData(leagueId) {
       'Production Rank':    rankByOwner[dn] || null,
       'Gap':                +(valueShare - prodShare).toFixed(2),
       'C+F Total':          r.cf_total || 0,
+      ...(competitiveWindow[dn] || {}),
     }
   })
 
-  // pickPortfolio — derived from rosters picks; Original Owner unknown for external leagues
-  const pickPortfolio = rosters.flatMap(r => {
-    const dn = r.display_name || r.team_name
-    return (r.picks || []).map(pick => {
-      const { year, tier, round } = parsePickName(pick.pick_name)
-      return {
-        'Year':           year,
-        'Round':          round,
-        'Tier':           tier,
-        'Current Owner':  dn,
-        'Original Owner': dn,
-        'KTC Value':      pick.ktc_value || 0,
-        'Pick Name':      pick.pick_name,
-      }
-    })
-  })
-
-  // rosterGrades — derived from positional KTC sums; used for rankings in Home + TradeCalculator
+  // rosterGrades — derived from positional KTC sums; used for rankings in Home + TradeCalculator.
+  // Top Player = highest-KTC player at that position (simplified proxy — Wilson's cron uses a
+  // 70/30 starter/bench Combined Score average via get_starters(), not reproduced client-side here).
   const rosterGrades = rosters.map(r => {
-    const byPos = { QB: 0, RB: 0, WR: 0, TE: 0 }
+    const byPos     = { QB: 0, RB: 0, WR: 0, TE: 0 }
+    const topPlayer = { QB: null, RB: null, WR: null, TE: null }
     ;(r.players || []).forEach(p => {
       if (Object.prototype.hasOwnProperty.call(byPos, p.position)) {
         byPos[p.position] += (p.ktc_value || 0)
+        if (!topPlayer[p.position] || (p.ktc_value || 0) > (topPlayer[p.position].ktc_value || 0)) {
+          topPlayer[p.position] = p
+        }
       }
     })
     const dn = r.display_name || r.team_name
@@ -228,6 +410,10 @@ async function loadExternalLeagueData(leagueId) {
       'RB Grade':       byPos.RB,
       'WR Grade':       byPos.WR,
       'TE Grade':       byPos.TE,
+      'QB Top Player':  topPlayer.QB?.name || 'None',
+      'RB Top Player':  topPlayer.RB?.name || 'None',
+      'WR Top Player':  topPlayer.WR?.name || 'None',
+      'TE Top Player':  topPlayer.TE?.name || 'None',
     }
   })
 

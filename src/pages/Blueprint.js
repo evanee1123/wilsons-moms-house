@@ -703,10 +703,25 @@ function WatchlistSection({ uid, data, allAssets, outlookByOwner }) {
 const POS_COLORS = { QB: '#fc8181', RB: '#68d391', WR: '#63b3ed', TE: '#f6e05e', Picks: '#b794f4' }
 
 function ValueProportionSection({ myOwner, data }) {
-  const row = useMemo(
-    () => (data?.positionalProportion || []).find(r => r.Owner === myOwner),
-    [data, myOwner]
-  )
+  const row = useMemo(() => {
+    const staticRow = (data?.positionalProportion || []).find(r => r.Owner === myOwner)
+    if (staticRow) return staticRow
+    // External leagues have no positionalProportion.json (Wilson's-only cron output) —
+    // derive the same QB/RB/WR/TE KTC sums directly from playerUniverse instead.
+    const roster = (data?.playerUniverse || []).filter(p => p['Dynasty Owner'] === myOwner)
+    if (roster.length === 0) return null
+    const byPos = { QB: 0, RB: 0, WR: 0, TE: 0 }
+    roster.forEach(p => {
+      if (Object.prototype.hasOwnProperty.call(byPos, p.Position)) {
+        byPos[p.Position] += parseFloat(p['KTC Value']) || 0
+      }
+    })
+    return {
+      Owner: myOwner,
+      'QB Value': byPos.QB, 'RB Value': byPos.RB, 'WR Value': byPos.WR, 'TE Value': byPos.TE,
+      'Total Player Value': byPos.QB + byPos.RB + byPos.WR + byPos.TE,
+    }
+  }, [data, myOwner])
 
   const pickTotal = useMemo(() =>
     (data?.pickPortfolio || [])
@@ -715,55 +730,60 @@ function ValueProportionSection({ myOwner, data }) {
     [data, myOwner]
   )
 
-  if (!row) return null
+  const slices = useMemo(() => {
+    if (!row) return []
+    const playerTotal = row['Total Player Value'] || 0
+    const grandTotal  = playerTotal + pickTotal || 1
 
-  const playerTotal = row['Total Player Value'] || 0
-  const grandTotal  = playerTotal + pickTotal || 1
+    const segments = [
+      { pos: 'QB',    val: row['QB Value']  || 0 },
+      { pos: 'RB',    val: row['RB Value']  || 0 },
+      { pos: 'WR',    val: row['WR Value']  || 0 },
+      { pos: 'TE',    val: row['TE Value']  || 0 },
+      { pos: 'Picks', val: pickTotal },
+    ]
 
-  const segments = [
-    { pos: 'QB',    val: row['QB Value']  || 0 },
-    { pos: 'RB',    val: row['RB Value']  || 0 },
-    { pos: 'WR',    val: row['WR Value']  || 0 },
-    { pos: 'TE',    val: row['TE Value']  || 0 },
-    { pos: 'Picks', val: pickTotal },
-  ]
+    const cx = 100, cy = 100, r = 80, labelR = 58
+    const toXY = (angle, radius) => [cx + radius * Math.cos(angle), cy + radius * Math.sin(angle)]
 
-  const cx = 100, cy = 100, r = 80, labelR = 58
-  const toXY = (angle, radius) => [cx + radius * Math.cos(angle), cy + radius * Math.sin(angle)]
-
-  let cumAngle = -Math.PI / 2
-  const slices = segments.map(seg => {
-    const pct    = (seg.val / grandTotal) * 100
-    const sweep  = (pct / 100) * 2 * Math.PI
-    const start  = cumAngle
-    const end    = cumAngle + sweep
-    const mid    = cumAngle + sweep / 2
-    cumAngle     = end
-    const [x1, y1] = toXY(start, r)
-    const [x2, y2] = toXY(end, r)
-    const [lx, ly] = toXY(mid, labelR)
-    const largeArc = sweep > Math.PI ? 1 : 0
-    const d = `M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2} Z`
-    return { ...seg, pct, d, lx, ly }
-  })
+    let cumAngle = -Math.PI / 2
+    return segments.map(seg => {
+      const pct    = (seg.val / grandTotal) * 100
+      const sweep  = (pct / 100) * 2 * Math.PI
+      const start  = cumAngle
+      const end    = cumAngle + sweep
+      const mid    = cumAngle + sweep / 2
+      cumAngle     = end
+      const [x1, y1] = toXY(start, r)
+      const [x2, y2] = toXY(end, r)
+      const [lx, ly] = toXY(mid, labelR)
+      const largeArc = sweep > Math.PI ? 1 : 0
+      const d = `M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2} Z`
+      return { ...seg, pct, d, lx, ly }
+    })
+  }, [row, pickTotal])
 
   return (
     <div className='card' style={{ marginBottom: '1.25rem' }}>
       <div className='card-header'><h3>Value Proportion</h3></div>
       <div className='value-proportion-body'>
         <div className='value-proportion-pie'>
-        <svg width="100%" viewBox="0 0 200 200" style={{ display: 'block' }}>
-          {slices.map(s => (
-            <path key={s.pos} d={s.d} fill={POS_COLORS[s.pos]} />
-          ))}
-          {slices.filter(s => s.pct >= 8).map(s => (
-            <text key={s.pos} x={s.lx} y={s.ly} textAnchor="middle" dominantBaseline="central"
-              fill="#fff" fontSize="11" fontWeight="700" fontFamily="inherit" style={{ pointerEvents: 'none' }}>
-              <tspan x={s.lx} dy="-6">{s.pos}</tspan>
-              <tspan x={s.lx} dy="13">{s.pct.toFixed(1)}%</tspan>
-            </text>
-          ))}
-        </svg>
+        {row ? (
+          <svg width="100%" viewBox="0 0 200 200" style={{ display: 'block' }}>
+            {slices.map(s => (
+              <path key={s.pos} d={s.d} fill={POS_COLORS[s.pos]} />
+            ))}
+            {slices.filter(s => s.pct >= 8).map(s => (
+              <text key={s.pos} x={s.lx} y={s.ly} textAnchor="middle" dominantBaseline="central"
+                fill="#fff" fontSize="11" fontWeight="700" fontFamily="inherit" style={{ pointerEvents: 'none' }}>
+                <tspan x={s.lx} dy="-6">{s.pos}</tspan>
+                <tspan x={s.lx} dy="13">{s.pct.toFixed(1)}%</tspan>
+              </text>
+            ))}
+          </svg>
+        ) : (
+          <div style={{ color: 'var(--text-muted)', fontSize: '13px', padding: '1rem' }}>No roster data available.</div>
+        )}
         </div>
         <RosterMakeupSection myOwner={myOwner} data={data} />
         <AverageStarterAgeSection myOwner={myOwner} data={data} />
@@ -1341,11 +1361,24 @@ function TradeFinderSection({ myOwner, myOutlook, data, allAssets, outlookByOwne
   )
 }
 
+// ── Coming soon (external leagues): Goals/Watchlist are Firestore-backed and tied to
+// Wilson's-only signup today — see HANDOFF.md Phase C Step 5 for why this isn't wired up
+// for other leagues rather than showing a broken/empty Firestore-backed section.
+function ComingSoonCard({ title }) {
+  return (
+    <div className='card' style={{ marginBottom: '1.25rem' }}>
+      <div className='card-header'><h3>{title}</h3></div>
+      <div style={{ padding: '1.5rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px' }}>
+        Coming soon for this league.
+      </div>
+    </div>
+  )
+}
+
 // ── Main export ───────────────────────────────────────────────────────────────
 export default function Blueprint({ data, setPage }) {
   const { currentUser, userProfile, viewAsOwner } = useAuth()
   const { leagueId } = useLeague()
-  // eslint-disable-next-line no-unused-vars
   const isWilsonsLeague = leagueId === '1312130103358021632'
   const myOwner = viewAsOwner || userProfile?.rosterOwnerName
   // uid is always the real logged-in user — never swapped by viewAsOwner
@@ -1412,8 +1445,14 @@ export default function Blueprint({ data, setPage }) {
         {viewAsOwner && <span style={{ marginLeft: '10px', fontSize: '11px', background: 'rgba(246,224,94,0.15)', color: '#d69e2e', padding: '2px 8px', borderRadius: '99px' }}>Admin view</span>}
       </div>
 
-      <GoalsSection uid={uid} myOwner={personalOwner} myOutlook={personalOutlook} positionalRankings={positionalRankings} pickYears={pickYears} />
-      <WatchlistSection uid={uid} data={data} allAssets={allAssets} outlookByOwner={outlookByOwner} />
+      {isWilsonsLeague
+        ? <GoalsSection uid={uid} myOwner={personalOwner} myOutlook={personalOutlook} positionalRankings={positionalRankings} pickYears={pickYears} />
+        : <ComingSoonCard title='Roster Composition Goals' />
+      }
+      {isWilsonsLeague
+        ? <WatchlistSection uid={uid} data={data} allAssets={allAssets} outlookByOwner={outlookByOwner} />
+        : <ComingSoonCard title='Watchlist' />
+      }
       <ValueProportionSection myOwner={myOwner} data={data} />
       <TradeStrategySection myOwner={myOwner} data={data} />
       <TradeTargetsSection uid={uid} myOwner={myOwner} myOutlook={myOutlook} data={data} outlookByOwner={outlookByOwner} positionalRankings={positionalRankings} />

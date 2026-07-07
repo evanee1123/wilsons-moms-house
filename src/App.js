@@ -19,9 +19,7 @@ import WilsonsOnly from './components/WilsonsOnly'
 import LeagueSwitcher from './components/LeagueSwitcher'
 import './App.css'
 
-const WILSONS_ONLY_PAGES = {
-  blueprint: 'My Blueprint',
-}
+const WILSONS_ONLY_PAGES = {}
 
 function AppInner() {
   const [page,          setPage]          = useState('home')

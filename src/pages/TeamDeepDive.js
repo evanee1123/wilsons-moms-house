@@ -230,14 +230,26 @@ function PickPortfolioSection({ picks, teamOwner }) {
 function DynastyHealth({ teamData }) {
   if (!teamData) return null
 
+  // Pick-year fields are keyed "{year} 1sts"/"{year} Status" — derived dynamically (not
+  // hardcoded literal years) so this works for any league/season and doesn't need a manual
+  // edit every year. Shows the first 3 upcoming draft years present in the data.
+  const pickYearMetrics = Object.keys(teamData)
+    .filter(k => /^\d{4} 1sts$/.test(k))
+    .map(k => parseInt(k))
+    .sort((a, b) => a - b)
+    .slice(0, 3)
+    .map(year => ({
+      label: `${year} Firsts`,
+      value: teamData[`${year} 1sts`],
+      sub:   teamData[`${year} Status`],
+    }))
+
   const metrics = [
     { label: 'Value Share',      value: teamData['Value Share %'] + '%',      sub: `#${teamData['Value Rank']} in league` },
     { label: 'Production Share', value: teamData['Production Share %'] + '%', sub: `#${teamData['Production Rank']} in league` },
     { label: 'Value Gap',        value: (parseFloat(teamData['Gap']) > 0 ? '+' : '') + teamData['Gap'] + '%', sub: 'value vs production' },
     { label: 'C+F Total',        value: teamData['C+F Total'],                sub: 'target: 5–7' },
-    { label: '2026 Firsts',      value: teamData['2026 1sts'],                sub: teamData['2026 Status'] },
-    { label: '2027 Firsts',      value: teamData['2027 1sts'],                sub: teamData['2027 Status'] },
-    { label: '2028 Firsts',      value: teamData['2028 1sts'],                sub: teamData['2028 Status'] },
+    ...pickYearMetrics,
     { label: 'Total Value',      value: parseInt(teamData['Total Value']).toLocaleString(), sub: 'players + picks' },
   ]
 
@@ -367,10 +379,33 @@ function ValueTrajectoryTooltip({ active, payload, label, teamOwner }) {
   )
 }
 
+function TrajectoryPlaceholderCard({ title, icon, subtitle, message }) {
+  return (
+    <div className='card'>
+      <div className='card-header'>
+        <div>
+          <h3>{icon} {title}</h3>
+          <span>{subtitle}</span>
+        </div>
+      </div>
+      <div style={{ padding: '1rem' }}>
+        <div style={{ textAlign: 'center', color: 'var(--text-secondary)', fontSize: '13px', padding: '2rem 0' }}>
+          {message}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function RosterValueTrajectory({ valueHistory, teamOwner }) {
   const [range, setRange] = useState('all')
 
-  if (!valueHistory || valueHistory.length === 0) return null
+  if (!valueHistory || valueHistory.length === 0) return (
+    <TrajectoryPlaceholderCard
+      title='Roster Value Trajectory' icon='📉' subtitle='Total roster KTC value over time'
+      message='Value history not available — trajectory tracking requires multiple weeks of data.'
+    />
+  )
 
   const sortedHistory   = [...valueHistory].sort((a, b) => a.date.localeCompare(b.date))
   const filteredHistory = filterEntriesByRange(sortedHistory, range)
@@ -498,7 +533,12 @@ function TradeValueTrajectory({ tradeHistory, teamOwner }) {
   const [range, setRange] = useState('all')
 
   const allPoints = buildTeamTradePoints(tradeHistory, teamOwner)
-  if (allPoints.length === 0) return null
+  if (allPoints.length === 0) return (
+    <TrajectoryPlaceholderCard
+      title='Trade Value Trajectory' icon='🔁' subtitle='Cumulative net KTC value gained or lost from trades'
+      message='Value history not available — trajectory tracking requires multiple weeks of data.'
+    />
+  )
 
   const filteredPoints = filterEntriesByRange(allPoints, range)
   const chartData = filteredPoints.length >= 2
