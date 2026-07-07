@@ -237,16 +237,14 @@ class handler(BaseHTTPRequestHandler):
             return self._respond(200, payload)
 
         prod_seasons = _get_prod_seasons(n_years=4)
-        # career_seasons adds one extra year further back than prod_seasons. Without this buffer,
-        # the newest year in prod_seasons is the current season — which has zero games league-wide
-        # for the ~2 months each year between get_current_season() flipping to the new year and the
-        # season actually kicking off — so every player's career_stats would be capped at 3 real
-        # seasons during that window regardless of tenure. avg_ppg/multi_year_prod_score must stay
-        # on the original 4-year prod_seasons window, so this buffer year is only used for career_stats.
-        career_seasons = _get_prod_seasons(n_years=5)
         prod_seasons_set = set(prod_seasons)
+        # ALL_SEASONS covers a player's entire career (Sleeper's season-stats endpoint goes back to
+        # 2017) so career_stats can show every season played, not just a narrow recent window.
+        # avg_ppg/multi_year_prod_score must stay on the original 4-year prod_seasons window, so
+        # ALL_SEASONS is only used to build career_stats.
+        ALL_SEASONS = list(range(2017, _get_current_season() + 1))
 
-        # ── Fetch season stats for all fetched years in parallel (career_seasons is a superset of prod_seasons) ──
+        # ── Fetch season stats for all fetched years in parallel (ALL_SEASONS is a superset of prod_seasons) ──
         season_stats_by_year = {}
         with ThreadPoolExecutor(max_workers=8) as executor:
             future_to_year = {
@@ -254,7 +252,7 @@ class handler(BaseHTTPRequestHandler):
                     _fetch_json,
                     f"https://api.sleeper.app/v1/stats/nfl/regular/{year}?season_type=regular"
                 ): year
-                for year in career_seasons
+                for year in ALL_SEASONS
             }
             for future in as_completed(future_to_year):
                 year = future_to_year[future]
@@ -265,9 +263,9 @@ class handler(BaseHTTPRequestHandler):
 
         # ── Per-player season history + best-3-of-4 avg_ppg ──
         player_seasons = {}   # sid -> list of {year, gp, ppg} — prod_seasons window only
-        player_career = {}    # sid -> list of career_stats rows (all seasons played, no gp>=6 filter) — career_seasons window
+        player_career = {}    # sid -> list of career_stats rows (all seasons played, no gp>=6 filter) — ALL_SEASONS window
 
-        for year in career_seasons:
+        for year in ALL_SEASONS:
             year_stats = season_stats_by_year.get(year, {})
             for sid, p in rostered.items():
                 s = year_stats.get(sid)
