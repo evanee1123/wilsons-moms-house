@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useLeague } from '../contexts/LeagueContext';
+import { useSleeperAuth } from '../contexts/SleeperAuthContext';
 import LeagueSwitcher from './LeagueSwitcher';
+import SleeperLogin from './SleeperLogin';
 
 
 export default function Sidebar({ page, setPage, owner, setOwner,
@@ -9,9 +11,11 @@ export default function Sidebar({ page, setPage, owner, setOwner,
                                    sidebarOpen, setSidebarOpen }) {
   const { currentUser, userProfile, viewAsOwner, setViewAsOwner, logout } = useAuth();
   const { leagueName, leagueId } = useLeague();
+  const { sleeperUser, sleeperLogout } = useSleeperAuth();
   const isWilsonsLeague = leagueId === '1312130103358021632';
   const WILSONS_ONLY_PAGES = new Set();
   const [switcherOpen, setSwitcherOpen] = useState(false);
+  const [sleeperLoginOpen, setSleeperLoginOpen] = useState(false);
   const isAdmin = userProfile?.sleeperUsername === 'ekleiner1123';
 
   const navItems = [
@@ -40,6 +44,7 @@ export default function Sidebar({ page, setPage, owner, setOwner,
   return (
     <>
       {switcherOpen && <LeagueSwitcher onClose={() => setSwitcherOpen(false)} />}
+      {sleeperLoginOpen && <SleeperLogin onClose={() => setSleeperLoginOpen(false)} />}
       <aside
         className={sidebarOpen ? 'open' : ''}
         style={{
@@ -177,6 +182,39 @@ export default function Sidebar({ page, setPage, owner, setOwner,
               Sign up
             </button>
           </div>
+        )}
+
+        {/* Sleeper login (external leagues only — Wilson's Firebase auth covers it) */}
+        {!isWilsonsLeague && (
+          sleeperUser ? (
+            <div style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              marginBottom: '12px', fontSize: '11px', color: '#718096',
+            }}>
+              <span>Sleeper: <span style={{ color: '#fff', fontWeight: 600 }}>{sleeperUser.display_name}</span></span>
+              <button
+                onClick={sleeperLogout}
+                style={{
+                  background: 'none', border: 'none', color: '#718096',
+                  fontSize: '11px', cursor: 'pointer', textDecoration: 'underline',
+                  padding: 0,
+                }}
+              >
+                Log out
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => setSleeperLoginOpen(true)}
+              style={{
+                display: 'block', width: '100%', textAlign: 'left', marginBottom: '12px',
+                background: 'none', border: 'none', color: '#718096',
+                fontSize: '11px', cursor: 'pointer', textDecoration: 'underline', padding: 0,
+              }}
+            >
+              Log in to save data
+            </button>
+          )
         )}
 
         {/* Public team selector */}

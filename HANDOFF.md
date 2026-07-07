@@ -2,7 +2,7 @@
 
 ## Current State
 
-Both leagues are **fully built and deployed**. The auto-update data pipeline is running on schedule. Phase C (External League Feature Parity) is now fully complete — Blueprint was the last `WILSONS_ONLY_PAGES` gate and is now unlocked (see "Phase C Step 5" below for the one open follow-up: a logged-in visual check of Blueprint's computed sections on an external league).
+Both leagues are **fully built and deployed**. The auto-update data pipeline is running on schedule. Phase C (External League Feature Parity) is now fully complete — Blueprint was the last `WILSONS_ONLY_PAGES` gate and is now unlocked (see "Phase C Step 5" below for the one open follow-up: a logged-in visual check of Blueprint's computed sections on an external league). Phase C Step 5 explicitly punted on external-league auth ("keep login required for all leagues... out of scope") — that gap is now closed by **Phase E — Sleeper-Based Login for External Leagues** (see below): any Sleeper user can now save Blueprint's Watchlist/Goals for a non-Wilson's league without a Firebase account.
 
 - **Wilson's Moms House**: https://wilsons-moms-house.vercel.app
 - **CLTC 8 2017**: https://cltcdynasty.vercel.app
@@ -833,6 +833,107 @@ in both leagues.
 **Not touched:** `wilsons_teams.py`/the cron pipeline, `cltc-dynasty/` (CLTC's separate static-data
 Vercel app — out of scope; "CLTC" in this task means viewing CLTC's league ID as an *external* league
 from within the Wilson's multi-league site, the same mechanism Phase A/C already built).
+
+---
+
+## Phase E — Sleeper-Based Login for External Leagues (Complete)
+
+Closes the gap Phase C Step 5 explicitly punted on: external-league visitors can now save
+Blueprint's Watchlist and Goals without a Firebase account, by identifying themselves with
+just a Sleeper username (no password — identification only, acceptable for a fantasy tool
+with no sensitive data). Wilson's Firebase auth/Firestore path is completely untouched.
+
+**Pre-implementation audit found the task brief's premise ("CLTC" as a separately-deployed
+app with its own Firebase auth) was stale** — same finding as Phase D. Built against the
+actual architecture: `src/` is a single multi-league app, "external league" = any
+`leagueId !== '1312130103358021632'` switched in via `LeagueContext`/`LeagueSwitcher`.
+
+**New files:**
+- `src/contexts/SleeperAuthContext.js` — `sleeperUser` state (`{ user_id, display_name, username }`),
+  `sleeperLogin(username)` (calls `GET https://api.sleeper.app/v1/user/{username}`, throws if not
+  found), `sleeperLogout()`. Persists to `localStorage` under `wmh_sleeper_user` (see CLAUDE.md
+  "localStorage Keys"), restored on mount. Wrapped around `<AppInner>` in `App.js` alongside the
+  existing `LeagueProvider`/`AuthProvider`.
+- `src/components/SleeperLogin.jsx` — modal form (username input + submit), styled to match
+  `LeagueSwitcher.jsx`'s existing overlay/card pattern for visual consistency. Loading + error states.
+- `api/user-data.js` — Vercel **Node** serverless function (not Python, unlike `api/league.py` etc. —
+  no player/roster processing needed, so no reason to pay Python cold-start cost). `GET
+  ?action=get&user_id=&league_id=` returns `{ watchlist: [], goals: [] }` defaults or the stored
+  object; `POST` with `{ action: 'set', user_id, league_id, data }` writes it. Reuses the **same**
+  `KV_REST_API_URL`/`KV_REST_API_TOKEN` Upstash env vars `api/league.py` already uses (Phase B —
+  confirmed live, not just planned; see `project_phase_b_kv` memory, which had a stale index line
+  saying otherwise and was corrected during this session). Key: `user_{user_id}_league_{league_id}`,
+  no TTL (persistent, unlike the 1h/24h caches elsewhere). 400 if `user_id`/`league_id` missing.
+  `kvGet`/`kvSet` no-op gracefully if the env vars are absent (mirrors `api/league.py`'s pattern).
+- `src/services/sleeperDataService.js` — `fetchUserData`/`saveUserData` fetch wrappers for the above,
+  plus `genId()` (client-side id generation — there's no Firestore auto-id here).
+
+**`src/pages/Blueprint.js` changes:**
+- Removed `ComingSoonCard` (dead code — Goals/Watchlist no longer show a static "coming soon" for
+  external leagues, they now have a real Sleeper-backed path).
+- New `useSleeperBlueprintData(sleeperUser, leagueId, myOwner, myOutlook, positionalRankings, pickYears)`
+  hook — mirrors `GoalsSection`/`WatchlistSection`'s Firestore load/auto-goal-generation/save logic,
+  but against `/api/user-data`. Goals and watchlist are loaded/saved together under one KV key (not
+  two independent Firestore subcollections), so **one hook owns both** to avoid a goal-only save
+  clobbering a concurrent watchlist-only save (a real risk with two independent components hitting
+  the same key) — new `SleeperGoalsSection`/`SleeperWatchlistSection` are presentational, receiving
+  state + handlers as props instead of loading internally like their Firestore counterparts.
+- New `SleeperLoginPrompt` — single combined card ("Log in with your Sleeper account to save your
+  watchlist and goals") shown in the Goals slot when `!sleeperUser`; the Watchlist slot renders
+  nothing in that case rather than a duplicate prompt.
+- **`myOwner` resolution changed for external leagues.** Wilson's is unchanged (`viewAsOwner ||
+  userProfile?.rosterOwnerName`, Firebase-only). External leagues have no Firebase signup path, so
+  `myOwner = owner` — the same public sidebar "Viewing as" team selector every other Bucket A page
+  already uses, now also passed into `Blueprint` (previously it only received `data`/`setPage`).
+  This means Blueprint's *computed* sections (Value Proportion, Trade Strategy, Trade Targets, Sell
+  Candidates, Top Priorities, Trade Finder) work for external leagues independent of Sleeper login —
+  only Watchlist/Goals require it. The top-level `if (!myOwner) return …` guard's message now
+  branches by league: Wilson's keeps "account isn't linked to a roster," external leagues get
+  "Select your team from the sidebar to view your Blueprint."
+- **Known pre-existing gap, not fixed (flagged, out of scope):** `TradeTargetsSection`/
+  `SellCandidatesSection`'s dismiss/save buttons still key off Firebase `uid` (Firestore
+  `dismissedSuggestions`/`savedSuggestions`) for *all* leagues, and their loading `useEffect` early-
+  returns on falsy `uid` — so for a Sleeper-only external-league user (no Firebase account), those
+  two sections' dismiss/save UI will spin on "Loading…" forever. This predates this session (it was
+  already broken for the one prior working case — admin `ekleiner1123` viewing another league — in
+  the sense that it worked *only* via his Firebase uid); the task brief only asked for Watchlist/Goals
+  to move to KV, so this wasn't expanded into scope. Worth a follow-up if it comes up.
+
+**`src/App.js` changes:**
+- Wrapped `<AppInner>` in `<SleeperAuthProvider>` (inside `AuthProvider`, order doesn't matter — the
+  two contexts don't depend on each other).
+- `page === 'blueprint'` branch: `ProtectedRoute` (Firebase gate) now only wraps Blueprint when
+  `isWilsonsLeague`; external leagues render `<Blueprint>` directly. `owner` is now passed as a prop
+  to `<Blueprint>` (previously omitted).
+- Extended the existing owner-auto-select `useEffect` (already checked
+  `userProfile.rosterOwnerName`/`sleeperUsername`) to also check `sleeperUser.display_name`/
+  `username` — so logging in with Sleeper on an external league auto-selects that user's team in the
+  sidebar dropdown too, the same UX Firebase login already had.
+
+**`src/components/Sidebar.js` changes:**
+- New block below the existing Firebase "Signed in as" section, shown only when `!isWilsonsLeague`:
+  `sleeperUser` set → `"Sleeper: {display_name}"` + inline logout link; `sleeperUser` null → subtle
+  "Log in to save data" link that opens the `SleeperLogin` modal. Hidden entirely for Wilson's
+  (Firebase auth section already covers it there).
+
+**`CLAUDE.md` changes:**
+- New "localStorage Keys" table (consolidates `wmh_league_id`/`wmh_league_name`/`wmh_last_username`,
+  previously only documented here in HANDOFF.md's Phase A Step 3, plus the new `wmh_sleeper_user`).
+- New paragraph under "Authentication & Firebase" describing the Sleeper-login path and explicitly
+  noting it's identification-only, not real auth.
+
+**Verification:**
+- `CI=true npx react-scripts build` compiles clean, zero warnings.
+- Live-site Playwright pass (same constraint as every prior session touching Blueprint — the
+  Python/Node `/api/*` functions aren't reachable under `react-scripts start`, only the deployed
+  Vercel app): switched to CLTC via the sidebar league pill, opened Blueprint logged out of both
+  Firebase and Sleeper — confirmed the page renders (no redirect to Firebase Login) with the
+  combined Sleeper login prompt in the Goals slot and the rest of the computed sections present.
+  Logged in with Sleeper username `ekleiner1123` — prompt replaced by live Goals/Watchlist sections,
+  added a test watchlist entry, refreshed the page, confirmed it persisted (round-tripped through
+  `/api/user-data`). Sidebar shows the `Sleeper: <display_name>` indicator with logout link.
+  Switched back to Wilson's — Sleeper indicator disappears, Blueprint still requires Firebase login
+  as before (redirects a logged-out session to `/login`, unchanged).
 
 ---
 

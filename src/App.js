@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useData } from './hooks/useData'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { LeagueProvider, useLeague } from './contexts/LeagueContext'
+import { SleeperAuthProvider, useSleeperAuth } from './contexts/SleeperAuthContext'
 import Sidebar from './components/Sidebar'
 import Home from './pages/Home'
 import TeamDeepDive from './pages/TeamDeepDive'
@@ -28,6 +29,7 @@ function AppInner() {
   const [switcherOpen,  setSwitcherOpen]  = useState(false)
   const { data, loading, error, refresh } = useData()
   const { userProfile } = useAuth()
+  const { sleeperUser } = useSleeperAuth()
   const { leagueId } = useLeague()
   const isWilsonsLeague = leagueId === '1312130103358021632'
 
@@ -41,13 +43,17 @@ function AppInner() {
   // selection is never overridden; it only fills in the '' reset left by the
   // leagueId effect above.  Falls back to sleeperUsername so external-league
   // display_names (which match the Sleeper username) are also recognised.
+  // Also checks sleeperUser (Sleeper-only login, external leagues) — display_name
+  // and username, same matching pattern as the Firebase profile fields.
   useEffect(() => {
-    if (!userProfile || !data?.teamOverview) return;
+    if (!data?.teamOverview) return;
     const ownersList = [...new Set(data.teamOverview.map(t => t.Owner))];
-    const candidate = [userProfile.rosterOwnerName, userProfile.sleeperUsername]
-      .find(n => n && ownersList.includes(n));
+    const candidate = [
+      userProfile?.rosterOwnerName, userProfile?.sleeperUsername,
+      sleeperUser?.display_name, sleeperUser?.username,
+    ].find(n => n && ownersList.includes(n));
     if (candidate) setOwner(prev => prev || candidate);
-  }, [data, userProfile]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [data, userProfile, sleeperUser]) // eslint-disable-line react-hooks/exhaustive-deps
 
   if (loading) return (
     <div style={{
@@ -151,7 +157,12 @@ function AppInner() {
           {!isWilsonsLeague && WILSONS_ONLY_PAGES[page]
             ? <WilsonsOnly pageName={WILSONS_ONLY_PAGES[page]} setPage={setPage} />
             : page === 'blueprint'
-              ? <ProtectedRoute setPage={setPage}><Blueprint data={data} setPage={setPage} /></ProtectedRoute>
+              // Wilson's Blueprint still requires Firebase login (unchanged). External
+              // leagues have no Firebase signup path, so Blueprint renders directly —
+              // Goals/Watchlist gate on Sleeper login internally instead (see Blueprint.js).
+              ? isWilsonsLeague
+                ? <ProtectedRoute setPage={setPage}><Blueprint data={data} owner={owner} setPage={setPage} /></ProtectedRoute>
+                : <Blueprint data={data} owner={owner} setPage={setPage} />
               : <PageComponent data={data} owner={owner} setPage={setPage} />
           }
         </div>
@@ -164,7 +175,9 @@ export default function App() {
   return (
     <LeagueProvider>
       <AuthProvider>
-        <AppInner />
+        <SleeperAuthProvider>
+          <AppInner />
+        </SleeperAuthProvider>
       </AuthProvider>
     </LeagueProvider>
   )

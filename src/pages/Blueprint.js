@@ -1,11 +1,14 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { useLeague } from '../contexts/LeagueContext'
+import { useSleeperAuth } from '../contexts/SleeperAuthContext'
+import SleeperLogin from '../components/SleeperLogin'
 import {
   loadGoals, saveGoal, updateGoalStatus, deleteGoal,
   loadWatchlist, addToWatchlist, removeFromWatchlist,
   loadDismissed, dismissSuggestion, loadSaved, saveSuggestion, removeSavedSuggestion,
 } from '../services/blueprintService'
+import { fetchUserData, saveUserData, genId } from '../services/sleeperDataService'
 import {
   calcAdjusted, tradeCompatible, computeQbNeed, computeStudTax,
   outlookIsRebuild, outlookIsContender, isYoungUpside, isAgedTradeCandidate,
@@ -699,6 +702,139 @@ function WatchlistSection({ uid, data, allAssets, outlookByOwner }) {
   )
 }
 
+// ── Section 1/2 (Sleeper auth, external leagues): Goals + Watchlist backed by
+// /api/user-data (Vercel KV) instead of Firestore — see SleeperAuthContext.js.
+// Loaded/saved together under one KV key, so the hook owns both to avoid one
+// save clobbering the other.
+function useSleeperBlueprintData(sleeperUser, leagueId, myOwner, myOutlook, positionalRankings, pickYears) {
+  const [goals,     setGoals]     = useState([])
+  const [watchlist, setWatchlist] = useState([])
+  const [loading,   setLoading]   = useState(true)
+
+  useEffect(() => {
+    if (!sleeperUser || !leagueId) { setLoading(false); return }
+    let cancelled = false
+    setLoading(true)
+    fetchUserData(sleeperUser.user_id, leagueId).then(async remote => {
+      if (cancelled) return
+      let nextGoals = remote.goals || []
+      const hasOutlook = nextGoals.some(g => g.type === 'auto' && g.outlookContext === myOutlook)
+      if (!hasOutlook && myOwner && myOutlook) {
+        const generated = generateAutoGoals(myOutlook, positionalRankings, myOwner, pickYears)
+          .map(g => ({ ...g, id: genId() }))
+        nextGoals = [...generated, ...nextGoals.filter(g => g.type === 'custom')]
+        await saveUserData(sleeperUser.user_id, leagueId, { goals: nextGoals, watchlist: remote.watchlist || [] })
+      }
+      setGoals(nextGoals)
+      setWatchlist(remote.watchlist || [])
+      setLoading(false)
+    })
+    return () => { cancelled = true }
+  }, [sleeperUser, leagueId, myOwner, myOutlook]) // eslint-disable-line
+
+  function persist(nextGoals, nextWatchlist) {
+    saveUserData(sleeperUser.user_id, leagueId, { goals: nextGoals, watchlist: nextWatchlist })
+  }
+
+  function handleGoalAdd(text) {
+    const goal = { id: genId(), text, type: 'custom', outlookContext: myOutlook, status: 'active', createdAt: new Date().toISOString() }
+    setGoals(prev => { const next = [...prev, goal]; persist(next, watchlist); return next })
+  }
+  function handleGoalStatus(id, status) {
+    setGoals(prev => { const next = prev.map(g => g.id === id ? { ...g, status } : g); persist(next, watchlist); return next })
+  }
+  function handleGoalDelete(id) {
+    setGoals(prev => { const next = prev.filter(g => g.id !== id); persist(next, watchlist); return next })
+  }
+  function handleWatchAdd(asset) {
+    const name = asset.Player || asset['Player / Pick'] || ''
+    if (!name || watchlist.some(w => w.playerName === name)) return
+    setWatchlist(prev => { const next = [...prev, { id: genId(), playerName: name, addedAt: new Date().toISOString() }]; persist(goals, next); return next })
+  }
+  function handleWatchRemove(id) {
+    setWatchlist(prev => { const next = prev.filter(w => w.id !== id); persist(goals, next); return next })
+  }
+
+  return { goals, watchlist, loading, handleGoalAdd, handleGoalStatus, handleGoalDelete, handleWatchAdd, handleWatchRemove }
+}
+
+function SleeperGoalsSection({ goals, loading, myOutlook, onAdd, onStatus, onDelete }) {
+  const [text, setText] = useState('')
+
+  const visible = goals.filter(g => g.status !== 'dismissed')
+  const autoV   = visible.filter(g => g.type === 'auto' && g.outlookContext === myOutlook)
+  const custV   = visible.filter(g => g.type === 'custom')
+
+  return (
+    <div className='card' style={{ marginBottom: '1.25rem' }}>
+      <div className='card-header'><h3>Roster Composition Goals</h3></div>
+      <div style={{ padding: '1rem' }}>
+        {loading
+          ? <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>Loading...</div>
+          : <>
+              {autoV.map(g => <GoalRow key={g.id} goal={g} onStatus={onStatus} onDismiss={id => onStatus(id, 'dismissed')} />)}
+              {custV.length > 0 && <>
+                <div style={{ fontSize: '11px', color: 'var(--text-muted)', margin: '12px 0 8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Custom</div>
+                {custV.map(g => <GoalRow key={g.id} goal={g} onStatus={onStatus} onDismiss={onDelete} isCustom />)}
+              </>}
+              <div style={{ display: 'flex', gap: '8px', marginTop: '14px' }}>
+                <input value={text} onChange={e => setText(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && text.trim()) { onAdd(text.trim()); setText('') } }}
+                  placeholder='Add a custom goal...'
+                  style={{ flex: 1, padding: '8px 12px', borderRadius: '8px', fontSize: '13px', border: '1px solid var(--card-border)', background: 'var(--page-bg)', color: 'var(--text-primary)' }}
+                />
+                <button onClick={() => { if (text.trim()) { onAdd(text.trim()); setText('') } }} disabled={!text.trim()}
+                  style={{ padding: '8px 14px', borderRadius: '8px', fontSize: '13px', fontWeight: 600, background: '#3182ce', color: '#fff', border: 'none', cursor: 'pointer' }}>
+                  Add
+                </button>
+              </div>
+            </>
+        }
+      </div>
+    </div>
+  )
+}
+
+function SleeperWatchlistSection({ watchlist, loading, data, allAssets, outlookByOwner, onAdd, onRemove }) {
+  return (
+    <div className='card' style={{ marginBottom: '1.25rem' }}>
+      <div className='card-header'><h3>Watchlist</h3></div>
+      <div style={{ padding: '1rem' }}>
+        <div style={{ marginBottom: '10px' }}>
+          <AssetSearch onAdd={onAdd} allAssets={allAssets} placeholder='Add a player or pick to monitor...' />
+        </div>
+        {loading
+          ? <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>Loading...</div>
+          : watchlist.length === 0
+          ? <div style={{ fontSize: '13px', color: 'var(--text-muted)', textAlign: 'center', padding: '1rem' }}>No players on your watchlist yet.</div>
+          : <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              {watchlist.map(item => <WatchlistRow key={item.id} item={item} data={data} outlookByOwner={outlookByOwner} onRemove={onRemove} />)}
+            </div>
+        }
+      </div>
+    </div>
+  )
+}
+
+function SleeperLoginPrompt({ onLogin }) {
+  return (
+    <div className='card' style={{ marginBottom: '1.25rem' }}>
+      <div className='card-header'><h3>Roster Composition Goals & Watchlist</h3></div>
+      <div style={{ padding: '1.5rem', textAlign: 'center' }}>
+        <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '14px' }}>
+          Log in with your Sleeper account to save your watchlist and goals for this league.
+        </div>
+        <button onClick={onLogin} style={{
+          padding: '9px 18px', borderRadius: '8px', border: 'none',
+          background: '#3182ce', color: '#fff', fontSize: '13px',
+          fontWeight: 600, cursor: 'pointer',
+        }}>
+          Log in with Sleeper
+        </button>
+      </div>
+    </div>
+  )
+}
+
 // ── Section 2.5: Value Proportion ─────────────────────────────────────────────
 const POS_COLORS = { QB: '#fc8181', RB: '#68d391', WR: '#63b3ed', TE: '#f6e05e', Picks: '#b794f4' }
 
@@ -1361,27 +1497,19 @@ function TradeFinderSection({ myOwner, myOutlook, data, allAssets, outlookByOwne
   )
 }
 
-// ── Coming soon (external leagues): Goals/Watchlist are Firestore-backed and tied to
-// Wilson's-only signup today — see HANDOFF.md Phase C Step 5 for why this isn't wired up
-// for other leagues rather than showing a broken/empty Firestore-backed section.
-function ComingSoonCard({ title }) {
-  return (
-    <div className='card' style={{ marginBottom: '1.25rem' }}>
-      <div className='card-header'><h3>{title}</h3></div>
-      <div style={{ padding: '1.5rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px' }}>
-        Coming soon for this league.
-      </div>
-    </div>
-  )
-}
-
 // ── Main export ───────────────────────────────────────────────────────────────
-export default function Blueprint({ data, setPage }) {
+export default function Blueprint({ data, owner, setPage }) {
   const { currentUser, userProfile, viewAsOwner } = useAuth()
   const { leagueId } = useLeague()
+  const { sleeperUser } = useSleeperAuth()
+  const [sleeperLoginOpen, setSleeperLoginOpen] = useState(false)
   const isWilsonsLeague = leagueId === '1312130103358021632'
-  const myOwner = viewAsOwner || userProfile?.rosterOwnerName
-  // uid is always the real logged-in user — never swapped by viewAsOwner
+  // Wilson's: identity (and "my team") comes from the Firebase profile, unchanged.
+  // External leagues: no Firebase signup path exists, so "my team" is whatever the
+  // public sidebar team selector has picked — the same mechanism every other page
+  // already uses for external leagues. Sleeper login only gates Goals/Watchlist below.
+  const myOwner = isWilsonsLeague ? (viewAsOwner || userProfile?.rosterOwnerName) : owner
+  // uid is always the real logged-in Wilson's user — never swapped by viewAsOwner
   const uid           = currentUser?.uid
   // personalOwner/personalOutlook are NEVER affected by viewAsOwner.
   // Used for all Firestore reads/writes (goals, watchlist) so data stays
@@ -1430,9 +1558,17 @@ export default function Blueprint({ data, setPage }) {
     return [...players, ...picks]
   }, [data, pickValueMap])
 
+  const sleeperBlueprint = useSleeperBlueprintData(
+    !isWilsonsLeague ? sleeperUser : null, leagueId, myOwner, myOutlook, positionalRankings, pickYears
+  )
+
   if (!myOwner) return (
     <div className='page'>
-      <div style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>Your account isn't linked to a roster. Contact the commissioner.</div>
+      <div style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>
+        {isWilsonsLeague
+          ? "Your account isn't linked to a roster. Contact the commissioner."
+          : 'Select your team from the sidebar to view your Blueprint.'}
+      </div>
     </div>
   )
 
@@ -1445,13 +1581,21 @@ export default function Blueprint({ data, setPage }) {
         {viewAsOwner && <span style={{ marginLeft: '10px', fontSize: '11px', background: 'rgba(246,224,94,0.15)', color: '#d69e2e', padding: '2px 8px', borderRadius: '99px' }}>Admin view</span>}
       </div>
 
+      {sleeperLoginOpen && <SleeperLogin onClose={() => setSleeperLoginOpen(false)} />}
+
       {isWilsonsLeague
         ? <GoalsSection uid={uid} myOwner={personalOwner} myOutlook={personalOutlook} positionalRankings={positionalRankings} pickYears={pickYears} />
-        : <ComingSoonCard title='Roster Composition Goals' />
+        : sleeperUser
+          ? <SleeperGoalsSection goals={sleeperBlueprint.goals} loading={sleeperBlueprint.loading} myOutlook={myOutlook}
+              onAdd={sleeperBlueprint.handleGoalAdd} onStatus={sleeperBlueprint.handleGoalStatus} onDelete={sleeperBlueprint.handleGoalDelete} />
+          : <SleeperLoginPrompt onLogin={() => setSleeperLoginOpen(true)} />
       }
       {isWilsonsLeague
         ? <WatchlistSection uid={uid} data={data} allAssets={allAssets} outlookByOwner={outlookByOwner} />
-        : <ComingSoonCard title='Watchlist' />
+        : sleeperUser
+          ? <SleeperWatchlistSection watchlist={sleeperBlueprint.watchlist} loading={sleeperBlueprint.loading} data={data} allAssets={allAssets} outlookByOwner={outlookByOwner}
+              onAdd={sleeperBlueprint.handleWatchAdd} onRemove={sleeperBlueprint.handleWatchRemove} />
+          : null /* single combined prompt above already covers both Goals and Watchlist */
       }
       <ValueProportionSection myOwner={myOwner} data={data} />
       <TradeStrategySection myOwner={myOwner} data={data} />

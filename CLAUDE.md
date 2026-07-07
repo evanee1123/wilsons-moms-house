@@ -406,6 +406,35 @@ Both leagues use Firebase Authentication (email/password) and Firestore.
 - `/blueprint` requires login. All other pages are public.
 - Sidebar shows Login/Signup when logged out, username + Logout when logged in.
 
+**Sleeper-based login (external leagues, `src/contexts/SleeperAuthContext.js`):**
+- The repo's `src/` app now supports viewing any Sleeper dynasty league, not just Wilson's
+  (switched in-place via `LeagueContext`/`LeagueSwitcher` — see HANDOFF.md "Phase A —
+  Multi-League Support"). Firebase signup/login is Wilson's-only (`Signup.js` hardcodes
+  Wilson's `LEAGUE_ID` when verifying Sleeper membership), so external-league visitors have
+  no Firebase account path.
+- `SleeperAuthContext` provides a lightweight, unauthenticated identity check — `sleeperLogin(username)`
+  calls `https://api.sleeper.app/v1/user/{username}` and, if found, stores `{ user_id, display_name, username }`
+  in state + `localStorage` (`wmh_sleeper_user`). This is **identification only, not real
+  authentication** (no password) — acceptable for a fantasy tool with no sensitive data.
+- Used to gate Blueprint's Watchlist/Goals sections for external leagues only — persisted via
+  `/api/user-data` (Upstash/Vercel KV, key `user_{user_id}_league_{league_id}`) instead of
+  Firestore. Wilson's Blueprint is completely unaffected — it still requires Firebase login
+  and still reads/writes Firestore `users/{uid}/goals` and `users/{uid}/watchlist`.
+- For external leagues, Blueprint itself no longer requires Firebase login to view (only the
+  Sleeper-gated Goals/Watchlist sections do) — `App.js` only wraps Blueprint in `ProtectedRoute`
+  when `isWilsonsLeague`.
+
+---
+
+## localStorage Keys
+
+| Key | Written by | Purpose |
+|-----|-----------|---------|
+| `wmh_league_id` | `LeagueContext.js` | Active Sleeper league ID (defaults to Wilson's) |
+| `wmh_league_name` | `LeagueContext.js` | Active league display name |
+| `wmh_last_username` | `LeagueSwitcher.jsx` | Last Sleeper username looked up, pre-fills the switcher input |
+| `wmh_sleeper_user` | `SleeperAuthContext.js` | `{ user_id, display_name, username }` for Sleeper-based login (external leagues' Blueprint Watchlist/Goals) — identification only, not a real session/token |
+
 ---
 
 ## Security
